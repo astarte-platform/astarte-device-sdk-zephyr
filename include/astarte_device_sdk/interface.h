@@ -3,6 +3,8 @@
 
 #include <inttypes.h>
 
+#include "astarte_device_sdk/mapping.h"
+
 /**
  * @brief interface ownership
  *
@@ -44,13 +46,17 @@ typedef enum
  *
  * This struct represents a subset of the information contained in an Astarte interface, and can be
  * used to specify some details about a specific interface.
- * 
+ *
  */
 typedef struct
 {
     const char *name; /**< Interface name */
     uint32_t major_version; /**< Major version */
     uint32_t minor_version; /**< Minor version */
-    ad_interface_ownership_t ownership; /**< Ownership, see #interface_ownership_t */
-    ad_interface_type_t type; /**< Type, see #interface_type_t */
+    ad_mapping_list_t mappings; /**< Mappings, see #ad_mapping_list_t */
+    ad_interface_ownership_t ownership; /**< Ownership, see #ad_interface_ownership_t */
+    ad_interface_aggregation_t aggregation; /**< Aggregation, see #ad_interface_aggregation_t */
+    ad_interface_type_t type; /**< Type, see #ad_interface_type_t */
 } ad_interface_t;
+
+#endif // AD_INTERFACE_H
