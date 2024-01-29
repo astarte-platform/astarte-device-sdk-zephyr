@@ -37,6 +37,7 @@ typedef enum
    ASTARTE_ERR_SOCKET = 5, /**< Error during TCP socket creation. */
    ASTARTE_ERR_HTTP_REQUEST = 6, /**< An HTTP request could not be processed. */
    ASTARTE_ERR_JSON = 7, /**< Attempting to parse/encode a malformed JSON document. */
+   ASTARTE_ERR_MQTT = 8, /**< Internal error from the MQTT library. */
    ASTARTE_ERR_MBEDTLS = 9, /**< Internal error from the MBEDTLS library. */
 } astarte_err_t;
 

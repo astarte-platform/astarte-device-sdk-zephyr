@@ -42,6 +42,7 @@ int main(void)
 
     astarte_device_config_t device_config;
     device_config.http_timeout_ms = 3 * MSEC_PER_SEC;
+    device_config.mqtt_first_timeout_ms = 5 * MSEC_PER_SEC;
 
     astarte_err_t astarte_err = astarte_pairing_register_device(
         device_config.http_timeout_ms, device_config.cred_secr, ASTARTE_PAIRING_CRED_SECR_LEN + 1);
@@ -56,6 +57,19 @@ int main(void)
     if (astarte_err != ASTARTE_OK) {
         return -1;
     }
+
+    // device.broker_hostname = "test.mosquitto.org";
+    // device.broker_port = "8883";
+
+    astarte_err = astarte_device_connect(&device);
+    if (astarte_err != ASTARTE_OK) {
+        return -1;
+    }
+
+    // astarte_err = astarte_device_poll(&device);
+    // if (astarte_err != ASTARTE_OK) {
+    //     return -1;
+    // }
 
     while (1) {
         int value = unit_testable_component_get_value(0);

@@ -34,6 +34,14 @@ config ASTARTE_DEVICE_SDK_CA_CERT_TAG
 	  The CA certificate should be added by the user with the tls_credential_add function.
 	  This configuration option should be set to the tag used when adding the CA certificate.
 
+config ASTARTE_DEVICE_SDK_CLIENT_CERT_TAG
+	int "TLS security tag for client certificate"
+	depends on ASTARTE_DEVICE_SDK
+	depends on !ASTARTE_DEVICE_SDK_DEVELOP_DISABLE_TLS
+	help
+	  The Astarte device SDK will use this TLS security tag to add the client certificate to
+	  Zephyr's cretentials.
+
 config ASTARTE_DEVICE_SDK_GENERATE_DEVICE_ID
 	bool "Dynamic generation of the device ID"
 	depends on ASTARTE_DEVICE_SDK

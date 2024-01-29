@@ -28,6 +28,7 @@ static const astarte_err_msg_t astarte_err_msg_table[] = {
     ERR_TBL_IT(ASTARTE_ERR_SOCKET),
     ERR_TBL_IT(ASTARTE_ERR_HTTP_REQUEST),
     ERR_TBL_IT(ASTARTE_ERR_JSON),
+    ERR_TBL_IT(ASTARTE_ERR_MQTT),
     ERR_TBL_IT(ASTARTE_ERR_MBEDTLS),
 };
 
