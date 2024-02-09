@@ -81,18 +81,18 @@ int main(void)
     device_config.mqtt_connected_timeout_ms = MQTT_POLL_TIMEOUT_MS;
     memcpy(device_config.cred_secr, cred_secr, sizeof(cred_secr));
 
-    astarte_device_t device;
+    astarte_handle_t device = NULL;
     astarte_err = astarte_device_init(&device_config, &device);
     if (astarte_err != ASTARTE_OK) {
         return -1;
     }
 
-    astarte_err = astarte_device_connect(&device);
+    astarte_err = astarte_device_connect(device);
     if (astarte_err != ASTARTE_OK) {
         return -1;
     }
 
-    astarte_err = astarte_device_poll(&device);
+    astarte_err = astarte_device_poll(device);
     if (astarte_err != ASTARTE_OK) {
         return -1;
     }
@@ -100,7 +100,7 @@ int main(void)
     while (1) {
         k_timepoint_t timepoint = sys_timepoint_calc(K_MSEC(CONFIG_SLEEP_MS));
 
-        astarte_err = astarte_device_poll(&device);
+        astarte_err = astarte_device_poll(device);
         if (astarte_err != ASTARTE_OK) {
             return -1;
         }

@@ -41,8 +41,10 @@ typedef enum
    ASTARTE_ERR_NOT_FOUND = 9, /**< The resource was not found. */
    ASTARTE_ERR_INTERFACE_ALREADY_PRESENT = 10, /**< Interface is already present in the introspection */
    ASTARTE_ERR_INTERFACE_NOT_FOUND = 11, /**< Interface not found in the introspection */
-   ASTARTE_ERR_TLS = 12, /**< Error from the TLS credential zephyr module. */
-   ASTARTE_ERR_MQTT = 13 /**< Internal error from the MQTT library. */
+   ASTARTE_ERR_INTERFACE_INVALID_VERSION_ZERO = 12, /**< Trying to add an interface with both major an minor set to 0 */
+   ASTARTE_ERR_INTERFACE_CONFLICTING = 13, /**< Trying to add an interface that conflicts with the previous one */
+   ASTARTE_ERR_TLS = 14, /**< Error from the TLS credential zephyr module. */
+   ASTARTE_ERR_MQTT = 15 /**< Internal error from the MQTT library. */
 } astarte_err_t;
 
 // clang-format on

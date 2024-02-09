@@ -21,14 +21,6 @@
 LOG_MODULE_REGISTER( // NOLINT
     astarte_introspection, CONFIG_ASTARTE_DEVICE_SDK_INTROSPECTION_LOG_LEVEL); // NOLINT
 
-typedef struct
-{
-    const astarte_interface_t *interface;
-    /** @cond INTERNAL_HIDDEN */
-    sys_dnode_t node;
-    /** @endcond */
-} introspection_node_t;
-
 /**
  * @brief Function used to find a `introspection_node_t` from an interface_name
  *
@@ -110,15 +102,11 @@ astarte_err_t introspection_add(
     return ASTARTE_OK;
 }
 
-const astarte_interface_t *introspection_get(introspection_t *introspection, char *interface_name)
+introspection_node_t *introspection_get_node(introspection_t *introspection, char *interface_name)
 {
     introspection_node_t *alloc_node = find_node_by_name(introspection, interface_name);
 
-    if (!alloc_node) {
-        return NULL;
-    }
-
-    return alloc_node->interface;
+    return alloc_node;
 }
 
 astarte_err_t introspection_remove(introspection_t *introspection, char *interface_name)

@@ -22,12 +22,15 @@
 
 #include "astarte_device_sdk/astarte.h"
 #include "astarte_device_sdk/error.h"
+#include "astarte_device_sdk/interface.h"
 #include "astarte_device_sdk/pairing.h"
 
 /** @brief Max allowed hostname characters are 253 */
 #define ASTARTE_MAX_MQTT_BROKER_HOSTNAME_LEN 253
 /** @brief Max allowed port number is 65535 */
 #define ASTARTE_MAX_MQTT_BROKER_PORT_LEN 5
+
+typedef struct astarte_device_t *astarte_handle_t;
 
 /**
  * @brief Configuration struct for an Astarte device.
@@ -47,22 +50,6 @@ typedef struct
     char cred_secr[ASTARTE_PAIRING_CRED_SECR_LEN + 1];
 } astarte_device_config_t;
 
-/**
- * @brief Internal struct for an instance of an Astarte device.
- *
- * @warning Users should not modify the content of this struct directly
- */
-typedef struct
-{
-    /** @cond INTERNAL_HIDDEN */
-    int32_t mqtt_connection_timeout_ms;
-    int32_t mqtt_connected_timeout_ms;
-    char broker_hostname[ASTARTE_MAX_MQTT_BROKER_HOSTNAME_LEN + 1];
-    char broker_port[ASTARTE_MAX_MQTT_BROKER_PORT_LEN + 1];
-    struct mqtt_client mqtt_client;
-    /** @endcond */
-} astarte_device_t;
-
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -71,15 +58,29 @@ extern "C" {
  * @brief Initialize an Astarte device.
  *
  * @details This function has to be called to initialize the device SDK before doing anything else.
+ * If an error code is returned the astarte_device_free function must not be called.
  *
  * @note A device can be instantiated and connected to Astarte only if it has been previously
  * registered on Astarte.
  *
  * @param[in] cfg Configuration struct.
  * @param[out] device Device instance to initialize.
- * @return ASTARTE_OK if successful, otherwise an error code.
+ * @return result code of the initialization
+ * @retval ASTARTE_OK successful initialization
+ * @retval ASTARTE_ERR_INVALID_PARAM if the passed device_handle_ptr is NULL
+ * @retval ASTARTE_ERR_OUT_OF_MEMORY could't allocate memory needed for the device handle
+ * @retval ASTARTE_ERR_INTERFACE_ALREADY_PRESENT an interface in the cfg interfaces array is duplicated
  */
-astarte_err_t astarte_device_init(astarte_device_config_t *cfg, astarte_device_t *device);
+astarte_err_t astarte_device_init(astarte_device_config_t *cfg, astarte_handle_t *device_handle);
+
+/**
+ * @brief Frees an Astarte device initialized with #astarte_device_init.
+ *
+ * @details This function has to be called to free correctly the device SDK.
+ *
+ * @param[in,out] device A correctly initialized device handle.
+ */
+void astarte_device_free(astarte_handle_t device);
 
 /**
  * @brief Connect a device to Astarte.
@@ -87,7 +88,7 @@ astarte_err_t astarte_device_init(astarte_device_config_t *cfg, astarte_device_t
  * @param[in] device Device instance to connect to Astarte.
  * @return ASTARTE_OK if successful, otherwise an error code.
  */
-astarte_err_t astarte_device_connect(astarte_device_t *device);
+astarte_err_t astarte_device_connect(astarte_handle_t device);
 
 /**
  * @brief Poll data from Astarte.
@@ -95,7 +96,7 @@ astarte_err_t astarte_device_connect(astarte_device_t *device);
  * @param[in] device Device instance to connect to Astarte.
  * @return ASTARTE_OK if successful, otherwise an error code.
  */
-astarte_err_t astarte_device_poll(astarte_device_t *device);
+astarte_err_t astarte_device_poll(astarte_handle_t device);
 
 #ifdef __cplusplus
 }

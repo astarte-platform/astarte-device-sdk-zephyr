@@ -27,6 +27,14 @@ typedef struct
     /** @endcond */
 } introspection_t;
 
+typedef struct
+{
+    const astarte_interface_t *interface;
+    /** @cond INTERNAL_HIDDEN */
+    sys_dnode_t node;
+    /** @endcond */
+} introspection_node_t;
+
 #ifdef __cplusplus
 extern "C" {
 #endif
