@@ -18,6 +18,8 @@
  * @{
  */
 
+#include <zephyr/net/mqtt.h>
+
 #include "astarte_device_sdk/astarte.h"
 #include "astarte_device_sdk/error.h"
 #include "astarte_device_sdk/pairing.h"
@@ -37,6 +39,8 @@ typedef struct
 {
     /** @brief Timeout for HTTP requests. */
     int32_t http_timeout_ms;
+    /** @brief Timeout for MQTT first connection. */
+    int32_t mqtt_first_timeout_ms;
     /** @brief Credential secret to be used for connecting to Astarte. */
     char cred_secr[ASTARTE_PAIRING_CRED_SECR_LEN + 1];
 } astarte_device_config_t;
@@ -48,8 +52,10 @@ typedef struct
  */
 typedef struct
 {
+    int32_t mqtt_first_timeout_ms; /**< Internal field. */
     char broker_hostname[ASTARTE_MAX_MQTT_BROKER_HOSTNAME_LEN + 1]; /**< Internal field. */
     char broker_port[ASTARTE_MAX_MQTT_BROKER_PORT_LEN + 1]; /**< Internal field. */
+    struct mqtt_client mqtt_client; /**< Internal field. */
 } astarte_device_t;
 
 #ifdef __cplusplus
@@ -69,6 +75,22 @@ extern "C" {
  * @return ASTARTE_OK if successful, otherwise an error code.
  */
 astarte_err_t astarte_device_init(astarte_device_config_t *cfg, astarte_device_t *device);
+
+/**
+ * @brief Connect a device to Astarte.
+ *
+ * @param[in] device Device instance to connect to Astarte.
+ * @return ASTARTE_OK if successful, otherwise an error code.
+ */
+astarte_err_t astarte_device_connect(astarte_device_t *device);
+
+/**
+ * @brief Poll data from Astarte.
+ *
+ * @param[in] device Device instance to connect to Astarte.
+ * @return ASTARTE_OK if successful, otherwise an error code.
+ */
+astarte_err_t astarte_device_poll(astarte_device_t *device);
 
 #ifdef __cplusplus
 }

@@ -12,7 +12,7 @@
 #include <zephyr/net/socket.h>
 #include <zephyr/posix/arpa/inet.h>
 
-#if !defined(CONFIG_ASTARTE_DEVICE_SDK_DEVELOP_DISABLE_TLS)
+#if !defined(CONFIG_ASTARTE_DEVICE_SDK_DEVELOP_DISABLE_OR_IGNORE_TLS)
 #include "ca_certificates.h"
 #include <zephyr/net/tls_credentials.h>
 #endif
@@ -45,9 +45,9 @@ int main(void)
 
     k_sleep(K_SECONDS(5)); // sleep for 5 seconds
 
-#if !defined(CONFIG_ASTARTE_DEVICE_SDK_DEVELOP_DISABLE_TLS)
-    tls_credential_add(CA_CERTIFICATE_ROOT_TAG, TLS_CREDENTIAL_CA_CERTIFICATE, ca_certificate_root,
-        sizeof(ca_certificate_root));
+#if !defined(CONFIG_ASTARTE_DEVICE_SDK_DEVELOP_DISABLE_OR_IGNORE_TLS)
+    tls_credential_add(CONFIG_ASTARTE_DEVICE_SDK_CA_CERT_TAG, TLS_CREDENTIAL_CA_CERTIFICATE,
+        ca_certificate_root, sizeof(ca_certificate_root));
 #endif
 
     bool has_cred_secr = false;
@@ -75,10 +75,24 @@ int main(void)
 
     astarte_device_config_t device_config;
     device_config.http_timeout_ms = timeout_ms;
+    device_config.mqtt_first_timeout_ms = timeout_ms;
     memcpy(device_config.cred_secr, cred_secr, sizeof(cred_secr));
 
     astarte_device_t device;
     astarte_err = astarte_device_init(&device_config, &device);
+    if (astarte_err != ASTARTE_OK) {
+        return -1;
+    }
+
+    // device.broker_hostname = "test.mosquitto.org";
+    // device.broker_port = "8883";
+
+    astarte_err = astarte_device_connect(&device);
+    if (astarte_err != ASTARTE_OK) {
+        return -1;
+    }
+
+    astarte_err = astarte_device_poll(&device);
     if (astarte_err != ASTARTE_OK) {
         return -1;
     }
