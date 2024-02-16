@@ -44,82 +44,8 @@ static sec_tag_t sec_tag_list[] = {
     CONFIG_ASTARTE_DEVICE_SDK_CLIENT_CERT_TAG,
 };
 
-// /* MQTT connection status */
-// static bool mqtt_connected = false;
-
-/************************************************
- *       Callbacks declaration/definition       *
- ***********************************************/
-
-// NOLINTNEXTLINE(readability-function-size, hicpp-function-size)
-static void mqtt_evt_handler(struct mqtt_client *const client, const struct mqtt_evt *evt)
-{
-    switch (evt->type) {
-        case MQTT_EVT_CONNACK:
-            if (evt->result != 0) {
-                LOG_ERR("MQTT connect failed %d\n", evt->result); // NOLINT
-                break;
-            }
-
-            // mqtt_connected = true;
-            LOG_INF("MQTT client connected!\n"); // NOLINT
-
-            break;
-
-        case MQTT_EVT_DISCONNECT:
-            LOG_INF("MQTT client disconnected %d\n", evt->result); // NOLINT
-
-            // mqtt_connected = false;
-
-            break;
-
-        case MQTT_EVT_PUBACK:
-            if (evt->result != 0) {
-                LOG_ERR("MQTT PUBACK error %d\n", evt->result); // NOLINT
-                break;
-            }
-
-            LOG_INF("PUBACK packet id: %u\n", evt->param.puback.message_id); // NOLINT
-
-            break;
-
-        case MQTT_EVT_PUBREC:
-            if (evt->result != 0) {
-                LOG_ERR("MQTT PUBREC error %d\n", evt->result); // NOLINT
-                break;
-            }
-
-            LOG_INF("PUBREC packet id: %u\n", evt->param.pubrec.message_id); // NOLINT
-
-            const struct mqtt_pubrel_param rel_param
-                = { .message_id = evt->param.pubrec.message_id };
-
-            int err = mqtt_publish_qos2_release(client, &rel_param);
-            if (err != 0) {
-                LOG_ERR("Failed to send MQTT PUBREL: %d\n", err); // NOLINT
-            }
-
-            break;
-
-        case MQTT_EVT_PUBCOMP:
-            if (evt->result != 0) {
-                LOG_ERR("MQTT PUBCOMP error %d\n", evt->result); // NOLINT
-                break;
-            }
-
-            LOG_INF("PUBCOMP packet id: %u\\nn", evt->param.pubcomp.message_id); // NOLINT
-
-            break;
-
-        case MQTT_EVT_PINGRESP:
-            LOG_INF("PINGRESP packet\n"); // NOLINT
-            break;
-
-        default:
-            LOG_WRN("Unhandled MQTT event: %d\n", evt->type); // NOLINT
-            break;
-    }
-}
+// Placed here as there is no way to pass user data to the MQTT callback
+static bool mqtt_is_connected;
 
 /************************************************
  *         Static functions declaration         *
@@ -131,6 +57,68 @@ static void mqtt_evt_handler(struct mqtt_client *const client, const struct mqtt
  * @param[in] input_addinfo addrinfo struct to print.
  */
 static void dump_addrinfo(const struct addrinfo *input_addinfo);
+
+/************************************************
+ *       Callbacks declaration/definition       *
+ ***********************************************/
+
+// NOLINTNEXTLINE(readability-function-size, hicpp-function-size)
+static void mqtt_evt_handler(struct mqtt_client *const client, const struct mqtt_evt *evt)
+{
+    switch (evt->type) {
+        case MQTT_EVT_CONNACK:
+            if (evt->result != 0) {
+                LOG_ERR("MQTT connect failed %d", evt->result); // NOLINT
+                break;
+            }
+            LOG_DBG("MQTT client connected"); // NOLINT
+            mqtt_is_connected = true;
+            break;
+
+        case MQTT_EVT_DISCONNECT:
+            LOG_DBG("MQTT client disconnected %d", evt->result); // NOLINT
+            mqtt_is_connected = false;
+            break;
+
+        case MQTT_EVT_PUBACK:
+            if (evt->result != 0) {
+                LOG_ERR("MQTT PUBACK error %d", evt->result); // NOLINT
+                break;
+            }
+            LOG_DBG("PUBACK packet id: %u", evt->param.puback.message_id); // NOLINT
+            break;
+
+        case MQTT_EVT_PUBREC:
+            if (evt->result != 0) {
+                LOG_ERR("MQTT PUBREC error %d", evt->result); // NOLINT
+                break;
+            }
+            LOG_DBG("PUBREC packet id: %u", evt->param.pubrec.message_id); // NOLINT
+            const struct mqtt_pubrel_param rel_param
+                = { .message_id = evt->param.pubrec.message_id };
+            int err = mqtt_publish_qos2_release(client, &rel_param);
+            if (err != 0) {
+                LOG_ERR("Failed to send MQTT PUBREL: %d", err); // NOLINT
+            }
+            break;
+
+        case MQTT_EVT_PUBCOMP:
+            if (evt->result != 0) {
+                LOG_ERR("MQTT PUBCOMP error %d", evt->result); // NOLINT
+                break;
+            }
+            LOG_DBG("PUBCOMP packet id: %u", evt->param.pubcomp.message_id); // NOLINT
+            break;
+
+        case MQTT_EVT_PINGRESP:
+            LOG_DBG("PINGRESP packet"); // NOLINT
+            break;
+
+        default:
+            LOG_WRN("Unhandled MQTT event: %d", evt->type); // NOLINT
+            break;
+    }
+}
 
 /************************************************
  *         Global functions definitions         *
@@ -145,34 +133,31 @@ astarte_err_t astarte_device_init(astarte_device_config_t *cfg, astarte_device_t
         cfg->http_timeout_ms, cfg->cred_secr, broker_url, ASTARTE_PAIRING_MAX_BROKER_URL_LEN + 1);
     if (res != ASTARTE_OK) {
         LOG_ERR("Failed in obtaining the MQTT broker URL"); // NOLINT
-        goto end;
+        return res;
     }
 
     int strncmp_rc = strncmp(broker_url, "mqtts://", strlen("mqtts://"));
     if (strncmp_rc != 0) {
         LOG_ERR("MQTT broker URL is malformed"); // NOLINT
-        res = ASTARTE_ERR_HTTP_REQUEST;
-        goto end;
+        return ASTARTE_ERR_HTTP_REQUEST;
     }
     char *broker_url_token = strtok(&broker_url[strlen("mqtts://")], ":"); // NOLINT
     if (!broker_url_token) {
         LOG_ERR("MQTT broker URL is malformed"); // NOLINT
-        res = ASTARTE_ERR_HTTP_REQUEST;
-        goto end;
+        return ASTARTE_ERR_HTTP_REQUEST;
     }
     strncpy(device->broker_hostname, broker_url_token, ASTARTE_MAX_MQTT_BROKER_HOSTNAME_LEN + 1);
     broker_url_token = strtok(NULL, "/");
     if (!broker_url_token) {
         LOG_ERR("MQTT broker URL is malformed"); // NOLINT
-        res = ASTARTE_ERR_HTTP_REQUEST;
-        goto end;
+        return ASTARTE_ERR_HTTP_REQUEST;
     }
     strncpy(device->broker_port, broker_url_token, ASTARTE_MAX_MQTT_BROKER_PORT_LEN + 1);
 
     res = astarte_pairing_get_client_certificate(cfg->http_timeout_ms, cfg->cred_secr, privkey_pem,
         sizeof(privkey_pem), crt_pem, sizeof(crt_pem));
     if (res != ASTARTE_OK) {
-        goto end;
+        return res;
     }
 
     LOG_DBG("Client certificate (PEM): \n%s", crt_pem); // NOLINT
@@ -182,19 +167,20 @@ astarte_err_t astarte_device_init(astarte_device_config_t *cfg, astarte_device_t
         TLS_CREDENTIAL_SERVER_CERTIFICATE, crt_pem, strlen(crt_pem) + 1);
     if (tls_rc != 0) {
         LOG_ERR("Failed adding client crt to credentials %d.", tls_rc); // NOLINT
-        goto end;
+        return ASTARTE_ERR_TLS;
     }
 
     tls_rc = tls_credential_add(CONFIG_ASTARTE_DEVICE_SDK_CLIENT_CERT_TAG,
         TLS_CREDENTIAL_PRIVATE_KEY, privkey_pem, strlen(privkey_pem) + 1);
     if (tls_rc != 0) {
         LOG_ERR("Failed adding client private key to credentials %d.", tls_rc); // NOLINT
-        goto end;
+        return ASTARTE_ERR_TLS;
     }
 
-    device->mqtt_first_timeout_ms = cfg->mqtt_first_timeout_ms;
+    device->mqtt_connection_timeout_ms = cfg->mqtt_connection_timeout_ms;
+    device->mqtt_connected_timeout_ms = cfg->mqtt_connected_timeout_ms;
+    mqtt_is_connected = false;
 
-end:
     return res;
 }
 
@@ -208,7 +194,7 @@ astarte_err_t astarte_device_connect(astarte_device_t *device)
         = zsock_getaddrinfo(device->broker_hostname, device->broker_port, &hints, &broker_addrinfo);
     if (sock_rc != 0) {
         LOG_ERR("Unable to resolve broker address %d", sock_rc); // NOLINT
-        LOG_ERR("Errno: %s\n", strerror(errno)); // NOLINT
+        LOG_ERR("Errno: %s", strerror(errno)); // NOLINT
         return ASTARTE_ERR_SOCKET;
     }
 
@@ -224,7 +210,6 @@ astarte_err_t astarte_device_connect(astarte_device_t *device)
     device->mqtt_client.user_name = NULL;
     device->mqtt_client.protocol_version = MQTT_VERSION_3_1_1;
     device->mqtt_client.transport.type = MQTT_TRANSPORT_SECURE;
-    // device->mqtt_client.transport.type = MQTT_TRANSPORT_NON_SECURE;
 
     // MQTT TLS configuration
     struct mqtt_sec_config *tls_config = &(device->mqtt_client.transport.tls.config);
@@ -236,8 +221,6 @@ astarte_err_t astarte_device_connect(astarte_device_t *device)
     tls_config->cipher_list = NULL;
     tls_config->sec_tag_list = sec_tag_list;
     tls_config->sec_tag_count = ARRAY_SIZE(sec_tag_list);
-    // tls_config->sec_tag_list = NULL;
-    // tls_config->sec_tag_count = 0;
     tls_config->hostname = device->broker_hostname;
 
     // MQTT buffers configuration
@@ -249,7 +232,7 @@ astarte_err_t astarte_device_connect(astarte_device_t *device)
     // Request connection to broker
     int mqtt_rc = mqtt_connect(&device->mqtt_client);
     if (mqtt_rc != 0) {
-        LOG_ERR("MQTT connection error (%d)\n", mqtt_rc); // NOLINT
+        LOG_ERR("MQTT connection error (%d)", mqtt_rc); // NOLINT
         return ASTARTE_ERR_MQTT;
     }
 
@@ -263,7 +246,10 @@ astarte_err_t astarte_device_poll(astarte_device_t *device)
     int socket_nfds = 1;
     socket_fds[0].fd = device->mqtt_client.transport.tls.sock;
     socket_fds[0].events = ZSOCK_POLLIN;
-    int socket_rc = zsock_poll(socket_fds, socket_nfds, device->mqtt_first_timeout_ms);
+    int32_t timeout = (mqtt_is_connected) ? device->mqtt_connected_timeout_ms
+                                          : device->mqtt_connection_timeout_ms;
+    int32_t keepalive = mqtt_keepalive_time_left(&device->mqtt_client);
+    int socket_rc = zsock_poll(socket_fds, socket_nfds, MIN(timeout, keepalive));
     if (socket_rc < 0) {
         LOG_ERR("Poll error: %d", errno); // NOLINT
         return ASTARTE_ERR_SOCKET;
@@ -275,11 +261,18 @@ astarte_err_t astarte_device_poll(astarte_device_t *device)
     // Process the MQTT response
     int mqtt_rc = mqtt_input(&device->mqtt_client);
     if (mqtt_rc != 0) {
-        LOG_ERR("MQTT input failed (%d)\n", mqtt_rc); // NOLINT
+        LOG_ERR("MQTT input failed (%d)", mqtt_rc); // NOLINT
+        return ASTARTE_ERR_MQTT;
+    }
+    // Keep alive the connection
+    mqtt_rc = mqtt_live(&device->mqtt_client);
+    if ((mqtt_rc != 0) && (mqtt_rc != -EAGAIN)) {
+        LOG_ERR("Failed to keep alive MQTT: %d", mqtt_rc); // NOLINT
         return ASTARTE_ERR_MQTT;
     }
     return ASTARTE_OK;
 }
+
 /************************************************
  *         Static functions definitions         *
  ***********************************************/

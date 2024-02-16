@@ -39,8 +39,10 @@ typedef struct
 {
     /** @brief Timeout for HTTP requests. */
     int32_t http_timeout_ms;
-    /** @brief Timeout for MQTT first connection. */
-    int32_t mqtt_first_timeout_ms;
+    /** @brief Polling timeout for MQTT connection. */
+    int32_t mqtt_connection_timeout_ms;
+    /** @brief Polling timeout for MQTT operation. */
+    int32_t mqtt_connected_timeout_ms;
     /** @brief Credential secret to be used for connecting to Astarte. */
     char cred_secr[ASTARTE_PAIRING_CRED_SECR_LEN + 1];
 } astarte_device_config_t;
@@ -52,10 +54,13 @@ typedef struct
  */
 typedef struct
 {
-    int32_t mqtt_first_timeout_ms; /**< Internal field. */
-    char broker_hostname[ASTARTE_MAX_MQTT_BROKER_HOSTNAME_LEN + 1]; /**< Internal field. */
-    char broker_port[ASTARTE_MAX_MQTT_BROKER_PORT_LEN + 1]; /**< Internal field. */
-    struct mqtt_client mqtt_client; /**< Internal field. */
+    /** @cond INTERNAL_HIDDEN */
+    int32_t mqtt_connection_timeout_ms;
+    int32_t mqtt_connected_timeout_ms;
+    char broker_hostname[ASTARTE_MAX_MQTT_BROKER_HOSTNAME_LEN + 1];
+    char broker_port[ASTARTE_MAX_MQTT_BROKER_PORT_LEN + 1];
+    struct mqtt_client mqtt_client;
+    /** @endcond */
 } astarte_device_t;
 
 #ifdef __cplusplus

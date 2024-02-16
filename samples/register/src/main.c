@@ -26,6 +26,8 @@ LOG_MODULE_REGISTER(main, CONFIG_APP_LOG_LEVEL); // NOLINT
 #include "nvs.h"
 #include "wifi.h"
 
+#define MQTT_POLL_TIMEOUT_MS 150
+
 int main(void)
 {
     astarte_err_t astarte_err = ASTARTE_OK;
@@ -75,7 +77,8 @@ int main(void)
 
     astarte_device_config_t device_config;
     device_config.http_timeout_ms = timeout_ms;
-    device_config.mqtt_first_timeout_ms = timeout_ms;
+    device_config.mqtt_connection_timeout_ms = timeout_ms;
+    device_config.mqtt_connected_timeout_ms = MQTT_POLL_TIMEOUT_MS;
     memcpy(device_config.cred_secr, cred_secr, sizeof(cred_secr));
 
     astarte_device_t device;
@@ -83,9 +86,6 @@ int main(void)
     if (astarte_err != ASTARTE_OK) {
         return -1;
     }
-
-    // device.broker_hostname = "test.mosquitto.org";
-    // device.broker_port = "8883";
 
     astarte_err = astarte_device_connect(&device);
     if (astarte_err != ASTARTE_OK) {
@@ -98,8 +98,15 @@ int main(void)
     }
 
     while (1) {
+        k_timepoint_t timepoint = sys_timepoint_calc(K_MSEC(CONFIG_SLEEP_MS));
+
+        astarte_err = astarte_device_poll(&device);
+        if (astarte_err != ASTARTE_OK) {
+            return -1;
+        }
+
         LOG_INF("Hello world! %s", CONFIG_BOARD); // NOLINT
-        k_msleep(CONFIG_SLEEP_MS); // sleep for 1 second
+        k_sleep(sys_timepoint_timeout(timepoint));
     }
     return 0;
 }
