@@ -48,10 +48,11 @@ BUILD_ASSERT(sizeof(CONFIG_ASTARTE_DEVICE_SDK_REALM_NAME) != 1, "Missing realm n
 #define GET_BROKER_URL_RESPONSE_MAX_SIZE (50 + ASTARTE_PAIRING_MAX_BROKER_URL_LEN)
 
 // Payload will be a json like: {"data":{"csr":"<CSR>"}}
-#define GET_CLIENT_CRT_PAYLOAD_MAX_SIZE (25 + ASTARTE_CRYPTO_CSR_BUFFER_SIZE)
+#define GET_CLIENT_CRT_PAYLOAD_MAX_SIZE (25 + CONFIG_ASTARTE_DEVICE_SDK_ADVANCED_CSR_BUFFER_SIZE)
 // Correct response will be a json like: {"data":{"client_crt":"<CLIENT_CRT>"}}
 // The maximum size of the client certificate may vary depending on the server configuration.
-#define GET_CLIENT_CRT_RESPONSE_MAX_SIZE (50 + ASTARTE_PAIRING_MAX_CLIENT_CRT_LEN)
+#define GET_CLIENT_CRT_RESPONSE_MAX_SIZE                                                           \
+    (50 + CONFIG_ASTARTE_DEVICE_SDK_ADVANCED_CLIENT_CRT_BUFFER_SIZE)
 
 #define AUTH_HEADER_CRED_SECRET_SIZE 69 // Fixed string (24) + cred secret (44) + NULL (1)
 
@@ -197,11 +198,11 @@ astarte_err_t astarte_pairing_get_client_certificate(int32_t timeout_ms, const c
         LOG_ERR("Incorrect length for credential secret."); // NOLINT
         return ASTARTE_ERR_INVALID_PARAM;
     }
-    if (privkey_pem_size < ASTARTE_CRYPTO_PRIVKEY_BUFFER_SIZE) {
+    if (privkey_pem_size < CONFIG_ASTARTE_DEVICE_SDK_ADVANCED_PRIVKEY_BUFFER_SIZE) {
         LOG_ERR("Insufficient output buffer size for client private key."); // NOLINT
         return ASTARTE_ERR_INVALID_PARAM;
     }
-    if (crt_pem_size <= ASTARTE_PAIRING_MAX_CLIENT_CRT_LEN) {
+    if (crt_pem_size <= CONFIG_ASTARTE_DEVICE_SDK_ADVANCED_CLIENT_CRT_BUFFER_SIZE) {
         LOG_ERR("Insufficient output buffer size for client certificate."); // NOLINT
         return ASTARTE_ERR_INVALID_PARAM;
     }
@@ -213,7 +214,7 @@ astarte_err_t astarte_pairing_get_client_certificate(int32_t timeout_ms, const c
         return crypto_rc;
     }
 
-    unsigned char csr_buf[ASTARTE_CRYPTO_CSR_BUFFER_SIZE];
+    unsigned char csr_buf[CONFIG_ASTARTE_DEVICE_SDK_ADVANCED_CSR_BUFFER_SIZE];
     crypto_rc = astarte_crypto_create_csr(privkey_pem, csr_buf, sizeof(csr_buf));
     if (crypto_rc != ASTARTE_OK) {
         LOG_ERR("Failed in creating a CSR."); // NOLINT
@@ -477,10 +478,12 @@ static astarte_err_t parse_get_client_certificate_response(char *resp_buf, char 
     }
 
     // Copy the received credential secret in the output buffer
-    if (strlen(parsed_json.data.client_crt) > ASTARTE_PAIRING_MAX_CLIENT_CRT_LEN) {
+    if (strlen(parsed_json.data.client_crt)
+        > CONFIG_ASTARTE_DEVICE_SDK_ADVANCED_CLIENT_CRT_BUFFER_SIZE) {
         LOG_ERR("Received client certificate is too long."); // NOLINT
         return ASTARTE_ERR_INVALID_PARAM;
     }
-    strncpy(out_deb, parsed_json.data.client_crt, ASTARTE_PAIRING_MAX_CLIENT_CRT_LEN + 1);
+    strncpy(out_deb, parsed_json.data.client_crt,
+        CONFIG_ASTARTE_DEVICE_SDK_ADVANCED_CLIENT_CRT_BUFFER_SIZE + 1);
     return ASTARTE_OK;
 }

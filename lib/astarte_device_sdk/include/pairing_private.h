@@ -28,11 +28,6 @@
  */
 #define ASTARTE_PAIRING_MAX_BROKER_URL_LEN 268
 
-/** @brief Maximum supported size for a client certificate. */
-// TODO make this an SDK configuration parameter, so users can select an appropriate value
-// depending on their server configuration.
-#define ASTARTE_PAIRING_MAX_CLIENT_CRT_LEN 4069
-
 #ifdef __cplusplus
 extern "C" {
 #endif

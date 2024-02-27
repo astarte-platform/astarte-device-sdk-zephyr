@@ -7,6 +7,7 @@
 #include "crypto.h"
 
 #include <zephyr/net/socket.h>
+#include <zephyr/sys/timeutil.h>
 
 #include <mbedtls/ctr_drbg.h>
 #include <mbedtls/ecp.h>
@@ -165,7 +166,7 @@ exit:
 }
 
 astarte_err_t astarte_crypto_get_certificate_common_name(
-    const char *cert_pem, char *cert_cn, size_t cert_cn_size)
+    const char *cert_pem, char *cert_cn, size_t cert_cn_size, time_t *valid_to)
 {
     astarte_err_t exit_code = ASTARTE_ERR_MBEDTLS;
     mbedtls_x509_crt crt;
@@ -178,6 +179,7 @@ astarte_err_t astarte_crypto_get_certificate_common_name(
         goto exit;
     }
 
+    // Get common certificate name
     mbedtls_x509_name *subj_it = &crt.subject;
     while (subj_it && (MBEDTLS_OID_CMP(MBEDTLS_OID_AT_CN, &subj_it->oid) != 0)) {
         subj_it = subj_it->next;
@@ -195,6 +197,23 @@ astarte_err_t astarte_crypto_get_certificate_common_name(
         exit_code = ASTARTE_ERR;
         goto exit;
     }
+
+    // Get certificate expiry
+    LOG_DBG("Client certificate validity end."); // NOLINT
+    // NOLINTNEXTLINE
+    LOG_DBG("Year: %d, month: %d, day: %d, hour: %d, min %d, sec: %d", crt.valid_to.year,
+        crt.valid_to.mon, crt.valid_to.day, crt.valid_to.hour, crt.valid_to.min, crt.valid_to.sec);
+
+    const struct tm tm_valid_to = {
+        .tm_year = crt.valid_to.year - 1900,
+        .tm_mon = crt.valid_to.mon - 1,
+        .tm_mday = crt.valid_to.day,
+        .tm_hour = crt.valid_to.hour,
+        .tm_min = crt.valid_to.min,
+        .tm_sec = crt.valid_to.sec,
+    };
+    *valid_to = timeutil_timegm(&tm_valid_to);
+
     exit_code = ASTARTE_OK;
 
 exit:
