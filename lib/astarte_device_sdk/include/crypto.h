@@ -49,10 +49,11 @@ astarte_err_t astarte_crypto_create_csr(
  * @param[in] cert_pem Certificate in the PEM format.
  * @param[out] cert_cn Resulting common name.
  * @param[in] cert_cn_size Size of preallocated common name buffer
+ * @param[out] cert_valid_to Certificate validity end date (GMT)
  * @return ASTARTE_OK if successful, otherwise an error code.
  */
-astarte_err_t astarte_crypto_get_certificate_common_name(
-    const char *cert_pem, char *cert_cn, size_t cert_cn_size, time_t *valid_to);
+astarte_err_t astarte_crypto_get_certificate_info(
+    const char *cert_pem, char *cert_cn, size_t cert_cn_size, time_t *cert_valid_to);
 
 #ifdef __cplusplus
 }

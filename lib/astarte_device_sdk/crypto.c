@@ -165,8 +165,8 @@ exit:
     return exit_code;
 }
 
-astarte_err_t astarte_crypto_get_certificate_common_name(
-    const char *cert_pem, char *cert_cn, size_t cert_cn_size, time_t *valid_to)
+astarte_err_t astarte_crypto_get_certificate_info(
+    const char *cert_pem, char *cert_cn, size_t cert_cn_size, time_t *cert_valid_to)
 {
     astarte_err_t exit_code = ASTARTE_ERR_MBEDTLS;
     mbedtls_x509_crt crt;
@@ -212,7 +212,7 @@ astarte_err_t astarte_crypto_get_certificate_common_name(
         .tm_min = crt.valid_to.min,
         .tm_sec = crt.valid_to.sec,
     };
-    *valid_to = timeutil_timegm(&tm_valid_to);
+    *cert_valid_to = timeutil_timegm(&tm_valid_to);
 
     exit_code = ASTARTE_OK;
 

@@ -117,6 +117,19 @@ static ssize_t handle_published_message(
 static void on_incoming(astarte_device_handle_t device, const char *topic, size_t topic_len,
     const char *data, size_t data_len);
 /**
+ * @brief Fetch a new client certificate from Astarte.
+ *
+ * @details This function also adds the new certificate to the device TLS credentials.
+ *
+ * @param[in] http_timeout_ms Handle to the device instance.
+ * @param[in] cred_secr Handle to the device instance.
+ * @param[out] device Handle to the device instance where information from the new certificate will
+ * be stored.
+ * @return ASTARTE_OK if publish has been successful, an error code otherwise.
+ */
+static astarte_err_t get_new_client_certificate(int32_t http_timeout_ms,
+    char cred_secr[static ASTARTE_PAIRING_CRED_SECR_LEN + 1], astarte_device_handle_t device);
+/**
  * @brief Delete old client certificate and get a new one from Astarte.
  *
  * @param[in] device Handle to the device instance.
@@ -302,35 +315,9 @@ astarte_err_t astarte_device_new(astarte_device_config_t *cfg, astarte_device_ha
     }
     strncpy(device->broker_port, broker_url_token, ASTARTE_MAX_MQTT_BROKER_PORT_LEN + 1);
 
-    res = astarte_pairing_get_client_certificate(cfg->http_timeout_ms, cfg->cred_secr, privkey_pem,
-        sizeof(privkey_pem), crt_pem, sizeof(crt_pem));
+    res = get_new_client_certificate(cfg->http_timeout_ms, cfg->cred_secr, device);
     if (res != ASTARTE_OK) {
-        goto failure;
-    }
-
-    // The base topic for this device is returned by Astarte in the common name of the certificate
-    // It will be usually be in the format: <REALM>/<DEVICE ID>
-    res = astarte_crypto_get_certificate_common_name(
-        crt_pem, device->base_topic, MAX_MQTT_BASE_TOPIC_SIZE, &device->client_crt_valid_to);
-    if ((res != ASTARTE_OK) || (strlen(device->base_topic) == 0)) {
-        LOG_ERR("Error in certificate common name extraction."); // NOLINT
-        goto failure;
-    }
-
-    int tls_rc = tls_credential_add(CONFIG_ASTARTE_DEVICE_SDK_CLIENT_CERT_TAG,
-        TLS_CREDENTIAL_SERVER_CERTIFICATE, crt_pem, strlen(crt_pem) + 1);
-    if (tls_rc != 0) {
-        LOG_ERR("Failed adding client crt to credentials %d.", tls_rc); // NOLINT
-        res = ASTARTE_ERR_TLS;
-        goto failure;
-    }
-
-    tls_rc = tls_credential_add(CONFIG_ASTARTE_DEVICE_SDK_CLIENT_CERT_TAG,
-        TLS_CREDENTIAL_PRIVATE_KEY, privkey_pem, strlen(privkey_pem) + 1);
-    if (tls_rc != 0) {
-        LOG_ERR("Failed adding client private key to credentials %d.", tls_rc); // NOLINT
-        res = ASTARTE_ERR_TLS;
-        goto failure;
+        return res;
     }
 
     res = introspection_init(&device->introspection);
@@ -365,18 +352,6 @@ astarte_err_t astarte_device_new(astarte_device_config_t *cfg, astarte_device_ha
 failure:
     free(device);
     return res;
-}
-
-astarte_err_t astarte_device_disconnect(astarte_device_handle_t handle)
-{
-    if (handle->mqtt_is_connected) {
-        int res = mqtt_disconnect(&handle->mqtt_client);
-        if (res < 0) {
-            LOG_ERR("Device disconnection failure %d", res); // NOLINT
-            return ASTARTE_ERR_MQTT;
-        }
-    }
-    return ASTARTE_OK;
 }
 
 astarte_err_t astarte_device_destroy(astarte_device_handle_t handle)
@@ -470,6 +445,18 @@ astarte_err_t astarte_device_connect(astarte_device_handle_t device)
         return ASTARTE_ERR_MQTT;
     }
 
+    return ASTARTE_OK;
+}
+
+astarte_err_t astarte_device_disconnect(astarte_device_handle_t handle)
+{
+    if (handle->mqtt_is_connected) {
+        int res = mqtt_disconnect(&handle->mqtt_client);
+        if (res < 0) {
+            LOG_ERR("Device disconnection failure %d", res); // NOLINT
+            return ASTARTE_ERR_MQTT;
+        }
+    }
     return ASTARTE_OK;
 }
 
@@ -615,54 +602,6 @@ static ssize_t handle_published_message(
     return discarded ? -ENOMEM : (ssize_t) received;
 }
 
-static astarte_err_t update_client_certificate(astarte_device_handle_t device)
-{
-    int tls_rc = tls_credential_delete(
-        CONFIG_ASTARTE_DEVICE_SDK_CLIENT_CERT_TAG, TLS_CREDENTIAL_SERVER_CERTIFICATE);
-    if (tls_rc != 0) {
-        LOG_ERR("Failed removing the client certificate from credentials %d.", tls_rc); // NOLINT
-        return ASTARTE_ERR_TLS;
-    }
-
-    tls_rc = tls_credential_delete(
-        CONFIG_ASTARTE_DEVICE_SDK_CLIENT_CERT_TAG, TLS_CREDENTIAL_PRIVATE_KEY);
-    if (tls_rc != 0) {
-        LOG_ERR("Failed removing the client private key from credentials %d.", tls_rc); // NOLINT
-        return ASTARTE_ERR_TLS;
-    }
-
-    astarte_err_t res = astarte_pairing_get_client_certificate(device->http_timeout_ms,
-        device->cred_secr, privkey_pem, sizeof(privkey_pem), crt_pem, sizeof(crt_pem));
-    if (res != ASTARTE_OK) {
-        return res;
-    }
-
-    // The base topic for this device is returned by Astarte in the common name of the certificate
-    // It will be usually be in the format: <REALM>/<DEVICE ID>
-    res = astarte_crypto_get_certificate_common_name(
-        crt_pem, device->base_topic, MAX_MQTT_BASE_TOPIC_SIZE, &device->client_crt_valid_to);
-    if ((res != ASTARTE_OK) || (strlen(device->base_topic) == 0)) {
-        LOG_ERR("Error in certificate common name extraction."); // NOLINT
-        return res;
-    }
-
-    tls_rc = tls_credential_add(CONFIG_ASTARTE_DEVICE_SDK_CLIENT_CERT_TAG,
-        TLS_CREDENTIAL_SERVER_CERTIFICATE, crt_pem, strlen(crt_pem) + 1);
-    if (tls_rc != 0) {
-        LOG_ERR("Failed adding client crt to credentials %d.", tls_rc); // NOLINT
-        return ASTARTE_ERR_TLS;
-    }
-
-    tls_rc = tls_credential_add(CONFIG_ASTARTE_DEVICE_SDK_CLIENT_CERT_TAG,
-        TLS_CREDENTIAL_PRIVATE_KEY, privkey_pem, strlen(privkey_pem) + 1);
-    if (tls_rc != 0) {
-        LOG_ERR("Failed adding client private key to credentials %d.", tls_rc); // NOLINT
-        return ASTARTE_ERR_TLS;
-    }
-
-    return ASTARTE_OK;
-}
-
 static void on_incoming(astarte_device_handle_t device, const char *topic, size_t topic_len,
     const char *data, size_t data_len)
 {
@@ -760,6 +699,66 @@ static void on_incoming(astarte_device_handle_t device, const char *topic, size_
     };
 
     device->data_cbk(&event);
+}
+
+static astarte_err_t get_new_client_certificate(int32_t http_timeout_ms,
+    char cred_secr[static ASTARTE_PAIRING_CRED_SECR_LEN + 1], astarte_device_handle_t device)
+{
+    astarte_err_t res = astarte_pairing_get_client_certificate(
+        http_timeout_ms, cred_secr, privkey_pem, sizeof(privkey_pem), crt_pem, sizeof(crt_pem));
+    if (res != ASTARTE_OK) {
+        return res;
+    }
+
+    // The base topic for this device is returned by Astarte in the common name of the certificate
+    // It will be usually be in the format: <REALM>/<DEVICE ID>
+    res = astarte_crypto_get_certificate_info(
+        crt_pem, device->base_topic, MAX_MQTT_BASE_TOPIC_SIZE, &device->client_crt_valid_to);
+    if ((res != ASTARTE_OK) || (strlen(device->base_topic) == 0)) {
+        LOG_ERR("Error in certificate common name extraction."); // NOLINT
+        return res;
+    }
+
+    int tls_rc = tls_credential_add(CONFIG_ASTARTE_DEVICE_SDK_CLIENT_CERT_TAG,
+        TLS_CREDENTIAL_SERVER_CERTIFICATE, crt_pem, strlen(crt_pem) + 1);
+    if (tls_rc != 0) {
+        LOG_ERR("Failed adding client crt to credentials %d.", tls_rc); // NOLINT
+        return ASTARTE_ERR_TLS;
+    }
+
+    tls_rc = tls_credential_add(CONFIG_ASTARTE_DEVICE_SDK_CLIENT_CERT_TAG,
+        TLS_CREDENTIAL_PRIVATE_KEY, privkey_pem, strlen(privkey_pem) + 1);
+    if (tls_rc != 0) {
+        LOG_ERR("Failed adding client private key to credentials %d.", tls_rc); // NOLINT
+        return ASTARTE_ERR_TLS;
+    }
+
+    return res;
+}
+
+static astarte_err_t update_client_certificate(astarte_device_handle_t device)
+{
+    int tls_rc = tls_credential_delete(
+        CONFIG_ASTARTE_DEVICE_SDK_CLIENT_CERT_TAG, TLS_CREDENTIAL_SERVER_CERTIFICATE);
+    if (tls_rc != 0) {
+        LOG_ERR("Failed removing the client certificate from credentials %d.", tls_rc); // NOLINT
+        return ASTARTE_ERR_TLS;
+    }
+
+    tls_rc = tls_credential_delete(
+        CONFIG_ASTARTE_DEVICE_SDK_CLIENT_CERT_TAG, TLS_CREDENTIAL_PRIVATE_KEY);
+    if (tls_rc != 0) {
+        LOG_ERR("Failed removing the client private key from credentials %d.", tls_rc); // NOLINT
+        return ASTARTE_ERR_TLS;
+    }
+
+    astarte_err_t res
+        = get_new_client_certificate(device->http_timeout_ms, device->cred_secr, device);
+    if (res != ASTARTE_OK) {
+        return res;
+    }
+
+    return ASTARTE_OK;
 }
 
 static void setup_subscriptions(astarte_device_handle_t device)
