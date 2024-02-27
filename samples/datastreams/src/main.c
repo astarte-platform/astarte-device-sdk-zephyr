@@ -9,10 +9,8 @@
 #include <zephyr/data/json.h>
 #include <zephyr/kernel.h>
 #include <zephyr/net/http/client.h>
-#include <zephyr/net/sntp.h>
 #include <zephyr/net/socket.h>
 #include <zephyr/posix/arpa/inet.h>
-#include <zephyr/posix/time.h>
 
 #if !defined(CONFIG_ASTARTE_DEVICE_SDK_DEVELOP_DISABLE_OR_IGNORE_TLS)
 #include "ca_certificates.h"
@@ -28,6 +26,7 @@ LOG_MODULE_REGISTER(main, CONFIG_APP_LOG_LEVEL); // NOLINT
 #include <astarte_device_sdk/interface.h>
 #include <astarte_device_sdk/pairing.h>
 
+#include "sntp_sync.h"
 #include "wifi.h"
 
 /************************************************
@@ -90,28 +89,6 @@ static void astarte_data_events_handler(astarte_device_data_event_t *event);
  * Global functions definition
  ***********************************************/
 
-#define SNTP_SERVER "0.pool.ntp.org"
-
-int sntp_sync_time(void)
-{
-    int rc;
-    struct sntp_time now;
-    struct timespec tspec;
-
-    rc = sntp_simple(SNTP_SERVER, SYS_FOREVER_MS, &now);
-    if (rc == 0) {
-        tspec.tv_sec = now.seconds;
-        tspec.tv_nsec = ((uint64_t) now.fraction * (1000lu * 1000lu * 1000lu)) >> 32;
-
-        clock_settime(CLOCK_REALTIME, &tspec);
-
-        LOG_DBG("Acquired time from NTP server: %u", (uint32_t) tspec.tv_sec);
-    } else {
-        LOG_ERR("Failed to acquire SNTP, code %d\n", rc);
-    }
-    return rc;
-}
-
 int main(void)
 {
     astarte_err_t astarte_err = ASTARTE_OK;
@@ -125,7 +102,7 @@ int main(void)
 
     k_sleep(K_SECONDS(5)); // sleep for 5 seconds
 
-    int sntp_rc = sntp_sync_time();
+    int sntp_rc = sntp_sync_init();
     if (sntp_rc < 0) {
         LOG_ERR("Tyme sync failed."); // NOLINT
         return -1;
