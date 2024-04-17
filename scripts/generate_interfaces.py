@@ -12,12 +12,14 @@ Formatted using black with the following command (pip install black):
 python -m black --line-length 100 ./scripts/*.py
 """
 
+import difflib
 import json
 import os
 import re
 import sys
 from pathlib import Path
 from string import Template
+import subprocess
 
 from astarte.device import Interface
 from colored import fore, stylize
@@ -71,7 +73,8 @@ class WestCommandGenerateInterfaces(WestCommand):
         parser.add_argument(
             "-c",
             "--check",
-            help="Check if previously generated interfaces are up to date.",
+            help="Check if previously generated interfaces are up to date." 
+                + "The check does not include any whitespace character.",
             action="store_true",
         )
 
@@ -179,7 +182,7 @@ mapping_definition_template = Template(
         .type = ${type},
         .reliability = ${reliability},
         .explicit_timestamp = ${explicit_timestamp},
-        .allow_unset =  ${allow_unset},
+        .allow_unset = ${allow_unset},
     },"""
 )
 
@@ -199,6 +202,7 @@ def generate_interfaces(interfaces_dir: Path, output_dir: Path, output_fn: str, 
         Output file name without extension.
     check : bool
         Check if previously generated interfaces are up to date.
+        The check does not include any whitespace character (\s)
     """
 
     # Iterate over all the interfaces
@@ -278,15 +282,28 @@ def generate_interfaces(interfaces_dir: Path, output_dir: Path, output_fn: str, 
             log.err(stylize("Check failed: non existant output directory", fore("yellow")))
             sys.exit(1)
 
-        with open(generated_header, "r", encoding="utf-8") as generated_fp:
-            if generated_fp.read() != interfaces_header:
+        with (open(generated_header, "r", encoding="utf-8") as generated_header_fp,
+            open(generated_source, "r", encoding="utf-8") as generated_source_fp):
+
+            header = format_file(generated_header_fp.read())
+            header_valid = format_file(interfaces_header)
+
+            if header != header_valid:
                 log.err(stylize("Check failed: header is not up to date", fore("yellow")))
+                log.dbg(f"Valid:\n{header_valid}")
+                log.dbg(f"Current:\n{header}")
                 sys.exit(1)
 
-        with open(generated_source, "r", encoding="utf-8") as generated_fp:
-            if generated_fp.read() != interfaces_source:
+            source = format_file(generated_source_fp.read())
+            source_valid = format_file(interfaces_source)
+
+            if source != source_valid:
                 log.err(stylize("Check failed: source is not up to date", fore("yellow")))
+                log.dbg(f"Valid:\n{source_valid}")
+                log.dbg(f"Current:\n{source}")
                 sys.exit(1)
+
+            log.inf("Files are updated")
     else:
         # Generate directory
         if not output_dir.exists():
@@ -298,3 +315,12 @@ def generate_interfaces(interfaces_dir: Path, output_dir: Path, output_fn: str, 
 
         with open(generated_source, "w", encoding="utf-8") as generated_fp:
             generated_fp.write(interfaces_source)
+
+def format_file(file_content: str) -> str:
+    cmd = (
+        ["clang-format", "--style=LLVM"]
+    )
+    result = subprocess.run(" ".join(cmd), shell=True, timeout=60,
+        check=True, input=file_content, capture_output = True, text = True)
+
+    return result.stdout
