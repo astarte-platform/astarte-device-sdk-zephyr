@@ -32,6 +32,36 @@ ASTARTE_LOG_MODULE_REGISTER(astarte_device, CONFIG_ASTARTE_DEVICE_SDK_DEVICE_LOG
  *        Defines, constants and typedef        *
  ***********************************************/
 
+/** @brief Generic prefix to be used for all MQTT topics. */
+#define MQTT_TOPIC_PREFIX CONFIG_ASTARTE_DEVICE_SDK_REALM_NAME "/"
+/** @brief Generic suffix to be used for all control MQTT topics. */
+#define MQTT_CONTROL_TOPIC_SUFFIX "/control"
+/** @brief Suffix to be used for the consumer properties control MQTT topic. */
+#define MQTT_CONTROL_CONSUMER_PROP_TOPIC_SUFFIX MQTT_CONTROL_TOPIC_SUFFIX "/consumer/properties"
+/** @brief Suffix to be used for the empty cache control MQTT topic. */
+#define MQTT_CONTROL_EMPTY_CACHE_TOPIC_SUFFIX MQTT_CONTROL_TOPIC_SUFFIX "/emptyCache"
+
+/** @brief Size in chars of the #MQTT_TOPIC_PREFIX string. */
+#define MQTT_TOPIC_PREFIX_LEN (sizeof(MQTT_TOPIC_PREFIX) - 1)
+/** @brief Size in chars of the generic base topic. In the form: 'REALM NAME/DEVICE ID' */
+#define MQTT_BASE_TOPIC_LEN (MQTT_TOPIC_PREFIX_LEN + ASTARTE_PAIRING_DEVICE_ID_LEN)
+/** @brief Size in chars of the #MQTT_CONTROL_TOPIC_SUFFIX string. */
+#define MQTT_CONTROL_TOPIC_SUFFIX_LEN (sizeof(MQTT_CONTROL_TOPIC_SUFFIX) - 1)
+/** @brief Size in chars of the generic control topic. */
+#define MQTT_CONTROL_TOPIC_LEN (MQTT_BASE_TOPIC_LEN + MQTT_CONTROL_TOPIC_SUFFIX_LEN)
+/** @brief Size in chars of the #MQTT_CONTROL_CONSUMER_PROP_TOPIC_SUFFIX string. */
+#define MQTT_CONTROL_CONSUMER_PROP_TOPIC_SUFFIX_LEN                                                \
+    (sizeof(MQTT_CONTROL_CONSUMER_PROP_TOPIC_SUFFIX) - 1)
+/** @brief Size in chars of the consumer properties control topic. */
+#define MQTT_CONTROL_CONSUMER_PROP_TOPIC_LEN                                                       \
+    (MQTT_BASE_TOPIC_LEN + MQTT_CONTROL_CONSUMER_PROP_TOPIC_SUFFIX_LEN)
+/** @brief Size in chars of the #MQTT_CONTROL_EMPTY_CACHE_TOPIC_SUFFIX string. */
+#define MQTT_CONTROL_EMPTY_CACHE_TOPIC_SUFFIX_LEN                                                  \
+    (sizeof(MQTT_CONTROL_EMPTY_CACHE_TOPIC_SUFFIX) - 1)
+/** @brief Size in chars of the empty cache control topic. */
+#define MQTT_CONTROL_EMPTY_CACHE_TOPIC_LEN                                                         \
+    (MQTT_BASE_TOPIC_LEN + MQTT_CONTROL_EMPTY_CACHE_TOPIC_SUFFIX_LEN)
+
 /** @brief Connection statuses for the Astarte device. */
 enum connection_states
 {
@@ -78,37 +108,15 @@ struct astarte_device
     void *cbk_user_data;
     /** @brief Connection state of the Astarte device. */
     enum connection_states connection_state;
+    /** @brief Base MQTT topic for the device. */
+    char base_topic[MQTT_BASE_TOPIC_LEN + 1];
+    /** @brief Base MQTT control topic for the device. */
+    char control_topic[MQTT_CONTROL_TOPIC_LEN + 1];
+    /** @brief Subscription topic for control consumer properties. */
+    char control_consumer_prop_topic[MQTT_CONTROL_CONSUMER_PROP_TOPIC_LEN + 1];
+    /** @brief Publish topic for the control EmptyCache. */
+    char control_empty_cache_topic[MQTT_CONTROL_EMPTY_CACHE_TOPIC_LEN + 1];
 };
-
-/** @brief Generic prefix to be used for all MQTT topics. */
-#define MQTT_TOPIC_PREFIX CONFIG_ASTARTE_DEVICE_SDK_REALM_NAME "/"
-/** @brief Generic suffix to be used for all control MQTT topics. */
-#define MQTT_CONTROL_TOPIC_SUFFIX "/control"
-/** @brief Suffix to be used for the consumer properties control MQTT topic. */
-#define MQTT_CONTROL_CONSUMER_PROP_TOPIC_SUFFIX MQTT_CONTROL_TOPIC_SUFFIX "/consumer/properties"
-/** @brief Suffix to be used for the empty cache control MQTT topic. */
-#define MQTT_CONTROL_EMPTY_CACHE_TOPIC_SUFFIX MQTT_CONTROL_TOPIC_SUFFIX "/emptyCache"
-
-/** @brief Size in chars of the #MQTT_TOPIC_PREFIX string. */
-#define MQTT_TOPIC_PREFIX_LEN (sizeof(MQTT_TOPIC_PREFIX) - 1)
-/** @brief Size in chars of the generic base topic. In the form: 'REALM NAME/DEVICE ID' */
-#define MQTT_BASE_TOPIC_LEN (MQTT_TOPIC_PREFIX_LEN + ASTARTE_PAIRING_DEVICE_ID_LEN)
-/** @brief Size in chars of the #MQTT_CONTROL_TOPIC_SUFFIX string. */
-#define MQTT_CONTROL_TOPIC_SUFFIX_LEN (sizeof(MQTT_CONTROL_TOPIC_SUFFIX) - 1)
-/** @brief Size in chars of the generic control topic. */
-#define MQTT_CONTROL_TOPIC_LEN (MQTT_BASE_TOPIC_LEN + MQTT_CONTROL_TOPIC_SUFFIX_LEN)
-/** @brief Size in chars of the #MQTT_CONTROL_CONSUMER_PROP_TOPIC_SUFFIX string. */
-#define MQTT_CONTROL_CONSUMER_PROP_TOPIC_SUFFIX_LEN                                                \
-    (sizeof(MQTT_CONTROL_CONSUMER_PROP_TOPIC_SUFFIX) - 1)
-/** @brief Size in chars of the consumer properties control topic. */
-#define MQTT_CONTROL_CONSUMER_PROP_TOPIC_LEN                                                       \
-    (MQTT_BASE_TOPIC_LEN + MQTT_CONTROL_CONSUMER_PROP_TOPIC_SUFFIX_LEN)
-/** @brief Size in chars of the #MQTT_CONTROL_EMPTY_CACHE_TOPIC_SUFFIX string. */
-#define MQTT_CONTROL_EMPTY_CACHE_TOPIC_SUFFIX_LEN                                                  \
-    (sizeof(MQTT_CONTROL_EMPTY_CACHE_TOPIC_SUFFIX) - 1)
-/** @brief Size in chars of the empty cache control topic. */
-#define MQTT_CONTROL_EMPTY_CACHE_TOPIC_LEN                                                         \
-    (MQTT_BASE_TOPIC_LEN + MQTT_CONTROL_EMPTY_CACHE_TOPIC_SUFFIX_LEN)
 
 /************************************************
  *         Static functions declaration         *
@@ -201,17 +209,17 @@ static astarte_result_t update_client_certificate(astarte_device_handle_t device
  */
 static void setup_subscriptions(astarte_device_handle_t device);
 /**
- * @brief Send the emptycache message to Astarte.
- *
- * @param[in] device Handle to the device instance.
- */
-static void send_emptycache(astarte_device_handle_t device);
-/**
  * @brief Send the introspection for the device.
  *
  * @param[in] device Handle to the device instance.
  */
 static void send_introspection(astarte_device_handle_t device);
+/**
+ * @brief Send the emptycache message to Astarte.
+ *
+ * @param[in] device Handle to the device instance.
+ */
+static void send_emptycache(astarte_device_handle_t device);
 /**
  * @brief Publish data.
  *
@@ -296,28 +304,14 @@ static void on_incoming_handler(astarte_mqtt_t *astarte_mqtt, const char *topic,
     struct astarte_device *device = CONTAINER_OF(astarte_mqtt, struct astarte_device, astarte_mqtt);
 
     // Check if base topic is correct
-    char base_topic[MQTT_BASE_TOPIC_LEN + 1] = { 0 };
-    int snprintf_rc
-        = snprintf(base_topic, MQTT_BASE_TOPIC_LEN + 1, MQTT_TOPIC_PREFIX "%s", device->device_id);
-    if (snprintf_rc != MQTT_BASE_TOPIC_LEN) {
-        ASTARTE_LOG_ERR("Error encoding base topic.");
-        return;
-    }
-    if (strstr(topic, base_topic) != topic) {
+    if (strstr(topic, device->base_topic) != topic) {
         ASTARTE_LOG_ERR("Incoming message topic doesn't begin with <REALM>/<DEVICE ID>: %s", topic);
         return;
     }
 
     // Control message
-    char control_topic[MQTT_CONTROL_TOPIC_LEN + 1] = { 0 };
-    snprintf_rc = snprintf(control_topic, MQTT_CONTROL_TOPIC_LEN + 1,
-        MQTT_TOPIC_PREFIX "%s" MQTT_CONTROL_TOPIC_SUFFIX, device->device_id);
-    if (snprintf_rc != MQTT_CONTROL_TOPIC_LEN) {
-        ASTARTE_LOG_ERR("Error encoding base control topic.");
-        return;
-    }
-    if (strstr(topic, control_topic)) {
-        const char *control_subtopic = topic + strlen(control_topic);
+    if (strstr(topic, device->control_topic)) {
+        const char *control_subtopic = topic + strlen(device->control_topic);
         ASTARTE_LOG_DBG("Received control message on control topic %s", control_subtopic);
         // TODO correctly process control messages
         (void) control_subtopic;
@@ -398,6 +392,38 @@ astarte_result_t astarte_device_new(astarte_device_config_t *cfg, astarte_device
         }
     }
 
+    // Initializing known MQTT topics
+    int snprintf_rc = snprintf(
+        handle->base_topic, MQTT_BASE_TOPIC_LEN + 1, MQTT_TOPIC_PREFIX "%s", handle->device_id);
+    if (snprintf_rc != MQTT_BASE_TOPIC_LEN) {
+        ASTARTE_LOG_ERR("Error encoding base topic.");
+        ares = ASTARTE_RESULT_INTERNAL_ERROR;
+        goto failure;
+    }
+    snprintf_rc = snprintf(handle->control_topic, MQTT_CONTROL_TOPIC_LEN + 1,
+        MQTT_TOPIC_PREFIX "%s" MQTT_CONTROL_TOPIC_SUFFIX, handle->device_id);
+    if (snprintf_rc != MQTT_CONTROL_TOPIC_LEN) {
+        ASTARTE_LOG_ERR("Error encoding base control topic.");
+        ares = ASTARTE_RESULT_INTERNAL_ERROR;
+        goto failure;
+    }
+    snprintf_rc
+        = snprintf(handle->control_consumer_prop_topic, MQTT_CONTROL_CONSUMER_PROP_TOPIC_LEN + 1,
+            MQTT_TOPIC_PREFIX "%s" MQTT_CONTROL_CONSUMER_PROP_TOPIC_SUFFIX, handle->device_id);
+    if (snprintf_rc != MQTT_CONTROL_CONSUMER_PROP_TOPIC_LEN) {
+        ASTARTE_LOG_ERR("Error encoding properties subscription topic.");
+        ares = ASTARTE_RESULT_INTERNAL_ERROR;
+        goto failure;
+    }
+    snprintf_rc
+        = snprintf(handle->control_empty_cache_topic, MQTT_CONTROL_EMPTY_CACHE_TOPIC_LEN + 1,
+            MQTT_TOPIC_PREFIX "%s" MQTT_CONTROL_EMPTY_CACHE_TOPIC_SUFFIX, handle->device_id);
+    if (snprintf_rc != MQTT_CONTROL_EMPTY_CACHE_TOPIC_LEN) {
+        ASTARTE_LOG_ERR("Error encoding empty cache publish topic.");
+        ares = ASTARTE_RESULT_INTERNAL_ERROR;
+        goto failure;
+    }
+
     ASTARTE_LOG_DBG("Initializing Astarte MQTT client.");
     astarte_mqtt_config_t astarte_mqtt_config = { 0 };
     astarte_mqtt_config.connection_timeout_ms = cfg->mqtt_connection_timeout_ms;
@@ -416,7 +442,7 @@ astarte_result_t astarte_device_new(astarte_device_config_t *cfg, astarte_device
     }
 
     ASTARTE_LOG_DBG("Getting MQTT broker client ID");
-    int snprintf_rc = snprintf(astarte_mqtt_config.client_id, sizeof(astarte_mqtt_config.client_id),
+    snprintf_rc = snprintf(astarte_mqtt_config.client_id, sizeof(astarte_mqtt_config.client_id),
         CONFIG_ASTARTE_DEVICE_SDK_REALM_NAME "/%s", handle->device_id);
     if (snprintf_rc != ASTARTE_MQTT_CLIENT_ID_LEN) {
         ASTARTE_LOG_ERR("Error encoding MQTT client ID.");
@@ -999,20 +1025,10 @@ static astarte_result_t update_client_certificate(astarte_device_handle_t device
 
 static void setup_subscriptions(astarte_device_handle_t device)
 {
+    const char *topic = device->control_consumer_prop_topic;
     uint16_t message_id = 0;
-    char prop_topic[MQTT_CONTROL_CONSUMER_PROP_TOPIC_LEN + 1] = { 0 };
-    int snprintf_rc = snprintf(prop_topic, MQTT_CONTROL_CONSUMER_PROP_TOPIC_LEN + 1,
-        MQTT_TOPIC_PREFIX "%s" MQTT_CONTROL_CONSUMER_PROP_TOPIC_SUFFIX, device->device_id);
-    if (snprintf_rc != MQTT_CONTROL_CONSUMER_PROP_TOPIC_LEN) {
-        ASTARTE_LOG_ERR("Error encoding properties subscription topic.");
-        return;
-    }
-    astarte_result_t ares
-        = astarte_mqtt_subscribe(&device->astarte_mqtt, prop_topic, 2, &message_id);
-    if (ares != ASTARTE_RESULT_OK) {
-        ASTARTE_LOG_ERR("Error in MQTT subscription to topic %s.", prop_topic);
-        return;
-    }
+    ASTARTE_LOG_DBG("Subscribing to: %s", topic);
+    astarte_mqtt_subscribe(&device->astarte_mqtt, topic, 2, &message_id);
 
     for (introspection_node_t *iterator = introspection_iter(&device->introspection);
          iterator != NULL; iterator = introspection_iter_next(&device->introspection, iterator)) {
@@ -1028,19 +1044,17 @@ static void setup_subscriptions(astarte_device_handle_t device)
                 continue;
             }
 
-            astarte_result_t ares
-                = astarte_mqtt_subscribe(&device->astarte_mqtt, topic, 2, &message_id);
+            ASTARTE_LOG_DBG("Subscribing to: %s", topic);
+            astarte_mqtt_subscribe(&device->astarte_mqtt, topic, 2, &message_id);
             free(topic);
-            if (ares != ASTARTE_RESULT_OK) {
-                ASTARTE_LOG_ERR("Error in MQTT subscription to topic %s.", topic);
-                return;
-            }
         }
     }
 }
 
 static void send_introspection(astarte_device_handle_t device)
 {
+    const char *topic = device->base_topic;
+
     char *introspection_str = NULL;
     size_t introspection_str_size = introspection_get_string_size(&device->introspection);
 
@@ -1057,22 +1071,10 @@ static void send_introspection(astarte_device_handle_t device)
     }
     introspection_fill_string(&device->introspection, introspection_str, introspection_str_size);
 
-    char topic[MQTT_BASE_TOPIC_LEN + 1] = { 0 };
-    int snprintf_rc
-        = snprintf(topic, MQTT_BASE_TOPIC_LEN + 1, MQTT_TOPIC_PREFIX "%s", device->device_id);
-    if (snprintf_rc != MQTT_BASE_TOPIC_LEN) {
-        ASTARTE_LOG_ERR("Error encoding introspection topic.");
-        goto exit;
-    }
-
-    ASTARTE_LOG_DBG("Publishing introspection: %s", introspection_str);
-
     uint16_t message_id = 0;
-    astarte_result_t ares = astarte_mqtt_publish(
+    ASTARTE_LOG_DBG("Publishing introspection: %s", introspection_str);
+    astarte_mqtt_publish(
         &device->astarte_mqtt, topic, introspection_str, strlen(introspection_str), 2, &message_id);
-    if (ares != ASTARTE_RESULT_OK) {
-        ASTARTE_LOG_ERR("Error publishing introspection.");
-    }
 
 exit:
     free(introspection_str);
@@ -1080,21 +1082,10 @@ exit:
 
 static void send_emptycache(astarte_device_handle_t device)
 {
-    char topic[MQTT_CONTROL_EMPTY_CACHE_TOPIC_LEN + 1] = { 0 };
-    int snprintf_rc = snprintf(topic, MQTT_CONTROL_EMPTY_CACHE_TOPIC_LEN + 1,
-        MQTT_TOPIC_PREFIX "%s" MQTT_CONTROL_EMPTY_CACHE_TOPIC_SUFFIX, device->device_id);
-    if (snprintf_rc != MQTT_CONTROL_EMPTY_CACHE_TOPIC_LEN) {
-        ASTARTE_LOG_ERR("Error encoding empty cache.");
-        return;
-    }
-    ASTARTE_LOG_DBG("Sending emptyCache to %s", topic);
-
+    const char *topic = device->control_empty_cache_topic;
     uint16_t message_id = 0;
-    astarte_result_t ares
-        = astarte_mqtt_publish(&device->astarte_mqtt, topic, "1", strlen("1"), 2, &message_id);
-    if (ares != ASTARTE_RESULT_OK) {
-        ASTARTE_LOG_ERR("Error publishing empty cache.");
-    }
+    ASTARTE_LOG_DBG("Sending emptyCache to %s", topic);
+    astarte_mqtt_publish(&device->astarte_mqtt, topic, "1", strlen("1"), 2, &message_id);
 }
 
 static astarte_result_t publish_data(astarte_device_handle_t device, const char *interface_name,
