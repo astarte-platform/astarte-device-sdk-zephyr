@@ -125,18 +125,26 @@ astarte_result_t astarte_device_new(astarte_device_config_t *cfg, astarte_device
         goto failure;
     }
     snprintf_rc
-        = snprintf(handle->control_consumer_prop_topic, MQTT_CONTROL_CONSUMER_PROP_TOPIC_LEN + 1,
-            MQTT_TOPIC_PREFIX "%s" MQTT_CONTROL_CONSUMER_PROP_TOPIC_SUFFIX, handle->device_id);
-    if (snprintf_rc != MQTT_CONTROL_CONSUMER_PROP_TOPIC_LEN) {
-        ASTARTE_LOG_ERR("Error encoding properties subscription topic.");
-        ares = ASTARTE_RESULT_INTERNAL_ERROR;
-        goto failure;
-    }
-    snprintf_rc
         = snprintf(handle->control_empty_cache_topic, MQTT_CONTROL_EMPTY_CACHE_TOPIC_LEN + 1,
             MQTT_TOPIC_PREFIX "%s" MQTT_CONTROL_EMPTY_CACHE_TOPIC_SUFFIX, handle->device_id);
     if (snprintf_rc != MQTT_CONTROL_EMPTY_CACHE_TOPIC_LEN) {
         ASTARTE_LOG_ERR("Error encoding empty cache publish topic.");
+        ares = ASTARTE_RESULT_INTERNAL_ERROR;
+        goto failure;
+    }
+    snprintf_rc
+        = snprintf(handle->control_consumer_prop_topic, MQTT_CONTROL_CONSUMER_PROP_TOPIC_LEN + 1,
+            MQTT_TOPIC_PREFIX "%s" MQTT_CONTROL_CONSUMER_PROP_TOPIC_SUFFIX, handle->device_id);
+    if (snprintf_rc != MQTT_CONTROL_CONSUMER_PROP_TOPIC_LEN) {
+        ASTARTE_LOG_ERR("Error encoding Astarte purte properties topic.");
+        ares = ASTARTE_RESULT_INTERNAL_ERROR;
+        goto failure;
+    }
+    snprintf_rc
+        = snprintf(handle->control_producer_prop_topic, MQTT_CONTROL_PRODUCER_PROP_TOPIC_LEN + 1,
+            MQTT_TOPIC_PREFIX "%s" MQTT_CONTROL_PRODUCER_PROP_TOPIC_SUFFIX, handle->device_id);
+    if (snprintf_rc != MQTT_CONTROL_PRODUCER_PROP_TOPIC_LEN) {
+        ASTARTE_LOG_ERR("Error encoding device purge properties topic.");
         ares = ASTARTE_RESULT_INTERNAL_ERROR;
         goto failure;
     }

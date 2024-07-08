@@ -35,6 +35,33 @@ static void send_introspection(astarte_device_handle_t device);
  * @param[in] device Handle to the device instance.
  */
 static void send_emptycache(astarte_device_handle_t device);
+#if defined(CONFIG_ASTARTE_DEVICE_SDK_PERMANENT_STORAGE)
+/**
+ * @brief Send the device owned properties to Astarte.
+ *
+ * @param[in] device Handle to the device instance.
+ */
+static void send_device_owned_properties(astarte_device_handle_t device);
+/**
+ * @brief Check if a property is in the device introspection.
+ *
+ * @note If the property is not found in the introspection it's deleted from the cache.
+ *
+ * @param[in] device Handle to the device instance.
+ * @param[in] interface_name Name of the interface for the property as retreived from cache.
+ * @param[in] path Path for the property as retreived from cache.
+ * @param[in] major Major version for the interface of the property as retreived from cache.
+ * @return True when the property is found, false otherwise.
+ */
+static bool property_is_in_introspection(
+    astarte_device_handle_t device, const char *interface_name, const char *path, uint32_t major);
+/**
+ * @brief Send the purge properties message for the device owned properties.
+ *
+ * @param[in] device Handle to the device instance.
+ */
+static void send_purge_device_properties(astarte_device_handle_t device);
+#endif
 
 /************************************************
  *         Global functions definitions         *
@@ -97,7 +124,10 @@ void astarte_device_connection_on_connected_handler(
     setup_subscriptions(device);
     send_introspection(device);
     send_emptycache(device);
-    // TODO: send device owned props
+#if defined(CONFIG_ASTARTE_DEVICE_SDK_PERMANENT_STORAGE)
+    send_device_owned_properties(device);
+    send_purge_device_properties(device);
+#endif
 
     ASTARTE_LOG_DBG("Device connection state -> CONNECTING.");
     device->connection_state = DEVICE_CONNECTING;
@@ -156,9 +186,8 @@ astarte_result_t astarte_device_connection_poll(astarte_device_handle_t device)
             const char *intr_string = introspection_get_string(&device->introspection);
             astarte_result_t ares
                 = astarte_device_caching_store_introspection(intr_string, strlen(intr_string) + 1);
-            if (ares != ASTARTE_RESULT_OK) {
-                ASTARTE_LOG_ERR("Store introspection failed: %s", astarte_result_to_name(ares));
-            }
+            ASTARTE_LOG_COND_ERR(ares != ASTARTE_RESULT_OK, "Store introspection failed: %s",
+                astarte_result_to_name(ares));
 #endif
 
             if (device->connection_cbk) {
@@ -222,3 +251,136 @@ static void send_emptycache(astarte_device_handle_t device)
     ASTARTE_LOG_DBG("Sending emptyCache to %s", topic);
     astarte_mqtt_publish(&device->astarte_mqtt, topic, "1", strlen("1"), 2, &message_id);
 }
+
+#if defined(CONFIG_ASTARTE_DEVICE_SDK_PERMANENT_STORAGE)
+static void send_device_owned_properties(astarte_device_handle_t device)
+{
+    astarte_result_t ares = ASTARTE_RESULT_OK;
+    char *interface_name = NULL;
+    char *path = NULL;
+    astarte_individual_t individual = { 0 };
+
+    astarte_device_caching_property_iter_t iter = { 0 };
+    ares = astarte_device_caching_property_iterator_init(&iter);
+    if ((ares != ASTARTE_RESULT_OK) && (ares != ASTARTE_RESULT_NOT_FOUND)) {
+        ASTARTE_LOG_ERR("Properties iterator init failed: %s", astarte_result_to_name(ares));
+        goto end;
+    }
+
+    while (ares != ASTARTE_RESULT_NOT_FOUND) {
+        size_t interface_name_size = 0U;
+        size_t path_size = 0U;
+        ares = astarte_device_caching_property_iterator_get(
+            &iter, NULL, &interface_name_size, NULL, &path_size);
+        if (ares != ASTARTE_RESULT_OK) {
+            ASTARTE_LOG_ERR("Properties iterator get error: %s", astarte_result_to_name(ares));
+            goto end;
+        }
+
+        // Allocate space for the name and path
+        char *interface_name = calloc(interface_name_size, sizeof(char));
+        char *path = calloc(path_size, sizeof(char));
+        if (!interface_name || !path) {
+            ASTARTE_LOG_ERR("Out of memory %s: %d", __FILE__, __LINE__);
+            goto end;
+        }
+
+        ares = astarte_device_caching_property_iterator_get(
+            &iter, interface_name, &interface_name_size, path, &path_size);
+        if (ares != ASTARTE_RESULT_OK) {
+            ASTARTE_LOG_ERR("Properties iterator get error: %s", astarte_result_to_name(ares));
+            goto end;
+        }
+
+        uint32_t major = 0U;
+        ares = astarte_device_caching_load_property(interface_name, path, &major, &individual);
+        if (ares != ASTARTE_RESULT_OK) {
+            ASTARTE_LOG_ERR("Properties load property error: %s", astarte_result_to_name(ares));
+            goto end;
+        }
+
+        if (property_is_in_introspection(device, interface_name, path, major)) {
+            ares = astarte_device_stream_individual(device, interface_name, path, individual, NULL);
+            ASTARTE_LOG_COND_ERR(ares != ASTARTE_RESULT_OK, "Failed sending cached property: %s",
+                astarte_result_to_name(ares));
+        }
+
+        free(interface_name);
+        interface_name = NULL;
+        free(path);
+        path = NULL;
+        astarte_device_caching_destroy_loaded_property(individual);
+        individual = (astarte_individual_t){ 0 };
+
+        ares = astarte_device_caching_property_iterator_next(&iter);
+        if ((ares != ASTARTE_RESULT_OK) && (ares != ASTARTE_RESULT_NOT_FOUND)) {
+            ASTARTE_LOG_ERR("Iterator next error: %s", astarte_result_to_name(ares));
+            goto end;
+        }
+    }
+
+end:
+    // Free all data
+    free(interface_name);
+    free(path);
+    astarte_device_caching_destroy_loaded_property(individual);
+}
+
+static bool property_is_in_introspection(
+    astarte_device_handle_t device, const char *interface_name, const char *path, uint32_t major)
+{
+    introspection_node_t *iter = introspection_iter(&device->introspection);
+
+    while (iter) {
+        const astarte_interface_t *interface = iter->interface;
+        if ((strcmp(interface->name, interface_name) == 0) && (interface->major_version == major)) {
+            return true;
+        }
+        iter = introspection_iter_next(&device->introspection, iter);
+    }
+
+    // If property is not in introspection, delete it
+    astarte_result_t ares = astarte_device_caching_delete_property(interface_name, path);
+    ASTARTE_LOG_COND_ERR(ares != ASTARTE_RESULT_OK, "Failed deleting the cached property: %s",
+        astarte_result_to_name(ares));
+
+    return false;
+}
+
+static void send_purge_device_properties(astarte_device_handle_t device)
+{
+    astarte_result_t ares = ASTARTE_RESULT_OK;
+    char *string = NULL;
+
+    size_t string_size = 0U;
+    ares = astarte_device_caching_get_properties_string(NULL, &string_size);
+    if (ares != ASTARTE_RESULT_OK) {
+        ASTARTE_LOG_ERR("Error getting cached properties string: %s", astarte_result_to_name(ares));
+        goto exit;
+    }
+    if (string_size == 0) {
+        // TODO: evaluate if we should send an empty string in this case
+        goto exit;
+    }
+
+    string = calloc(string_size, sizeof(char));
+    if (!string) {
+        ASTARTE_LOG_ERR("Out of memory %s: %d", __FILE__, __LINE__);
+        goto exit;
+    }
+
+    ares = astarte_device_caching_get_properties_string(string, &string_size);
+    if (ares != ASTARTE_RESULT_OK) {
+        ASTARTE_LOG_ERR("Error getting cached properties string: %s", astarte_result_to_name(ares));
+        goto exit;
+    }
+
+    // TODO encode the string to transmit
+
+    // TODO transmit the payload
+
+
+exit:
+    free(string);
+}
+#endif
