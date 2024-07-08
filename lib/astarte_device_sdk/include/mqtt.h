@@ -73,6 +73,8 @@ typedef enum
 /** @brief Configuration struct for the MQTT client. */
 typedef struct
 {
+    /** @brief Clean session flag for connection. */
+    uint8_t clean_session;
     /** @brief Timeout for socket polls before connection to an MQTT broker. */
     int32_t connection_timeout_ms;
     /** @brief Timeout for socket polls of MQTT broker. */
@@ -102,6 +104,8 @@ typedef struct
  */
 struct astarte_mqtt
 {
+    /** @brief Clean session flag for connection. */
+    uint8_t clean_session;
     /** Mutex to protect access to the client instance. */
     struct sys_mutex mutex;
     /** @brief Zephyr MQTT client handle. */
