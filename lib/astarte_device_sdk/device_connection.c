@@ -5,6 +5,10 @@
  */
 #include "device_connection.h"
 
+#if defined(CONFIG_ASTARTE_DEVICE_SDK_PERMANENT_STORAGE)
+#include "device_caching.h"
+#endif
+
 #include "log.h"
 ASTARTE_LOG_MODULE_REGISTER(
     device_connection, CONFIG_ASTARTE_DEVICE_SDK_DEVICE_CONNECTION_LOG_LEVEL);
@@ -73,11 +77,23 @@ void astarte_device_connection_on_connected_handler(
     struct astarte_device *device = CONTAINER_OF(astarte_mqtt, struct astarte_device, astarte_mqtt);
 
     if (connack_param.session_present_flag != 0) {
+#if defined(CONFIG_ASTARTE_DEVICE_SDK_PERMANENT_STORAGE)
+        const char *intr_string = introspection_get_string(&device->introspection);
+        astarte_result_t ares
+            = astarte_device_caching_check_introspection(intr_string, strlen(intr_string) + 1);
+        if (ares == ASTARTE_RESULT_OK) {
+            ASTARTE_LOG_DBG("Device connection state -> CONNECTED.");
+            device->connection_state = DEVICE_CONNECTED;
+            return;
+        }
+#else
         ASTARTE_LOG_DBG("Device connection state -> CONNECTED.");
         device->connection_state = DEVICE_CONNECTED;
         return;
+#endif
     }
 
+    device->subscription_failure = false;
     setup_subscriptions(device);
     send_introspection(device);
     send_emptycache(device);
@@ -106,18 +122,44 @@ void astarte_device_connection_on_disconnected_handler(astarte_mqtt_t *astarte_m
 void astarte_device_connection_on_subscribed_handler(
     astarte_mqtt_t *astarte_mqtt, uint16_t message_id, enum mqtt_suback_return_code return_code)
 {
-    (void) astarte_mqtt;
     (void) message_id;
-    (void) return_code;
+    struct astarte_device *device = CONTAINER_OF(astarte_mqtt, struct astarte_device, astarte_mqtt);
+
+    switch (return_code) {
+        case MQTT_SUBACK_SUCCESS_QoS_0:
+        case MQTT_SUBACK_SUCCESS_QoS_1:
+        case MQTT_SUBACK_SUCCESS_QoS_2:
+            break;
+        case MQTT_SUBACK_FAILURE:
+            device->subscription_failure = true;
+            break;
+        default:
+            device->subscription_failure = true;
+            ASTARTE_LOG_ERR("Invalid SUBACK return code.");
+            break;
+    }
 }
 
 astarte_result_t astarte_device_connection_poll(astarte_device_handle_t device)
 {
     if (device->connection_state == DEVICE_CONNECTING) {
+        if (device->subscription_failure) {
+            ASTARTE_LOG_ERR("Subscription request has been denied, irrecoverable error.");
+            return ASTARTE_RESULT_INTERNAL_ERROR;
+        }
         if (!astarte_mqtt_has_pending_outgoing(&device->astarte_mqtt)) {
 
             ASTARTE_LOG_DBG("Device connection state -> CONNECTED.");
             device->connection_state = DEVICE_CONNECTED;
+
+#if defined(CONFIG_ASTARTE_DEVICE_SDK_PERMANENT_STORAGE)
+            const char *intr_string = introspection_get_string(&device->introspection);
+            astarte_result_t ares
+                = astarte_device_caching_store_introspection(intr_string, strlen(intr_string) + 1);
+            if (ares != ASTARTE_RESULT_OK) {
+                ASTARTE_LOG_ERR("Store introspection failed: %s", astarte_result_to_name(ares));
+            }
+#endif
 
             if (device->connection_cbk) {
                 astarte_device_connection_event_t event = {
