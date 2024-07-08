@@ -59,6 +59,11 @@ astarte_result_t astarte_device_connection_connect(astarte_device_handle_t devic
 
 astarte_result_t astarte_device_connection_disconnect(astarte_device_handle_t device)
 {
+    if (device->connection_state == DEVICE_DISCONNECTED) {
+        ASTARTE_LOG_ERR("Disconnection request for a disconnected client will be ignored.");
+        return ASTARTE_RESULT_DEVICE_NOT_READY;
+    }
+
     return astarte_mqtt_disconnect(&device->astarte_mqtt);
 }
 
@@ -94,27 +99,33 @@ void astarte_device_connection_on_disconnected_handler(astarte_mqtt_t *astarte_m
             .device = device,
             .user_data = device->cbk_user_data,
         };
-
         device->disconnection_cbk(event);
     }
 }
 
+void astarte_device_connection_on_subscribed_handler(
+    astarte_mqtt_t *astarte_mqtt, uint16_t message_id, enum mqtt_suback_return_code return_code)
+{
+    (void) astarte_mqtt;
+    (void) message_id;
+    (void) return_code;
+}
+
 astarte_result_t astarte_device_connection_poll(astarte_device_handle_t device)
 {
-    if ((device->connection_state == DEVICE_CONNECTING)
-        && astarte_mqtt_is_connected(&device->astarte_mqtt)
-        && !astarte_mqtt_has_pending_outgoing(&device->astarte_mqtt)) {
+    if (device->connection_state == DEVICE_CONNECTING) {
+        if (!astarte_mqtt_has_pending_outgoing(&device->astarte_mqtt)) {
 
-        ASTARTE_LOG_DBG("Device connection state -> CONNECTED.");
-        device->connection_state = DEVICE_CONNECTED;
+            ASTARTE_LOG_DBG("Device connection state -> CONNECTED.");
+            device->connection_state = DEVICE_CONNECTED;
 
-        if (device->connection_cbk) {
-            astarte_device_connection_event_t event = {
-                .device = device,
-                .user_data = device->cbk_user_data,
-            };
-
-            device->connection_cbk(event);
+            if (device->connection_cbk) {
+                astarte_device_connection_event_t event = {
+                    .device = device,
+                    .user_data = device->cbk_user_data,
+                };
+                device->connection_cbk(event);
+            }
         }
     }
 
