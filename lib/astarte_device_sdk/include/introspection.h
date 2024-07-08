@@ -23,6 +23,7 @@ typedef struct
 {
     /** @cond INTERNAL_HIDDEN */
     sys_dlist_t *list;
+    char *string;
     /** @endcond */
 } introspection_t;
 
@@ -92,16 +93,16 @@ const astarte_interface_t *introspection_get(
     introspection_t *introspection, const char *interface_name);
 
 /**
- * @brief Retrieves the QoS for an interface's mapping from the introspection list.
+ * @brief Get the stringified version of the introspection.
  *
- * @param[in] introspection Introspection struct initialized using #introspection_init.
- * @param[in] interface_name The name of one of the interfaces contained in the introspection list.
- * @param[in] path For the mapping for which the QoS will need to be extracted.
- * @param[out] qos The extracted QoS.
- * @return ASTARTE_RESULT_OK on success, otherwise an error code.
+ * @details A stringified introspection is a semicolon separated list of interfaces description.
+ * Each interface description is in the format: 'name:major_version:minor_version'.
+ *
+ * @param[in] introspection a pointer to an introspection struct initialized using
+ * #introspection_init
+ * @return The stringified introspection. Will be NULL if the introspection is empty.
  */
-astarte_result_t introspection_get_qos(
-    introspection_t *introspection, const char *interface_name, const char *path, int *qos);
+const char *introspection_get_string(introspection_t *introspection);
 
 /**
  * @brief Removes an interface from the introspection list
@@ -112,33 +113,6 @@ astarte_result_t introspection_get_qos(
  * @return ASTARTE_RESULT_OK on success, otherwise an error code.
  */
 astarte_result_t introspection_remove(introspection_t *introspection, const char *interface_name);
-
-/**
- * @brief Computes the introspection string length
- *
- * @details The returned length includes the byte for the terminating null character '\0'.
- * A buffer of the returned size in bytes can be allocated and passed to #introspection_fill_string
- *
- * @param[in] introspection a pointer to an introspection struct initialized using
- * #introspection_init
- * @return size of the introspection string in bytes, including the NULL terminator.
- */
-size_t introspection_get_string_size(introspection_t *introspection);
-
-/**
- * @brief Returns the introspection string as described in astarte documentation
- *
- * @details An empty string is returned if no interfaces got added with #introspection_add
- * The ordering of the interface names is not guaranteed and it should't be relied on
- * https://docs.astarte-platform.org/astarte/latest/080-mqtt-v1-protocol.html#introspection
- *
- * @param[in] introspection a pointer to an introspection struct initialized using
- * #introspection_init
- * @param[out] buffer result buffer correctly allocated of the size retrieved by calling
- * #introspection_get_string_size
- * @param[in] buffer_size Size of the buffer retrieved by calling #introspection_get_string_size
- */
-void introspection_fill_string(introspection_t *introspection, char *buffer, size_t buffer_size);
 
 /**
  * @brief Returns the first node of the introspection that can be used to iterate the collection

@@ -46,14 +46,6 @@ const static astarte_interface_t test_interface_c = {
     .aggregation = ASTARTE_INTERFACE_AGGREGATION_INDIVIDUAL,
 };
 
-static char *get_introspection_string(introspection_t *introspection)
-{
-    size_t introspection_buf_len = introspection_get_string_size(introspection);
-    char *introspection_buf = calloc(introspection_buf_len, sizeof(char));
-    introspection_fill_string(introspection, introspection_buf, introspection_buf_len);
-    return introspection_buf;
-}
-
 static void check_add_interface(introspection_t *introspection,
     const astarte_interface_t *interface, astarte_result_t expected_res)
 {
@@ -70,8 +62,15 @@ static void check_add_interface_ok(
 }
 
 // since ordering of the interfaces is not guardanteed we first compare the length
-static void check_introspection(char *expected, char *got)
+static void check_introspection(const char *expected, const char *got)
 {
+    if (!expected && !expected) {
+        return;
+    }
+
+    zassert_not_null(expected, "Expected NULL introspection\nGot: %s", got);
+    zassert_not_null(got, "Gotten NULL introspection\nExpected: %s", expected);
+
     size_t expected_len = strnlen(expected, ASTARTE_INTERFACE_NAME_MAX_SIZE);
     size_t got_len = strnlen(got, ASTARTE_INTERFACE_NAME_MAX_SIZE);
 
@@ -94,7 +93,7 @@ ZTEST(astarte_device_sdk_introspection, test_introspection_add) // NOLINT
     check_add_interface_ok(&introspection, &test_interface_b);
     check_add_interface_ok(&introspection, &test_interface_c);
 
-    char *introspection_buf = get_introspection_string(&introspection);
+    const char *introspection_buf = introspection_get_string(&introspection);
     LOG_INF("Introspection string '%s'", introspection_buf); // NOLINT
 
     check_introspection((char *) expected_introspection_all, introspection_buf);
@@ -137,7 +136,7 @@ ZTEST(astarte_device_sdk_introspection, test_introspection_add_remove) // NOLINT
     check_add_interface_ok(&introspection, &test_interface_b);
     check_add_interface_ok(&introspection, &test_interface_c);
 
-    char *introspection_buf = get_introspection_string(&introspection);
+    const char *introspection_buf = introspection_get_string(&introspection);
     LOG_INF("Complete introspection string '%s'", introspection_buf); // NOLINT
 
     check_introspection((char *) expected_introspection_all, introspection_buf);
@@ -145,7 +144,7 @@ ZTEST(astarte_device_sdk_introspection, test_introspection_add_remove) // NOLINT
     LOG_INF("Removing interface '%s'", test_interface_c.name); // NOLINT
     check_remove_interface_ok(&introspection, (char *) test_interface_c.name);
 
-    char *introspection_buf_ab = get_introspection_string(&introspection);
+    const char *introspection_buf_ab = introspection_get_string(&introspection);
     LOG_INF("Introspection string '%s'", introspection_buf); // NOLINT
 
     check_introspection((char *) expected_introspection_ab, introspection_buf_ab);
@@ -171,7 +170,7 @@ ZTEST(astarte_device_sdk_introspection, test_introspection_add_twice) // NOLINT
     check_add_interface_ok(&introspection, &test_interface_b);
     check_add_interface_ok(&introspection, &test_interface_c);
 
-    char *introspection_buf = get_introspection_string(&introspection);
+    const char *introspection_buf = introspection_get_string(&introspection);
     LOG_INF("Complete introspection string '%s'", introspection_buf); // NOLINT
 
     check_introspection((char *) expected_introspection_all, introspection_buf);
@@ -179,7 +178,7 @@ ZTEST(astarte_device_sdk_introspection, test_introspection_add_twice) // NOLINT
     check_add_interface(
         &introspection, &test_interface_a, ASTARTE_RESULT_INTERFACE_ALREADY_PRESENT);
 
-    char *introspection_buf_abc = get_introspection_string(&introspection);
+    const char *introspection_buf_abc = introspection_get_string(&introspection);
     LOG_INF("Introspection string '%s'", introspection_buf); // NOLINT
 
     check_introspection((char *) expected_introspection_all, introspection_buf_abc);
@@ -199,22 +198,20 @@ ZTEST(astarte_device_sdk_introspection, test_introspection_remove_twice) // NOLI
     LOG_INF("Adding interface"); // NOLINT
     check_add_interface_ok(&introspection, &test_interface_a);
 
-    char *introspection_buf = get_introspection_string(&introspection);
+    const char *introspection_buf = introspection_get_string(&introspection);
     LOG_INF("Complete introspection string '%s'", introspection_buf); // NOLINT
     check_introspection((char *) expected_introspection_a, introspection_buf);
 
     check_remove_interface_ok(&introspection, (char *) test_interface_a.name);
 
-    char *introspection_buf_empty = get_introspection_string(&introspection);
-    LOG_INF("Introspection string '%s'", introspection_buf); // NOLINT
-    check_introspection("", introspection_buf_empty);
+    const char *introspection_buf_empty = introspection_get_string(&introspection);
+    check_introspection(NULL, introspection_buf_empty);
 
     check_remove_interface(
         &introspection, (char *) test_interface_a.name, ASTARTE_RESULT_INTERFACE_NOT_FOUND);
 
-    char *introspection_buf_empty_2 = get_introspection_string(&introspection);
-    LOG_INF("Introspection string '%s'", introspection_buf_empty_2); // NOLINT
-    check_introspection("", introspection_buf_empty_2);
+    const char *introspection_buf_empty_2 = introspection_get_string(&introspection);
+    check_introspection(NULL, introspection_buf_empty_2);
 
     LOG_INF("Freeing introspection"); // NOLINT
     introspection_free(introspection);
