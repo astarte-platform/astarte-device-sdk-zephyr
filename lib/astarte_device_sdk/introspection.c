@@ -33,13 +33,6 @@ static introspection_node_t *find_node_by_name(
     introspection_t *introspection, const char *interface_name);
 
 /**
- * @brief Counts the number of digits of the passed paramter `num`
- *
- * @return The count of digits in num
- */
-static uint8_t get_digit_count(uint32_t num);
-
-/**
  * @brief Frees the node passed
  *
  * @details This function should be called only from a 'safe' context.
@@ -77,6 +70,49 @@ static astarte_result_t check_interface_update(introspection_t *introspection,
 static astarte_result_t append_introspection_node(
     introspection_t *introspection, const astarte_interface_t *interface);
 
+/**
+ * @brief Update the introspection string to be up to date with the introspection content
+ *
+ * @param[in,out] introspection Instance for an introspection
+ * @return ASTARTE_RESULT_OK on success, otherwise an error code.
+ */
+static astarte_result_t update_introspection_string(introspection_t *introspection);
+
+/**
+ * @brief Computes the introspection string length
+ *
+ * @details The returned length includes the byte for the terminating null character '\0'.
+ * A buffer of the returned size in bytes can be allocated and passed to #introspection_fill_string
+ *
+ * @param[in] introspection a pointer to an introspection struct initialized using
+ * #introspection_init
+ * @return size of the introspection string in bytes, including the NULL terminator.
+ */
+static size_t introspection_get_string_size(introspection_t *introspection);
+
+/**
+ * @brief Returns the introspection string as described in astarte documentation
+ *
+ * @details An empty string is returned if no interfaces got added with #introspection_add
+ * The ordering of the interface names is not guaranteed and it should't be relied on
+ * https://docs.astarte-platform.org/astarte/latest/080-mqtt-v1-protocol.html#introspection
+ *
+ * @param[in] introspection a pointer to an introspection struct initialized using
+ * #introspection_init
+ * @param[out] buffer result buffer correctly allocated of the size retrieved by calling
+ * #introspection_get_string_size
+ * @param[in] buffer_size Size of the buffer retrieved by calling #introspection_get_string_size
+ */
+static astarte_result_t introspection_fill_string(
+    introspection_t *introspection, char *buffer, size_t buffer_size);
+
+/**
+ * @brief Counts the number of digits of the passed paramter `num`
+ *
+ * @return The count of digits in num
+ */
+static uint8_t get_digit_count(uint32_t num);
+
 astarte_result_t introspection_init(introspection_t *introspection)
 {
     if (!introspection) {
@@ -86,6 +122,7 @@ astarte_result_t introspection_init(introspection_t *introspection)
 
     *introspection = (introspection_t){
         .list = calloc(1, sizeof(sys_dlist_t)),
+        .string = NULL,
     };
 
     if (!introspection->list) {
@@ -114,6 +151,11 @@ astarte_result_t introspection_add(
     }
 
     ares = append_introspection_node(introspection, interface);
+    if (ares != ASTARTE_RESULT_OK) {
+        return ares;
+    }
+
+    ares = update_introspection_string(introspection);
     if (ares != ASTARTE_RESULT_OK) {
         return ares;
     }
@@ -147,6 +189,11 @@ astarte_result_t introspection_update(
         }
     }
 
+    ares = update_introspection_string(introspection);
+    if (ares != ASTARTE_RESULT_OK) {
+        return ares;
+    }
+
     return ASTARTE_RESULT_OK;
 }
 
@@ -162,6 +209,11 @@ const astarte_interface_t *introspection_get(
     return alloc_node->interface;
 }
 
+const char *introspection_get_string(introspection_t *introspection)
+{
+    return introspection->string;
+}
+
 astarte_result_t introspection_remove(introspection_t *introspection, const char *interface_name)
 {
     introspection_node_t *alloc_node = find_node_by_name(introspection, interface_name);
@@ -172,45 +224,12 @@ astarte_result_t introspection_remove(introspection_t *introspection, const char
 
     node_free(alloc_node);
 
+    astarte_result_t ares = update_introspection_string(introspection);
+    if (ares != ASTARTE_RESULT_OK) {
+        return ares;
+    }
+
     return ASTARTE_RESULT_OK;
-}
-
-size_t introspection_get_string_size(introspection_t *introspection)
-{
-    introspection_node_t *iter_node = NULL;
-    size_t len = 0;
-
-    SYS_DLIST_FOR_EACH_CONTAINER(introspection->list, iter_node, node)
-    {
-        size_t name_len = strnlen(iter_node->interface->name, ASTARTE_INTERFACE_NAME_MAX_SIZE);
-        size_t major_len = get_digit_count(iter_node->interface->major_version);
-        size_t minor_len = get_digit_count(iter_node->interface->minor_version);
-        // size of the separators 3 (name:1:0; 2 ':' and 1 ';')
-        // the separator ';' of the last interface is not present in an introspection
-        // but we use it in the count as the byte needed for the null terminator char
-        const static size_t separator_len = 3;
-
-        len += name_len + major_len + minor_len + separator_len;
-    }
-
-    // MAX to correctly handle the case of no interfaces
-    return MAX(1, len);
-}
-
-void introspection_fill_string(introspection_t *introspection, char *buffer, size_t buffer_size)
-{
-    introspection_node_t *iter_node = NULL;
-    size_t result_len = 0;
-
-    SYS_DLIST_FOR_EACH_CONTAINER(introspection->list, iter_node, node)
-    {
-        result_len += snprintf(buffer + result_len, buffer_size - result_len, "%s:%u:%u;",
-            iter_node->interface->name, iter_node->interface->major_version,
-            iter_node->interface->minor_version);
-    }
-
-    // to ensure that even the case of an empty collection gets handled correctly
-    buffer[buffer_size - 1] = '\0';
 }
 
 introspection_node_t *introspection_iter(introspection_t *introspection)
@@ -238,6 +257,7 @@ void introspection_free(introspection_t introspection)
     }
 
     free(introspection.list);
+    free(introspection.string);
 }
 
 static inline void node_free(introspection_node_t *alloc_node)
@@ -260,21 +280,6 @@ static introspection_node_t *find_node_by_name(
     }
 
     return NULL;
-}
-
-static uint8_t get_digit_count(uint32_t num)
-{
-    const uint8_t max_digit = 9;
-    const uint8_t max_digit_plus_1 = max_digit + 1;
-
-    uint8_t count = 1;
-
-    while (num > max_digit) {
-        num /= max_digit_plus_1;
-        count += 1;
-    }
-
-    return count;
 }
 
 static astarte_result_t check_interface_update(introspection_t *introspection,
@@ -340,4 +345,90 @@ static astarte_result_t append_introspection_node(
     sys_dlist_append(introspection->list, &alloc_node->node);
 
     return ASTARTE_RESULT_OK;
+}
+
+static astarte_result_t update_introspection_string(introspection_t *introspection)
+{
+    char *new_string = NULL;
+    size_t new_string_size = introspection_get_string_size(introspection);
+    if (new_string_size == 0) {
+        free(introspection->string);
+        introspection->string = NULL;
+        return ASTARTE_RESULT_OK;
+    }
+
+    // if introspection size is > 4KiB print a warning
+    const size_t string_size_warn_level = 4096;
+    if (new_string_size > string_size_warn_level) {
+        ASTARTE_LOG_WRN("The introspection string size is > 4KiB");
+    }
+
+    new_string = calloc(new_string_size, sizeof(char));
+    if (!new_string) {
+        ASTARTE_LOG_ERR("Out of memory %s: %d", __FILE__, __LINE__);
+        return ASTARTE_RESULT_OUT_OF_MEMORY;
+    }
+    introspection_fill_string(introspection, new_string, new_string_size);
+
+    free(introspection->string);
+    introspection->string = new_string;
+    return ASTARTE_RESULT_OK;
+}
+
+static size_t introspection_get_string_size(introspection_t *introspection)
+{
+    introspection_node_t *iter_node = NULL;
+    size_t len = 0;
+
+    SYS_DLIST_FOR_EACH_CONTAINER(introspection->list, iter_node, node)
+    {
+        size_t name_len = strnlen(iter_node->interface->name, ASTARTE_INTERFACE_NAME_MAX_SIZE);
+        size_t major_len = get_digit_count(iter_node->interface->major_version);
+        size_t minor_len = get_digit_count(iter_node->interface->minor_version);
+        // size of the separators 3 (name:1:0; 2 ':' and 1 ';')
+        // the separator ';' of the last interface is not present in an introspection
+        // but we use it in the count as the byte needed for the null terminator char
+        const static size_t separator_len = 3;
+
+        len += name_len + major_len + minor_len + separator_len;
+    }
+
+    return len;
+}
+
+static astarte_result_t introspection_fill_string(
+    introspection_t *introspection, char *buffer, size_t buffer_size)
+{
+    introspection_node_t *iter_node = NULL;
+    size_t result_len = 0;
+
+    SYS_DLIST_FOR_EACH_CONTAINER(introspection->list, iter_node, node)
+    {
+        int snprintf_rc = snprintf(buffer + result_len, buffer_size - result_len, "%s:%u:%u;",
+            iter_node->interface->name, iter_node->interface->major_version,
+            iter_node->interface->minor_version);
+        if (snprintf_rc < 0) {
+            return ASTARTE_RESULT_INTERNAL_ERROR;
+        }
+        result_len += snprintf_rc;
+    }
+
+    // to ensure that even the case of an empty collection gets handled correctly
+    buffer[buffer_size - 1] = '\0';
+    return ASTARTE_RESULT_OK;
+}
+
+static uint8_t get_digit_count(uint32_t num)
+{
+    const uint8_t max_digit = 9;
+    const uint8_t max_digit_plus_1 = max_digit + 1;
+
+    uint8_t count = 1;
+
+    while (num > max_digit) {
+        num /= max_digit_plus_1;
+        count += 1;
+    }
+
+    return count;
 }

@@ -1078,33 +1078,14 @@ static void send_introspection(astarte_device_handle_t device)
     astarte_result_t ares = ASTARTE_RESULT_OK;
 
     const char *topic = device->base_topic;
-
-    char *introspection_str = NULL;
-    size_t introspection_str_size = introspection_get_string_size(&device->introspection);
-
-    // if introspection size is > 4KiB print a warning
-    const size_t introspection_size_warn_level = 4096;
-    if (introspection_str_size > introspection_size_warn_level) {
-        ASTARTE_LOG_WRN("The introspection size is > 4KiB");
-    }
-
-    introspection_str = calloc(introspection_str_size, sizeof(char));
-    if (!introspection_str) {
-        ASTARTE_LOG_ERR("Out of memory %s: %d", __FILE__, __LINE__);
-        goto exit;
-    }
-    introspection_fill_string(&device->introspection, introspection_str, introspection_str_size);
-
+    char *intr_str = (void *) introspection_get_string(&device->introspection);
     uint16_t message_id = 0;
-    ASTARTE_LOG_DBG("Publishing introspection: %s", introspection_str);
+    ASTARTE_LOG_DBG("Publishing introspection: %s", intr_str);
     ares = astarte_mqtt_publish(
-        &device->astarte_mqtt, topic, introspection_str, strlen(introspection_str), 2, &message_id);
+        &device->astarte_mqtt, topic, intr_str, strlen(intr_str), 2, &message_id);
     if (ares != ASTARTE_RESULT_OK) {
         ASTARTE_LOG_ERR("Error publishing introspection.");
     }
-
-exit:
-    free(introspection_str);
 }
 
 static void send_emptycache(astarte_device_handle_t device)
