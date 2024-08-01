@@ -12,6 +12,7 @@ manifest:
     - name: secomind
       url-base: https://github.com/secomind
 
+
   projects:
     - name: zephyr
       remote: zephyrproject-rtos
