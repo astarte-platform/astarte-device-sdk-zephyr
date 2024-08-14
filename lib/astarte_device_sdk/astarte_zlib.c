@@ -9,6 +9,9 @@
  *         Global functions definitions         *
  ***********************************************/
 
+
+
+
 // NOLINTBEGIN: This function is pretty much identical to the one contained in zlib.
 int ZEXPORT astarte_zlib_compress(
     Bytef *dest, uLongf *destLen, const Bytef *source, uLong sourceLen)
