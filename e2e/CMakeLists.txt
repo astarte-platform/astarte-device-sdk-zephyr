@@ -15,14 +15,8 @@ set(COMMON_DIR ../samples/common)
 
 include(${COMMON_DIR}/Utils.cmake)
 
-# the order of this operations reflect their priority
-# properties added later have higher priority
-list(APPEND EXTRA_CONF_FILE ${COMMON_DIR}/prj.conf)
 # add private conf file
 concat_if_exists(private.conf EXTRA_CONF_FILE)
-# add native_sim board overlay from the sample directory
-concat_if_exists(${COMMON_DIR}/boards/${REQUIRED_BOARD}.conf EXTRA_CONF_FILE)
-concat_if_exists(${COMMON_DIR}/boards/${REQUIRED_BOARD}.overlay EXTRA_DTC_OVERLAY_FILE)
 
 find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})
 project(e2e_test)
