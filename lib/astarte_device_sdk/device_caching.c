@@ -12,6 +12,7 @@
 #include <zephyr/kernel.h>
 #include <zephyr/storage/flash_map.h>
 
+#include "heap.h"
 #include "individual_private.h"
 
 #include "log.h"
@@ -130,7 +131,7 @@ astarte_result_t astarte_device_caching_introspection_check(const char *intr, si
         goto exit;
     }
 
-    read_intr = calloc(read_intr_size, sizeof(char));
+    read_intr = astarte_calloc(read_intr_size, sizeof(char));
     if (!read_intr) {
         ASTARTE_LOG_ERR("Out of memory %s: %d", __FILE__, __LINE__);
         ares = ASTARTE_RESULT_OUT_OF_MEMORY;
@@ -151,7 +152,7 @@ astarte_result_t astarte_device_caching_introspection_check(const char *intr, si
 
 exit:
     astarte_kv_storage_destroy(kv_storage);
-    free(read_intr);
+    astarte_free(read_intr);
 
     return ares;
 }
@@ -174,7 +175,7 @@ astarte_result_t astarte_device_caching_property_store(
 
     // Get the full key interface_name + ';' + path
     size_t key_len = strlen(interface_name) + 1 + strlen(path) + 1;
-    key = calloc(key_len, sizeof(char));
+    key = astarte_calloc(key_len, sizeof(char));
     if (!key) {
         ASTARTE_LOG_ERR("Out of memory %s: %d", __FILE__, __LINE__);
         ares = ASTARTE_RESULT_OUT_OF_MEMORY;
@@ -221,7 +222,7 @@ astarte_result_t astarte_device_caching_property_store(
 
 exit:
     astarte_kv_storage_destroy(kv_storage);
-    free(key);
+    astarte_free(key);
     astarte_bson_serializer_destroy(&bson);
     return ares;
 }
@@ -244,7 +245,7 @@ astarte_result_t astarte_device_caching_property_load(const char *interface_name
 
     // Get the full key interface_name + ';' + path
     size_t key_len = strlen(interface_name) + 1 + strlen(path) + 1;
-    key = calloc(key_len, sizeof(char));
+    key = astarte_calloc(key_len, sizeof(char));
     if (!key) {
         ASTARTE_LOG_ERR("Out of memory %s: %d", __FILE__, __LINE__);
         ares = ASTARTE_RESULT_OUT_OF_MEMORY;
@@ -264,7 +265,7 @@ astarte_result_t astarte_device_caching_property_load(const char *interface_name
     }
 
     // Allocate memory for BSON file to read
-    value = calloc(value_len, sizeof(char));
+    value = astarte_calloc(value_len, sizeof(char));
     if (!value) {
         ASTARTE_LOG_ERR("Out of memory %s: %d", __FILE__, __LINE__);
         ares = ASTARTE_RESULT_OUT_OF_MEMORY;
@@ -285,8 +286,8 @@ astarte_result_t astarte_device_caching_property_load(const char *interface_name
 
 exit:
     astarte_kv_storage_destroy(kv_storage);
-    free(key);
-    free(value);
+    astarte_free(key);
+    astarte_free(value);
     return ares;
 }
 
@@ -312,7 +313,7 @@ astarte_result_t astarte_device_caching_property_delete(
 
     // Get the full key interface_name + path
     size_t key_len = strlen(interface_name) + 1 + strlen(path) + 1;
-    key = calloc(key_len, sizeof(char));
+    key = astarte_calloc(key_len, sizeof(char));
     if (!key) {
         ASTARTE_LOG_ERR("Out of memory %s: %d", __FILE__, __LINE__);
         ares = ASTARTE_RESULT_OUT_OF_MEMORY;
@@ -332,7 +333,7 @@ astarte_result_t astarte_device_caching_property_delete(
 
 exit:
     astarte_kv_storage_destroy(kv_storage);
-    free(key);
+    astarte_free(key);
     return ares;
 }
 
@@ -400,7 +401,7 @@ astarte_result_t astarte_device_caching_property_iterator_get(
         goto exit;
     }
 
-    key = calloc(key_size, sizeof(char));
+    key = astarte_calloc(key_size, sizeof(char));
     if (!key) {
         ASTARTE_LOG_ERR("Out of memory %s: %d", __FILE__, __LINE__);
         ares = ASTARTE_RESULT_OUT_OF_MEMORY;
@@ -449,7 +450,7 @@ astarte_result_t astarte_device_caching_property_iterator_get(
     }
 
 exit:
-    free(key);
+    astarte_free(key);
     return ares;
 }
 
@@ -482,8 +483,8 @@ astarte_result_t astarte_device_caching_property_get_device_string(
             goto error;
         }
 
-        interface_name = calloc(interface_name_size, sizeof(char));
-        path = calloc(path_size, sizeof(char));
+        interface_name = astarte_calloc(interface_name_size, sizeof(char));
+        path = astarte_calloc(path_size, sizeof(char));
         if (!interface_name || !path) {
             ASTARTE_LOG_ERR("Out of memory %s: %d", __FILE__, __LINE__);
             goto error;
@@ -504,9 +505,9 @@ astarte_result_t astarte_device_caching_property_get_device_string(
             goto error;
         }
 
-        free(interface_name);
+        astarte_free(interface_name);
         interface_name = NULL;
-        free(path);
+        astarte_free(path);
         path = NULL;
 
         ares = astarte_device_caching_property_iterator_next(&iter);
@@ -523,8 +524,8 @@ astarte_result_t astarte_device_caching_property_get_device_string(
 
 error:
     astarte_device_caching_property_iterator_destroy(iter);
-    free(interface_name);
-    free(path);
+    astarte_free(interface_name);
+    astarte_free(path);
     return ares;
 }
 
