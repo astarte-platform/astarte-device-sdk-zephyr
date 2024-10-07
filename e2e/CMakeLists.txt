@@ -13,26 +13,15 @@ endif()
 
 set(COMMON_DIR ../samples/common)
 
-include(${COMMON_DIR}/Utils.cmake)
-
-# add private conf file
-concat_if_exists(private.conf EXTRA_CONF_FILE)
+include(${COMMON_DIR}/CommonConfig.cmake)
 
 find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})
 project(e2e_test)
 
+include(${COMMON_DIR}/CommonComponents.cmake)
+
 # handle generating certificate inc file
 include(certificate.cmake)
-
-# add common source files
-set(app_common_sources ${COMMON_DIR}/src/utils.c ${COMMON_DIR}/src/eth.c)
-target_sources(app PRIVATE ${app_common_sources})
-target_include_directories(app PRIVATE ${COMMON_DIR}/include)
-
-# add generated interfaces file
-FILE(GLOB app_interfaces_sources interfaces/*.c)
-target_sources(app PRIVATE ${app_interfaces_sources})
-target_include_directories(app PRIVATE interfaces)
 
 # add astarte private headers
 target_include_directories(app PRIVATE ${CMAKE_SOURCE_DIR}/../lib/astarte_device_sdk/include)

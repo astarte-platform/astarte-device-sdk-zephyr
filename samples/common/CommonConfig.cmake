@@ -4,7 +4,5 @@
 
 include(${CMAKE_CURRENT_LIST_DIR}/Utils.cmake)
 
-# add private configuration for common modules
-concat_if_exists(${CMAKE_CURRENT_LIST_DIR}/private.conf EXTRA_CONF_FILE)
-# add also the sample specific private configuration
+# add the sample specific private configuration
 concat_if_exists(${CMAKE_SOURCE_DIR}/private.conf EXTRA_CONF_FILE)
