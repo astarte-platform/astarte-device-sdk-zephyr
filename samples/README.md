@@ -6,38 +6,37 @@ SPDX-License-Identifier: Apache-2.0
 
 ## Samples organization
 
-All the samples contained in this folder share some source code and configuration settings.
-The common components for all the samples can be found in the `common` folder.
-
-Some of the common settings are:
+The sample app in this folder contains code to send all data types supported by astarte.
+The sample folder also contains:
 - Board specific overlays and configurations. Contained in the `common/boards` folder.
 - Common source code for generic Ethernet/Wifi connectivity, TLS settings plus some utilities for
-  generation of standard datasets. Contained in the `common/include` and `common/src` folders.
-- Common Astarte interfaces shared by the samples. These interfaces have been designed to be generic
-  in order for the samples to demonstrate as much functionality as possible.
-  The interfaces are definedi in JSON filed sontained in the `common/interfaces` folder.
-  In addition to the JSON version of the interfaces, an auto-generated version of the same interfaces
-  is contained in the `generated_interfaces` header/source files. Those files have been generated
-  running the `west generate-interfaces` command and should not be modified manually.
-- A generic `Kconfig` file defines some configuration flags used by all the samples.
-- A `prj.conf` file contains configuration settings common for all the samples.
+  generation of standard datasets.
 
-### Common samples behaviour
+Some configuration and cmake utilites are stored in a shared `common` folder that does not contain
+any valid zephyr application. This folder also contains common Astarte interfaces shared by the
+samples and the tests. These interfaces have been designed to be generic in order for the
+`astarte_app` sample to demonstrate as much functionality as possible.
+The interfaces are defined in JSON filed sontained in the `common/interfaces` folder.
+In addition to the JSON version of the interfaces, an auto-generated version of the same interfaces
+is contained in the `generated_interfaces` header/source files. Those files have been generated
+running the `west generate-interfaces` command and should not be modified manually.
 
-All the samples behave in a similar manner.
-Each sample contains two threads:
-- A master application thread that will handle Ethernet/Wifi reconnection and trasmit data to
-  Astarte if needed.
+### Sample behaviour
+
+The sample contains three threads:
+- A master application thread that will handle Ethernet/Wifi reconnection.
 - A secondary thread that will manage the Astarte device and handle reception of data from Astarte.
+- The third thread that sends data to astarte of the configured types.
 
-The two threads are configured to be at the same priority.
-
-Each sample will connect to Astarte and remain connected for a configurable amount of time.
-Furthermore, samples intended to demonstrate a specific interface type such as datastream or
-property will transmit a predefined set of data after a configurable intervall of time.
-
+The sample will connect to Astarte and remain connected for the time it takes to send the data.
+Intervals between send of different types of data can be configured.
+Additionally if no data type transmission is enabled the device will be connected for a specified
+timeout to allow reception of test messages.
 After the operational time of the device has concluded, the device will disconnect and the sample
 will terminate.
+
+Take a look a the [Kconfig](astarte_app/Kconfig) file or use menuconfig to test out different transmission
+types and timeouts.
 
 ## Samples configuration
 
@@ -85,21 +84,6 @@ is the hostname for your Astarte instance, `<REALM_NAME>` is the name of your te
 
 In addition, the file `ca_certificates.h` should be modified, placing in the `ca_certificate_root`
 array a valid CA certificate in the PEM format.
-
-### Configuration of secrets in ignored files
-
-Some of the data configured in the `prj.conf` files could be private.
-Data like wifi passwords or even the astarte credential secret could be configured in a `private.conf` file.
-You can have a `private.conf` file for every of the [samples](https://github.com/astarte-platform/astarte-device-sdk-zephyr/tree/master/samples).
-You can also have a generic `private.conf` defined inside the [common directory](https://github.com/astarte-platform/astarte-device-sdk-zephyr/tree/master/samples/common)
-this configuration will be applied to every sample and it's useful if for you want to the wifi configuration applied to all the examples.
-
-To configure the wifi in a file that is ignored by git you can add the following to `samples/common/private.conf`
-```conf
-# WiFi credentials
-CONFIG_WIFI_SSID=""
-CONFIG_WIFI_PASSWORD=""
-```
 
 ### Use native_sim with net-tools
 
