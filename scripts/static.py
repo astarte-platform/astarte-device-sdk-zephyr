@@ -113,6 +113,7 @@ class WestCommandStatic(WestCommand):
             f'-DCODECHECKER_EXPORT={",".join(codechecker_exports)}',
             f'-DCODECHECKER_ANALYZE_OPTS="{";".join(codechecker_analyze_opts)}"',
         ]
+        print(stylize(" ".join(cmd), fore("cyan")))
         subprocess.run(" ".join(cmd), shell=True, cwd=module_path, timeout=180, check=True)
 
         has_reports = False
@@ -222,8 +223,10 @@ def calculate_file_sizes(module_path: Path):
             if any(re.match(r"^// +NOLINENUMBERLINT.*", line) for line in fp.readlines()):
                 continue
 
+        cmd = f"gcc -fpreprocessed -dD -E {file}"
+        print(stylize(cmd, fore("cyan")))
         cap = subprocess.run(
-            f"gcc -fpreprocessed -dD -E {file}",
+            cmd,
             shell=True,
             cwd=module_path,
             timeout=60,
