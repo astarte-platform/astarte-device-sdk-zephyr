@@ -105,6 +105,8 @@ jobs:
       - name: Install Python dependencies
         working-directory: astarte-device-sdk-zephyr
         run: pip install -r $PWD/scripts/requirements.txt
+      - name: Show installed packages
+        run: pip list installed
       - name: Run clang-tidy
         working-directory: astarte-device-sdk-zephyr
         run: west static --sample astarte_app
