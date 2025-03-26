@@ -235,9 +235,9 @@ Create the file `./.vscode/settings.json` and fill it with the following content
     "C_Cpp.debugShortcut": false
 }
 ```
-The first setting will avoid noisy popups from the CMake extension.
-The python related settings will ensure that each time the integrated terminal is open, the
-venv containing `west` will be automatically activated.
+The first setting will avoid noisy popups from the CMake extension. The python related settings
+will ensure that each time the integrated terminal is open, the venv containing `west` will be
+automatically activated.
 The C/C++ settings will configure intellisense. Those setting might be slightly different
 for your specific Zephyr SDK installation as versions might change.
 Also, the compile commands path assumes `west build` gets run from the root of the zephyr
