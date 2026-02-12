@@ -22,6 +22,7 @@ manifest:
         name-allowlist:
           - cmsis_6
           - hal_nxp
+          - hal_espressif
           - hal_stm32
           - mbedtls
           - picolibc

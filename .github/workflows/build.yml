@@ -50,13 +50,13 @@ jobs:
         uses: zephyrproject-rtos/action-zephyr-setup@v1
         with:
           app-path: ${{ env.PROJECT_MANIFEST_FOLDER }}
-          toolchains: arm-zephyr-eabi
+          toolchains: arm-zephyr-eabi:xtensa-espressif_esp32_zephyr-elf
       - name: Fetch binary blobs
         working-directory: ${{ env.PROJECT_MANIFEST_FOLDER }}
-        if: matrix.sample-variant.name == 'sample.wifi'
         run: |
           west --version
           west blobs -a fetch hal_nxp
+          west blobs -a fetch hal_espressif
       - name: Build sample
         working-directory: ${{ env.PROJECT_MANIFEST_FOLDER }}
         run: |
