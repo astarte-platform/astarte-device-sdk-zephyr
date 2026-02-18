@@ -80,12 +80,18 @@ astarte_result_t astarte_device_tx_stream_individual(astarte_device_handle_t dev
     }
 
     if (timestamp) {
-        astarte_bson_serializer_append_datetime(&bson, "t", *timestamp);
+        ares = astarte_bson_serializer_append_datetime(&bson, "t", *timestamp);
+        if (ares != ASTARTE_RESULT_OK) {
+            goto exit;
+        }
     }
-    astarte_bson_serializer_append_end_of_document(&bson);
+    ares = astarte_bson_serializer_append_end_of_document(&bson);
+    if (ares != ASTARTE_RESULT_OK) {
+        goto exit;
+    }
 
     int data_ser_len = 0;
-    void *data_ser = (void *) astarte_bson_serializer_get_serialized(bson, &data_ser_len);
+    void *data_ser = (void *) astarte_bson_serializer_get_serialized(&bson, &data_ser_len);
     if (!data_ser) {
         ASTARTE_LOG_ERR("Error during BSON serialization.");
         ares = ASTARTE_RESULT_BSON_SERIALIZER_ERROR;
@@ -156,9 +162,12 @@ astarte_result_t astarte_device_tx_stream_aggregated(astarte_device_handle_t dev
     if (ares != ASTARTE_RESULT_OK) {
         goto exit;
     }
-    astarte_bson_serializer_append_end_of_document(&inner_bson);
+    ares = astarte_bson_serializer_append_end_of_document(&inner_bson);
+    if (ares != ASTARTE_RESULT_OK) {
+        goto exit;
+    }
     int inner_len = 0;
-    const void *inner_data = astarte_bson_serializer_get_serialized(inner_bson, &inner_len);
+    const void *inner_data = astarte_bson_serializer_get_serialized(&inner_bson, &inner_len);
     if (!inner_data) {
         ASTARTE_LOG_ERR("Error during BSON serialization");
         ares = ASTARTE_RESULT_BSON_SERIALIZER_ERROR;
@@ -172,15 +181,24 @@ astarte_result_t astarte_device_tx_stream_aggregated(astarte_device_handle_t dev
         goto exit;
     }
 
-    astarte_bson_serializer_append_document(&outer_bson, "v", inner_data);
+    ares = astarte_bson_serializer_append_document(&outer_bson, "v", inner_data);
+    if (ares != ASTARTE_RESULT_OK) {
+        goto exit;
+    }
 
     if (timestamp) {
-        astarte_bson_serializer_append_datetime(&outer_bson, "t", *timestamp);
+        ares = astarte_bson_serializer_append_datetime(&outer_bson, "t", *timestamp);
+        if (ares != ASTARTE_RESULT_OK) {
+            goto exit;
+        }
     }
-    astarte_bson_serializer_append_end_of_document(&outer_bson);
+    ares = astarte_bson_serializer_append_end_of_document(&outer_bson);
+    if (ares != ASTARTE_RESULT_OK) {
+        goto exit;
+    }
 
     int len = 0;
-    const void *data = astarte_bson_serializer_get_serialized(outer_bson, &len);
+    const void *data = astarte_bson_serializer_get_serialized(&outer_bson, &len);
     if (!data) {
         ASTARTE_LOG_ERR("Error during BSON serialization");
         ares = ASTARTE_RESULT_BSON_SERIALIZER_ERROR;

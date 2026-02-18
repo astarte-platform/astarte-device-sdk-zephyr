@@ -17,6 +17,9 @@
  */
 
 #include "astarte_device_sdk/result.h"
+#include <stdbool.h>
+#include <stddef.h>
+#include <stdint.h>
 
 /** @brief Bson document object */
 typedef struct
@@ -24,7 +27,7 @@ typedef struct
     /** @brief Total size of the document in bytes */
     uint32_t size;
     /** @brief Pointer to the head of the list of elements in the BSON document */
-    const void *list;
+    const uint8_t *list;
     /** @brief Size of the list in bytes */
     uint32_t list_size;
 } astarte_bson_document_t;
@@ -39,7 +42,7 @@ typedef struct
     /** @brief Length in bytes of the element name, not including the null terminator */
     size_t name_len;
     /** @brief Pointer to the element content */
-    const void *value;
+    const uint8_t *value;
 } astarte_bson_element_t;
 
 #ifdef __cplusplus
@@ -56,15 +59,15 @@ extern "C" {
  * @param[in] buffer_size Size of the allocated buffer containing the document.
  * @return True when BSON file is valid, false otherwise.
  */
-bool astarte_bson_deserializer_check_validity(const void *buffer, size_t buffer_size);
+bool astarte_bson_deserializer_check_validity(const uint8_t *buffer, size_t buffer_size);
 
 /**
  * @brief Initialize a document type from a BSON data buffer.
  *
  * @param[in] buffer Buffer containing the BSON data.
- * @return Initialized document struct.
+ * @return Initialized document struct. Returns an empty struct if buffer is NULL.
  */
-astarte_bson_document_t astarte_bson_deserializer_init_doc(const void *buffer);
+astarte_bson_document_t astarte_bson_deserializer_init_doc(const uint8_t *buffer);
 
 /**
  * @brief Counts the number of elements in a BSON document.
