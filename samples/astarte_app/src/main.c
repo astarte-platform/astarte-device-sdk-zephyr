@@ -26,7 +26,7 @@
 #include <astarte_device_sdk/mapping.h>
 #include <astarte_device_sdk/pairing.h>
 
-#if defined(CONFIG_WIFI)
+#ifdef CONFIG_WIFI
 #include "wifi.h"
 #else
 #include "eth.h"
@@ -36,17 +36,17 @@
 
 #include "generated_interfaces.h"
 
-#if defined(CONFIG_DEVICE_INDIVIDUAL_TRANSMISSION)
+#ifdef CONFIG_DEVICE_INDIVIDUAL_TRANSMISSION
 #include "individual_send.h"
 #endif
-#if defined(CONFIG_DEVICE_OBJECT_TRANSMISSION)
+#ifdef CONFIG_DEVICE_OBJECT_TRANSMISSION
 #include "object_send.h"
 #endif
 #if defined(CONFIG_DEVICE_PROPERTY_SET_TRANSMISSION)                                               \
     || defined(CONFIG_DEVICE_PROPERTY_UNSET_TRANSMISSION)
 #include "property_send.h"
 #endif
-#if defined(CONFIG_DEVICE_REGISTRATION)
+#ifdef CONFIG_DEVICE_REGISTRATION
 #include "register.h"
 #endif
 
@@ -151,15 +151,15 @@ int main(void)
     struct sample_config cfg_from_file = { 0 };
     sample_config_get(&cfg_from_file);
     LOG_INF("Configured device ID: %s", cfg_from_file.device_id); // NOLINT
-#if !defined(CONFIG_DEVICE_REGISTRATION)
+#ifndef CONFIG_DEVICE_REGISTRATION
     LOG_INF("Configured credential secret: %s", cfg_from_file.credential_secret); // NOLINT
 #endif
-#if defined(CONFIG_WIFI)
+#ifdef CONFIG_WIFI
     LOG_INF("Configured WiFi SSID: %s", cfg_from_file.wifi_ssid); // NOLINT
     LOG_INF("Configured WiFi password: %s", cfg_from_file.wifi_pwd); // NOLINT
 #endif
 
-#if defined(CONFIG_WIFI)
+#ifdef CONFIG_WIFI
     LOG_INF("Initializing WiFi driver."); // NOLINT
     app_wifi_init();
     k_sleep(K_SECONDS(5));
@@ -202,7 +202,7 @@ int main(void)
         NULL, NULL, CONFIG_DEVICE_THREAD_PRIORITY, 0, K_NO_WAIT);
 
     while (!atomic_test_bit(&device_thread_flags, THREAD_FLAGS_TX_COMPLETE)) {
-#if !defined(CONFIG_WIFI)
+#ifndef CONFIG_WIFI
         // Ensure the connectivity is still present
         eth_poll();
 #endif
@@ -352,27 +352,27 @@ static void device_tx_thread_entry_point(void *arg1, void *arg2, void *arg3)
         k_sleep(K_MSEC(THREAD_SLEEP_MS));
     }
 
-#if defined(CONFIG_DEVICE_INDIVIDUAL_TRANSMISSION)
+#ifdef CONFIG_DEVICE_INDIVIDUAL_TRANSMISSION
     // NOLINTNEXTLINE
     LOG_INF("Waiting %d seconds to send individuals.",
         CONFIG_DEVICE_INDIVIDUAL_TRANSMISSION_DELAY_SECONDS);
     k_sleep(K_SECONDS(CONFIG_DEVICE_INDIVIDUAL_TRANSMISSION_DELAY_SECONDS));
     sample_individual_transmission(device);
 #endif
-#if defined(CONFIG_DEVICE_OBJECT_TRANSMISSION)
+#ifdef CONFIG_DEVICE_OBJECT_TRANSMISSION
     // NOLINTNEXTLINE
     LOG_INF("Waiting %d seconds to send objects.", CONFIG_DEVICE_OBJECT_TRANSMISSION_DELAY_SECONDS);
     k_sleep(K_SECONDS(CONFIG_DEVICE_OBJECT_TRANSMISSION_DELAY_SECONDS));
     sample_object_transmission(device);
 #endif
-#if defined(CONFIG_DEVICE_PROPERTY_SET_TRANSMISSION)
+#ifdef CONFIG_DEVICE_PROPERTY_SET_TRANSMISSION
     // NOLINTNEXTLINE
     LOG_INF("Waiting %d seconds to set properties.",
         CONFIG_DEVICE_PROPERTY_SET_TRANSMISSION_DELAY_SECONDS);
     k_sleep(K_SECONDS(CONFIG_DEVICE_PROPERTY_SET_TRANSMISSION_DELAY_SECONDS));
     sample_property_set_transmission(device);
 #endif
-#if defined(CONFIG_DEVICE_PROPERTY_UNSET_TRANSMISSION)
+#ifdef CONFIG_DEVICE_PROPERTY_UNSET_TRANSMISSION
     // NOLINTNEXTLINE
     LOG_INF("Waiting %d seconds to unset properties.",
         CONFIG_DEVICE_PROPERTY_UNSET_TRANSMISSION_DELAY_SECONDS);

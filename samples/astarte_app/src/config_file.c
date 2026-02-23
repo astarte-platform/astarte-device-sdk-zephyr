@@ -9,7 +9,7 @@
 #include <stdint.h>
 #include <stdio.h>
 
-#if defined(CONFIG_GET_CONFIG_FROM_FLASH)
+#ifdef CONFIG_GET_CONFIG_FROM_FLASH
 #include <zephyr/data/json.h>
 #include <zephyr/device.h>
 #include <zephyr/fs/fs.h>
@@ -26,11 +26,11 @@ LOG_MODULE_REGISTER(config_file, CONFIG_APP_LOG_LEVEL); // NOLINT
  *       Checks over configuration values       *
  ***********************************************/
 
-#if !defined(CONFIG_GET_CONFIG_FROM_FLASH)
+#ifndef CONFIG_GET_CONFIG_FROM_FLASH
 BUILD_ASSERT(sizeof(CONFIG_DEVICE_ID) == ASTARTE_DEVICE_ID_LEN + 1,
     "Missing device ID in datastreams example");
 
-#if !defined(CONFIG_DEVICE_REGISTRATION)
+#ifndef CONFIG_DEVICE_REGISTRATION
 BUILD_ASSERT(sizeof(CONFIG_CREDENTIAL_SECRET) == ASTARTE_PAIRING_CRED_SECR_LEN + 1,
     "Missing credential secret in datastreams example");
 #endif
@@ -40,7 +40,7 @@ BUILD_ASSERT(sizeof(CONFIG_CREDENTIAL_SECRET) == ASTARTE_PAIRING_CRED_SECR_LEN +
  *        Defines, constants and typedef        *
  ***********************************************/
 
-#if defined(CONFIG_GET_CONFIG_FROM_FLASH)
+#ifdef CONFIG_GET_CONFIG_FROM_FLASH
 /* Matches LFS_NAME_MAX */
 #define MAX_PATH_LEN 255
 #define MAX_CONFIG_FILE_SIZE 4096
@@ -62,7 +62,7 @@ struct fs_mount_t *mountpoint = &FS_FSTAB_ENTRY(PARTITION_NODE);
 
 static int copy_configuration(const char *device_id, const char *credential_secret,
     const char *wifi_ssid, const char *wifi_pwd, struct sample_config *out_cfg);
-#if defined(CONFIG_GET_CONFIG_FROM_FLASH)
+#ifdef CONFIG_GET_CONFIG_FROM_FLASH
 static int read_configuration_file(
     char fname[static MAX_PATH_LEN], char fcontent[static MAX_CONFIG_FILE_SIZE]);
 static int parse_configuration_file(char *fcontent, struct sample_config *out_cfg);
@@ -74,7 +74,7 @@ static int parse_configuration_file(char *fcontent, struct sample_config *out_cf
 
 int sample_config_get(struct sample_config *cfg)
 {
-#if defined(CONFIG_GET_CONFIG_FROM_FLASH)
+#ifdef CONFIG_GET_CONFIG_FROM_FLASH
     int rc;
     char config_fname[MAX_PATH_LEN] = { 0 };
     char config_fcontent[MAX_CONFIG_FILE_SIZE] = { 0 };
@@ -106,12 +106,12 @@ out:
     return 0;
 #else
     return copy_configuration(CONFIG_DEVICE_ID,
-#if !defined(CONFIG_DEVICE_REGISTRATION)
+#ifndef CONFIG_DEVICE_REGISTRATION
         CONFIG_CREDENTIAL_SECRET,
 #else
         NULL,
 #endif
-#if defined(CONFIG_WIFI)
+#ifdef CONFIG_WIFI
         CONFIG_WIFI_SSID, CONFIG_WIFI_PASSWORD,
 #else
         NULL, NULL,
@@ -133,7 +133,7 @@ static int copy_configuration(const char *device_id, const char *credential_secr
         LOG_ERR("Error extracting the device ID from the parsed json."); // NOLINT
         return -1;
     }
-#if !defined(CONFIG_DEVICE_REGISTRATION)
+#ifndef CONFIG_DEVICE_REGISTRATION
     snprintf_rc = snprintf(out_cfg->credential_secret, ARRAY_SIZE(out_cfg->credential_secret), "%s",
         credential_secret);
     if ((snprintf_rc < 0) || (snprintf_rc >= ARRAY_SIZE(out_cfg->credential_secret))) {
@@ -143,7 +143,7 @@ static int copy_configuration(const char *device_id, const char *credential_secr
 #else
     ARG_UNUSED(credential_secret);
 #endif
-#if defined(CONFIG_WIFI)
+#ifdef CONFIG_WIFI
     snprintf_rc = snprintf(out_cfg->wifi_ssid, ARRAY_SIZE(out_cfg->wifi_ssid), "%s", wifi_ssid);
     if ((snprintf_rc < 0) || (snprintf_rc >= ARRAY_SIZE(out_cfg->wifi_ssid))) {
         LOG_ERR("Error extracting the WiFi SSID from the parsed json."); // NOLINT
@@ -160,7 +160,7 @@ static int copy_configuration(const char *device_id, const char *credential_secr
 #endif
     return 0;
 }
-#if defined(CONFIG_GET_CONFIG_FROM_FLASH)
+#ifdef CONFIG_GET_CONFIG_FROM_FLASH
 static int read_configuration_file(
     char fname[static MAX_PATH_LEN], char fcontent[static MAX_CONFIG_FILE_SIZE])
 {
@@ -225,7 +225,7 @@ static int parse_configuration_file(char *fcontent, struct sample_config *out_cf
         LOG_ERR("Parsed JSON is missing the credentialSecret field."); // NOLINT
         return -1;
     }
-#if defined(CONFIG_WIFI)
+#ifdef CONFIG_WIFI
     if (!parsed_json.wifiSsid) {
         LOG_ERR("Parsed JSON is missing the wifiSsid field."); // NOLINT
         return -1;

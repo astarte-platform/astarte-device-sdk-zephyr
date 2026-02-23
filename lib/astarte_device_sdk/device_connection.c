@@ -5,7 +5,7 @@
  */
 #include "device_connection.h"
 
-#if defined(CONFIG_ASTARTE_DEVICE_SDK_PERMANENT_STORAGE)
+#ifdef CONFIG_ASTARTE_DEVICE_SDK_PERMANENT_STORAGE
 #include "astarte_zlib.h"
 #include "device_caching.h"
 #include "device_tx.h"
@@ -63,7 +63,7 @@ static void state_machine_handshake_error_run(astarte_device_handle_t device);
  * @param[in] device Handle to the device instance.
  */
 static void state_machine_connected_run(astarte_device_handle_t device);
-#if defined(CONFIG_ASTARTE_DEVICE_SDK_PERMANENT_STORAGE)
+#ifdef CONFIG_ASTARTE_DEVICE_SDK_PERMANENT_STORAGE
 /**
  * @brief Send the purge properties message for the device owned properties.
  *
@@ -290,7 +290,7 @@ static void state_machine_start_handshake_run(astarte_device_handle_t device)
     }
     introspection_fill_string(&device->introspection, intr_str, intr_str_size);
 
-#if defined(CONFIG_ASTARTE_DEVICE_SDK_PERMANENT_STORAGE)
+#ifdef CONFIG_ASTARTE_DEVICE_SDK_PERMANENT_STORAGE
     if ((device->mqtt_session_present_flag != 0) && device->synchronization_completed) {
         astarte_result_t ares
             = astarte_device_caching_introspection_check(&device->caching, intr_str, intr_str_size);
@@ -315,7 +315,7 @@ static void state_machine_start_handshake_run(astarte_device_handle_t device)
     }
     send_introspection(device, intr_str);
     send_emptycache(device);
-#if defined(CONFIG_ASTARTE_DEVICE_SDK_PERMANENT_STORAGE)
+#ifdef CONFIG_ASTARTE_DEVICE_SDK_PERMANENT_STORAGE
     if (send_purge_device_properties(device) != ASTARTE_RESULT_OK) {
         ASTARTE_LOG_DBG("Device connection state -> HANDSHAKE_ERROR.");
         device->connection_state = DEVICE_HANDSHAKE_ERROR;
@@ -349,7 +349,7 @@ static void state_machine_end_handshake_run(astarte_device_handle_t device)
         ASTARTE_LOG_DBG("Device connection state -> CONNECTED.");
         device->connection_state = DEVICE_CONNECTED;
 
-#if defined(CONFIG_ASTARTE_DEVICE_SDK_PERMANENT_STORAGE)
+#ifdef CONFIG_ASTARTE_DEVICE_SDK_PERMANENT_STORAGE
         astarte_result_t ares = astarte_device_caching_synchronization_set(&device->caching, true);
         if (ares != ASTARTE_RESULT_OK) {
             ASTARTE_LOG_ERR("Synchronization state set failure %s.", astarte_result_to_name(ares));
@@ -394,7 +394,7 @@ static void state_machine_handshake_error_run(astarte_device_handle_t device)
 {
     if (device->synchronization_completed) {
         device->synchronization_completed = false;
-#if defined(CONFIG_ASTARTE_DEVICE_SDK_PERMANENT_STORAGE)
+#ifdef CONFIG_ASTARTE_DEVICE_SDK_PERMANENT_STORAGE
         astarte_result_t ares = astarte_device_caching_synchronization_set(&device->caching, false);
         if (ares != ASTARTE_RESULT_OK) {
             ASTARTE_LOG_ERR("Synchronization state set failure %s.", astarte_result_to_name(ares));
@@ -417,7 +417,7 @@ static void state_machine_connected_run(astarte_device_handle_t device)
         CONFIG_ASTARTE_DEVICE_SDK_RECONNECTION_BACKOFF_CUTOFF_COEFF_MS);
 }
 
-#if defined(CONFIG_ASTARTE_DEVICE_SDK_PERMANENT_STORAGE)
+#ifdef CONFIG_ASTARTE_DEVICE_SDK_PERMANENT_STORAGE
 static astarte_result_t send_purge_device_properties(astarte_device_handle_t device)
 {
     astarte_result_t ares = ASTARTE_RESULT_OK;
