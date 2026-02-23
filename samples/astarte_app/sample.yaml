@@ -18,6 +18,7 @@ tests:
       - mimxrt1064_evk
       - stm32h573i_dk
       - native_sim
+      - esp_wrover_kit/esp32/procpu
   sample.wifi:
     build_only: true
     extra_args: EXTRA_CONF_FILE="prj-wifi.conf"
