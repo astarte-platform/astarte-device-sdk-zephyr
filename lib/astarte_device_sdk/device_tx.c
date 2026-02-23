@@ -38,6 +38,18 @@ ASTARTE_LOG_MODULE_REGISTER(device_transmission, CONFIG_ASTARTE_DEVICE_SDK_DEVIC
 static astarte_result_t publish_data(astarte_device_handle_t device, const char *interface_name,
     const char *path, void *data, int data_size, int qos);
 
+/**
+ * @brief Serialize an aggregated payload into a BSON document.
+ *
+ * @param[out] outer_bson Outer bson where to place the serialized aggregated data.
+ * @param[in] entries Entries to serialize.
+ * @param[in] entries_len Number of entries to serialize.
+ * @param[in] timestamp Timestamp to include in the serialized data.
+ * @return ASTARTE_RESULT_OK if serialization has been successful, an error code otherwise.
+ */
+static astarte_result_t serialize_aggregated_payload(astarte_bson_serializer_t *outer_bson,
+    astarte_object_entry_t *entries, size_t entries_len, const int64_t *timestamp);
+
 /************************************************
  *         Global functions definitions         *
  ***********************************************/
@@ -80,12 +92,18 @@ astarte_result_t astarte_device_tx_stream_individual(astarte_device_handle_t dev
     }
 
     if (timestamp) {
-        astarte_bson_serializer_append_datetime(&bson, "t", *timestamp);
+        ares = astarte_bson_serializer_append_datetime(&bson, "t", *timestamp);
+        if (ares != ASTARTE_RESULT_OK) {
+            goto exit;
+        }
     }
-    astarte_bson_serializer_append_end_of_document(&bson);
+    ares = astarte_bson_serializer_append_end_of_document(&bson);
+    if (ares != ASTARTE_RESULT_OK) {
+        goto exit;
+    }
 
     int data_ser_len = 0;
-    void *data_ser = (void *) astarte_bson_serializer_get_serialized(bson, &data_ser_len);
+    void *data_ser = (void *) astarte_bson_serializer_get_serialized(&bson, &data_ser_len);
     if (!data_ser) {
         ASTARTE_LOG_ERR("Error during BSON serialization.");
         ares = ASTARTE_RESULT_BSON_SERIALIZER_ERROR;
@@ -109,87 +127,44 @@ astarte_result_t astarte_device_tx_stream_aggregated(astarte_device_handle_t dev
     const char *interface_name, const char *path, astarte_object_entry_t *entries,
     size_t entries_len, const int64_t *timestamp)
 {
-    astarte_bson_serializer_t outer_bson = { 0 };
-    astarte_bson_serializer_t inner_bson = { 0 };
     astarte_result_t ares = ASTARTE_RESULT_OK;
+    astarte_bson_serializer_t outer_bson = { 0 };
 
     const astarte_interface_t *interface = introspection_get(
         &device->introspection, interface_name);
     if (!interface) {
         ASTARTE_LOG_ERR("Couldn't find interface in device introspection (%s).", interface_name);
-        ares = ASTARTE_RESULT_INTERFACE_NOT_FOUND;
-        goto exit;
+        return ASTARTE_RESULT_INTERFACE_NOT_FOUND;
     }
 
-    // This validation section has been moved outside the data_validation_aggregated_datastream
-    // function as it is only required for transmission.
     if (interface->mappings_length != entries_len) {
         ASTARTE_LOG_ERR("Incomplete aggregated datastream (%s/%s).", interface->name, path);
-        ares = ASTARTE_RESULT_INCOMPLETE_AGGREGATION_OBJECT;
-        goto exit;
+        return ASTARTE_RESULT_INCOMPLETE_AGGREGATION_OBJECT;
     }
 
     ares = data_validation_aggregated_datastream(interface, path, entries, entries_len, timestamp);
     if (ares != ASTARTE_RESULT_OK) {
         ASTARTE_LOG_ERR("Device aggregated data validation failed.");
-        goto exit;
+        return ares;
     }
 
     int qos = 0;
     ares = astarte_interface_get_qos(interface, NULL, &qos);
     if (ares != ASTARTE_RESULT_OK) {
         ASTARTE_LOG_ERR("Failed getting QoS for aggregated data streaming.");
-        goto exit;
+        return ares;
     }
 
-    ares = astarte_bson_serializer_init(&outer_bson);
-    if (ares != ASTARTE_RESULT_OK) {
-        ASTARTE_LOG_ERR("Could not initialize the bson serializer");
-        goto exit;
-    }
-    ares = astarte_bson_serializer_init(&inner_bson);
-    if (ares != ASTARTE_RESULT_OK) {
-        ASTARTE_LOG_ERR("Could not initialize the bson serializer");
-        goto exit;
-    }
-    ares = astarte_object_entries_serialize(&inner_bson, entries, entries_len);
+    ares = serialize_aggregated_payload(&outer_bson, entries, entries_len, timestamp);
     if (ares != ASTARTE_RESULT_OK) {
         goto exit;
     }
-    astarte_bson_serializer_append_end_of_document(&inner_bson);
-    int inner_len = 0;
-    const void *inner_data = astarte_bson_serializer_get_serialized(inner_bson, &inner_len);
-    if (!inner_data) {
-        ASTARTE_LOG_ERR("Error during BSON serialization");
-        ares = ASTARTE_RESULT_BSON_SERIALIZER_ERROR;
-        goto exit;
-    }
-    if (inner_len < 0) {
-        ASTARTE_LOG_ERR("BSON document is too long for MQTT publish.");
-        ASTARTE_LOG_ERR("Interface: %s, path: %s", interface_name, path);
-
-        ares = ASTARTE_RESULT_BSON_SERIALIZER_ERROR;
-        goto exit;
-    }
-
-    astarte_bson_serializer_append_document(&outer_bson, "v", inner_data);
-
-    if (timestamp) {
-        astarte_bson_serializer_append_datetime(&outer_bson, "t", *timestamp);
-    }
-    astarte_bson_serializer_append_end_of_document(&outer_bson);
 
     int len = 0;
-    const void *data = astarte_bson_serializer_get_serialized(outer_bson, &len);
-    if (!data) {
-        ASTARTE_LOG_ERR("Error during BSON serialization");
-        ares = ASTARTE_RESULT_BSON_SERIALIZER_ERROR;
-        goto exit;
-    }
-    if (len < 0) {
-        ASTARTE_LOG_ERR("BSON document is too long for MQTT publish.");
+    const void *data = astarte_bson_serializer_get_serialized(&outer_bson, &len);
+    if (!data || len < 0) {
+        ASTARTE_LOG_ERR("BSON document is too long or invalid for MQTT publish.");
         ASTARTE_LOG_ERR("Interface: %s, path: %s", interface_name, path);
-
         ares = ASTARTE_RESULT_BSON_SERIALIZER_ERROR;
         goto exit;
     }
@@ -198,7 +173,6 @@ astarte_result_t astarte_device_tx_stream_aggregated(astarte_device_handle_t dev
 
 exit:
     astarte_bson_serializer_destroy(&outer_bson);
-    astarte_bson_serializer_destroy(&inner_bson);
 
     return ares;
 }
@@ -299,5 +273,60 @@ static astarte_result_t publish_data(astarte_device_handle_t device, const char 
 
 exit:
     free(topic);
+    return ares;
+}
+
+static astarte_result_t serialize_aggregated_payload(astarte_bson_serializer_t *outer_bson,
+    astarte_object_entry_t *entries, size_t entries_len, const int64_t *timestamp)
+{
+    astarte_bson_serializer_t inner_bson = { 0 };
+    astarte_result_t ares = ASTARTE_RESULT_OK;
+
+    ares = astarte_bson_serializer_init(outer_bson);
+    if (ares != ASTARTE_RESULT_OK) {
+        ASTARTE_LOG_ERR("Could not initialize the outer bson serializer");
+        return ares;
+    }
+
+    ares = astarte_bson_serializer_init(&inner_bson);
+    if (ares != ASTARTE_RESULT_OK) {
+        ASTARTE_LOG_ERR("Could not initialize the inner bson serializer");
+        return ares;
+    }
+
+    ares = astarte_object_entries_serialize(&inner_bson, entries, entries_len);
+    if (ares != ASTARTE_RESULT_OK) {
+        goto exit;
+    }
+
+    ares = astarte_bson_serializer_append_end_of_document(&inner_bson);
+    if (ares != ASTARTE_RESULT_OK) {
+        goto exit;
+    }
+
+    int inner_len = 0;
+    const void *inner_data = astarte_bson_serializer_get_serialized(&inner_bson, &inner_len);
+    if (!inner_data || inner_len < 0) {
+        ASTARTE_LOG_ERR("Error during BSON serialization of inner document");
+        ares = ASTARTE_RESULT_BSON_SERIALIZER_ERROR;
+        goto exit;
+    }
+
+    ares = astarte_bson_serializer_append_document(outer_bson, "v", inner_data);
+    if (ares != ASTARTE_RESULT_OK) {
+        goto exit;
+    }
+
+    if (timestamp) {
+        ares = astarte_bson_serializer_append_datetime(outer_bson, "t", *timestamp);
+        if (ares != ASTARTE_RESULT_OK) {
+            goto exit;
+        }
+    }
+
+    ares = astarte_bson_serializer_append_end_of_document(outer_bson);
+
+exit:
+    astarte_bson_serializer_destroy(&inner_bson);
     return ares;
 }
