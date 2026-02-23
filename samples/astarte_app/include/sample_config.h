@@ -12,17 +12,17 @@
 
 #include <astarte_device_sdk/device.h>
 
-#if defined(CONFIG_WIFI)
+#ifdef CONFIG_WIFI
 #define SAMPLE_CONFIG_WIFI_MAX_STRINGS 255
 #endif
 
 struct sample_config
 {
     char device_id[ASTARTE_DEVICE_ID_LEN + 1];
-#if !defined(CONFIG_DEVICE_REGISTRATION)
+#ifndef CONFIG_DEVICE_REGISTRATION
     char credential_secret[ASTARTE_PAIRING_CRED_SECR_LEN + 1];
 #endif
-#if defined(CONFIG_WIFI)
+#ifdef CONFIG_WIFI
     char wifi_ssid[SAMPLE_CONFIG_WIFI_MAX_STRINGS];
     char wifi_pwd[SAMPLE_CONFIG_WIFI_MAX_STRINGS];
 #endif

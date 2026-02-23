@@ -7,7 +7,7 @@
 
 #include "bson_serializer.h"
 #include "data_validation.h"
-#if defined(CONFIG_ASTARTE_DEVICE_SDK_PERMANENT_STORAGE)
+#ifdef CONFIG_ASTARTE_DEVICE_SDK_PERMANENT_STORAGE
 #include "device_caching.h"
 #endif
 #include "data_private.h"
@@ -219,7 +219,7 @@ astarte_result_t astarte_device_tx_set_property(astarte_device_handle_t device,
         return ares;
     }
 
-#if defined(CONFIG_ASTARTE_DEVICE_SDK_PERMANENT_STORAGE)
+#ifdef CONFIG_ASTARTE_DEVICE_SDK_PERMANENT_STORAGE
     ares = astarte_device_caching_property_store(
         &device->caching, interface_name, path, interface->major_version, data);
     if (ares != ASTARTE_RESULT_OK) {
@@ -246,7 +246,7 @@ astarte_result_t astarte_device_tx_unset_property(
         return ares;
     }
 
-#if defined(CONFIG_ASTARTE_DEVICE_SDK_PERMANENT_STORAGE)
+#ifdef CONFIG_ASTARTE_DEVICE_SDK_PERMANENT_STORAGE
     ares = astarte_device_caching_property_delete(&device->caching, interface_name, path);
     if (ares != ASTARTE_RESULT_OK) {
         ASTARTE_LOG_ERR("Failed deleting the stored property.");

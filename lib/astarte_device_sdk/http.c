@@ -12,7 +12,7 @@
 #include <zephyr/net/socket.h>
 #include <zephyr/version.h>
 
-#if !defined(CONFIG_ASTARTE_DEVICE_SDK_DEVELOP_USE_NON_TLS_HTTP)
+#ifndef CONFIG_ASTARTE_DEVICE_SDK_DEVELOP_USE_NON_TLS_HTTP
 #include <zephyr/net/tls_credentials.h>
 #endif
 
@@ -24,7 +24,7 @@ ASTARTE_LOG_MODULE_REGISTER(astarte_http, CONFIG_ASTARTE_DEVICE_SDK_HTTP_LOG_LEV
  *       Checks over configuration values       *
  ***********************************************/
 
-#if defined(CONFIG_ASTARTE_DEVICE_SDK_DEVELOP_USE_NON_TLS_HTTP)
+#ifdef CONFIG_ASTARTE_DEVICE_SDK_DEVELOP_USE_NON_TLS_HTTP
 #warning "TLS has been disabled (unsafe)!"
 #endif /* defined(CONFIG_ASTARTE_DEVICE_SDK_DEVELOP_USE_NON_TLS_HTTP) */
 
@@ -82,7 +82,7 @@ exit:
  */
 static int create_and_connect_socket(void);
 
-#if defined(CONFIG_ASTARTE_DEVICE_SDK_HTTP_LOG_LEVEL_DBG)
+#ifdef CONFIG_ASTARTE_DEVICE_SDK_HTTP_LOG_LEVEL_DBG
 /**
  * @brief Print content of addrinfo struct.
  *
@@ -110,7 +110,7 @@ astarte_result_t astarte_http_post(int32_t timeout_ms, const char *url, const ch
 
     req.method = HTTP_POST;
     req.host = CONFIG_ASTARTE_DEVICE_SDK_HOSTNAME;
-#if defined(CONFIG_ASTARTE_DEVICE_SDK_DEVELOP_USE_NON_TLS_HTTP)
+#ifdef CONFIG_ASTARTE_DEVICE_SDK_DEVELOP_USE_NON_TLS_HTTP
     req.port = "80";
 #else
     req.port = "443";
@@ -176,7 +176,7 @@ astarte_result_t astarte_http_get(int32_t timeout_ms, const char *url, const cha
 
     req.method = HTTP_GET;
     req.host = CONFIG_ASTARTE_DEVICE_SDK_HOSTNAME;
-#if defined(CONFIG_ASTARTE_DEVICE_SDK_DEVELOP_USE_NON_TLS_HTTP)
+#ifdef CONFIG_ASTARTE_DEVICE_SDK_DEVELOP_USE_NON_TLS_HTTP
     req.port = "80";
 #else
     req.port = "443";
@@ -232,7 +232,7 @@ astarte_result_t astarte_http_get(int32_t timeout_ms, const char *url, const cha
 static int create_and_connect_socket(void)
 {
     char hostname[] = CONFIG_ASTARTE_DEVICE_SDK_HOSTNAME;
-#if defined(CONFIG_ASTARTE_DEVICE_SDK_DEVELOP_USE_NON_TLS_HTTP)
+#ifdef CONFIG_ASTARTE_DEVICE_SDK_DEVELOP_USE_NON_TLS_HTTP
     char port[] = "80";
 #else
     char port[] = "443";
@@ -251,11 +251,11 @@ static int create_and_connect_socket(void)
         return -1;
     }
 
-#if defined(CONFIG_ASTARTE_DEVICE_SDK_HTTP_LOG_LEVEL_DBG)
+#ifdef CONFIG_ASTARTE_DEVICE_SDK_HTTP_LOG_LEVEL_DBG
     dump_addrinfo(broker_addrinfo);
 #endif
 
-#if defined(CONFIG_ASTARTE_DEVICE_SDK_DEVELOP_USE_NON_TLS_HTTP)
+#ifdef CONFIG_ASTARTE_DEVICE_SDK_DEVELOP_USE_NON_TLS_HTTP
     int proto = IPPROTO_TCP;
 #else
     int proto = IPPROTO_TLS_1_2;
@@ -267,7 +267,7 @@ static int create_and_connect_socket(void)
         return -1;
     }
 
-#if !defined(CONFIG_ASTARTE_DEVICE_SDK_DEVELOP_USE_NON_TLS_HTTP)
+#ifndef CONFIG_ASTARTE_DEVICE_SDK_DEVELOP_USE_NON_TLS_HTTP
     sec_tag_t sec_tag_opt[] = {
         CONFIG_ASTARTE_DEVICE_SDK_HTTPS_CA_CERT_TAG,
     };
@@ -303,7 +303,7 @@ static int create_and_connect_socket(void)
     return sock;
 }
 
-#if defined(CONFIG_ASTARTE_DEVICE_SDK_HTTP_LOG_LEVEL_DBG)
+#ifdef CONFIG_ASTARTE_DEVICE_SDK_HTTP_LOG_LEVEL_DBG
 #define ADDRINFO_IP_ADDR_SIZE 16U
 static void dump_addrinfo(const struct zsock_addrinfo *input_addinfo)
 {

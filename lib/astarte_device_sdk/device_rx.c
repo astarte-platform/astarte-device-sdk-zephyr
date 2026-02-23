@@ -5,13 +5,13 @@
  */
 #include "device_rx.h"
 
-#if defined(CONFIG_ASTARTE_DEVICE_SDK_PERMANENT_STORAGE)
+#ifdef CONFIG_ASTARTE_DEVICE_SDK_PERMANENT_STORAGE
 #include <zlib.h>
 #endif
 
 #include "bson_deserializer.h"
 #include "data_validation.h"
-#if defined(CONFIG_ASTARTE_DEVICE_SDK_PERMANENT_STORAGE)
+#ifdef CONFIG_ASTARTE_DEVICE_SDK_PERMANENT_STORAGE
 #include "device_caching.h"
 #endif
 #include "data_private.h"
@@ -21,7 +21,7 @@
 #include "log.h"
 ASTARTE_LOG_MODULE_REGISTER(device_reception, CONFIG_ASTARTE_DEVICE_SDK_DEVICE_RX_LOG_LEVEL);
 
-#if defined(CONFIG_ASTARTE_DEVICE_SDK_PERMANENT_STORAGE)
+#ifdef CONFIG_ASTARTE_DEVICE_SDK_PERMANENT_STORAGE
 /** @brief Struct used when parsing the received purge properties string into a list. */
 struct allow_node
 {
@@ -44,7 +44,7 @@ struct allow_node
  */
 static void on_control_message(
     astarte_device_handle_t device, const char *topic, const char *data, size_t data_len);
-#if defined(CONFIG_ASTARTE_DEVICE_SDK_PERMANENT_STORAGE)
+#ifdef CONFIG_ASTARTE_DEVICE_SDK_PERMANENT_STORAGE
 /**
  * @brief Handles an incoming purge properties control message.
  *
@@ -182,7 +182,7 @@ static void on_control_message(
     astarte_device_handle_t device, const char *topic, const char *data, size_t data_len)
 {
     if (strcmp(topic, device->control_consumer_prop_topic) == 0) {
-#if defined(CONFIG_ASTARTE_DEVICE_SDK_PERMANENT_STORAGE)
+#ifdef CONFIG_ASTARTE_DEVICE_SDK_PERMANENT_STORAGE
         on_purge_properties(device, data, data_len);
 #else
         (void) device;
@@ -194,7 +194,7 @@ static void on_control_message(
     }
 }
 
-#if defined(CONFIG_ASTARTE_DEVICE_SDK_PERMANENT_STORAGE)
+#ifdef CONFIG_ASTARTE_DEVICE_SDK_PERMANENT_STORAGE
 static void on_purge_properties(astarte_device_handle_t device, const char *data, size_t data_len)
 {
     char *decomp_data = NULL;
@@ -456,7 +456,7 @@ static void on_unset_property(astarte_device_handle_t device, astarte_device_dat
         return;
     }
 
-#if defined(CONFIG_ASTARTE_DEVICE_SDK_PERMANENT_STORAGE)
+#ifdef CONFIG_ASTARTE_DEVICE_SDK_PERMANENT_STORAGE
     ares = astarte_device_caching_property_delete(
         &device->caching, event.interface_name, event.path);
     if (ares != ASTARTE_RESULT_OK) {
@@ -488,7 +488,7 @@ static void on_set_property(
         return;
     }
 
-#if defined(CONFIG_ASTARTE_DEVICE_SDK_PERMANENT_STORAGE)
+#ifdef CONFIG_ASTARTE_DEVICE_SDK_PERMANENT_STORAGE
     ares = astarte_device_caching_property_store(&device->caching, base_event.interface_name,
         base_event.path, interface->major_version, data);
     if (ares != ASTARTE_RESULT_OK) {

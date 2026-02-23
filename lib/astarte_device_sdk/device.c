@@ -5,7 +5,7 @@
  */
 #include "astarte_device_sdk/device.h"
 
-#if defined(CONFIG_ASTARTE_DEVICE_SDK_PERMANENT_STORAGE)
+#ifdef CONFIG_ASTARTE_DEVICE_SDK_PERMANENT_STORAGE
 #include "device_caching.h"
 #endif
 #include "device_connection.h"
@@ -119,7 +119,7 @@ astarte_result_t astarte_device_new(astarte_device_config_t *cfg, astarte_device
     handle->property_unset_cbk = cfg->property_unset_cbk;
     handle->cbk_user_data = cfg->cbk_user_data;
 
-#if defined(CONFIG_ASTARTE_DEVICE_SDK_PERMANENT_STORAGE)
+#ifdef CONFIG_ASTARTE_DEVICE_SDK_PERMANENT_STORAGE
     ares = astarte_device_caching_init(&handle->caching);
     if (ares != ASTARTE_RESULT_OK) {
         ASTARTE_LOG_ERR("Caching initialization failure %s.", astarte_result_to_name(ares));
@@ -129,7 +129,7 @@ astarte_result_t astarte_device_new(astarte_device_config_t *cfg, astarte_device
 
     // Initializing the connection hashmap and status flags
     handle->synchronization_completed = false;
-#if defined(CONFIG_ASTARTE_DEVICE_SDK_PERMANENT_STORAGE)
+#ifdef CONFIG_ASTARTE_DEVICE_SDK_PERMANENT_STORAGE
     ASTARTE_LOG_DBG("Getting stored synchronization");
     ares = astarte_device_caching_synchronization_get(
         &handle->caching, &handle->synchronization_completed);
@@ -199,7 +199,7 @@ astarte_result_t astarte_device_new(astarte_device_config_t *cfg, astarte_device
 
 failure:
 
-#if defined(CONFIG_ASTARTE_DEVICE_SDK_PERMANENT_STORAGE)
+#ifdef CONFIG_ASTARTE_DEVICE_SDK_PERMANENT_STORAGE
     astarte_device_caching_destroy(&handle->caching);
 #endif
     if (handle) {
@@ -232,7 +232,7 @@ astarte_result_t astarte_device_destroy(astarte_device_handle_t device)
         return ares;
     }
 
-#if defined(CONFIG_ASTARTE_DEVICE_SDK_PERMANENT_STORAGE)
+#ifdef CONFIG_ASTARTE_DEVICE_SDK_PERMANENT_STORAGE
     astarte_device_caching_destroy(&device->caching);
 #endif
 
@@ -349,7 +349,7 @@ astarte_result_t astarte_device_unset_property(
     return astarte_device_tx_unset_property(device, interface_name, path);
 }
 
-#if defined(CONFIG_ASTARTE_DEVICE_SDK_PERMANENT_STORAGE)
+#ifdef CONFIG_ASTARTE_DEVICE_SDK_PERMANENT_STORAGE
 astarte_result_t astarte_device_get_property(astarte_device_handle_t device,
     const char *interface_name, const char *path, astarte_device_property_loader_cbk_t loader_cbk,
     void *user_data)
