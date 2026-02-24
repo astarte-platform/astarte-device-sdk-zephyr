@@ -21,6 +21,23 @@
 ASTARTE_LOG_MODULE_REGISTER(astarte_http, CONFIG_ASTARTE_DEVICE_SDK_HTTP_LOG_LEVEL);
 
 /************************************************
+ *        Defines, constants and typedef        *
+ ***********************************************/
+
+/** @brief Context struct for any HTTP request */
+struct http_req_ctx
+{
+    /** @brief Flag to store the success or failure of the request */
+    bool request_ok;
+    /** @brief Buffer where to store the response */
+    uint8_t *resp_buf;
+    /** @brief Size of the response buffer */
+    size_t resp_buf_size;
+    /** @brief Number of bytes written in the response buffer */
+    size_t bytes_written;
+};
+
+/************************************************
  *       Checks over configuration values       *
  ***********************************************/
 
@@ -43,24 +60,41 @@ static void http_response_cb(
 #endif
 {
     int res = 0;
-    bool *request_ok = (bool *) user_data;
-    if (final_data == HTTP_DATA_MORE) {
-        ASTARTE_LOG_ERR("Partial data received (%zd bytes)", rsp->data_len);
-        ASTARTE_LOG_ERR("HTTP reply is too long for rx buffer.");
-        *request_ok = false;
-        res = -1;
-        goto exit;
+    struct http_req_ctx *ctx = (struct http_req_ctx *) user_data;
+
+    // Evaluate the status code if it has been parsed by Zephyr
+    if ((rsp->http_status_code < HTTP_200_OK)
+        || (rsp->http_status_code >= HTTP_300_MULTIPLE_CHOICES)) {
+        ASTARTE_LOG_ERR(
+            "HTTP request failed, response code: %s %d", rsp->http_status, rsp->http_status_code);
+        ctx->request_ok = false;
     }
-    if (final_data == HTTP_DATA_FINAL) {
-        ASTARTE_LOG_DBG("All the data received (%zd bytes)", rsp->data_len);
-        if ((rsp->http_status_code != HTTP_200_OK) && (rsp->http_status_code != HTTP_201_CREATED)) {
-            ASTARTE_LOG_ERR("HTTP request failed, response code: %s %d", rsp->http_status,
-                rsp->http_status_code);
-            *request_ok = false;
-            res = -1;
-            goto exit;
+
+    // Accumulate the parsed body fragment into the output buffer
+    if (rsp->body_frag_start && rsp->body_frag_len > 0) {
+        if (ctx->resp_buf) {
+            // Check if we have enough space (saving 1 byte for the null terminator)
+            if (ctx->bytes_written + rsp->body_frag_len < ctx->resp_buf_size) {
+                memcpy(
+                    ctx->resp_buf + ctx->bytes_written, rsp->body_frag_start, rsp->body_frag_len);
+                ctx->bytes_written += rsp->body_frag_len;
+            } else {
+                ASTARTE_LOG_ERR("HTTP reply body exceeds provided buffer size.");
+                ctx->request_ok = false;
+                res = -1;
+                goto exit;
+            }
         }
     }
+
+    if (final_data == HTTP_DATA_FINAL) {
+        ASTARTE_LOG_DBG("All data received. Total payload size: %zu bytes", ctx->bytes_written);
+        // Force null-termination safely
+        if (ctx->resp_buf && ctx->resp_buf_size > 0) {
+            ctx->resp_buf[ctx->bytes_written] = '\0';
+        }
+    }
+
 exit:
 #if (KERNEL_VERSION_MAJOR >= 4) && (KERNEL_VERSION_MINOR >= 2)
     return res;
@@ -91,6 +125,9 @@ static int create_and_connect_socket(void);
 static void dump_addrinfo(const struct zsock_addrinfo *input_addinfo);
 #endif
 
+static astarte_result_t astarte_http_do_request(enum http_method method, int32_t timeout_ms,
+    const char *url, const char **header_fields, const char *payload, struct http_req_ctx *ctx);
+
 /************************************************
  *         Global functions definitions         *
  ***********************************************/
@@ -98,131 +135,21 @@ static void dump_addrinfo(const struct zsock_addrinfo *input_addinfo);
 astarte_result_t astarte_http_post(int32_t timeout_ms, const char *url, const char **header_fields,
     const char *payload, uint8_t *resp_buf, size_t resp_buf_size)
 {
-    // Create and connect the socket to use
-    int sock = create_and_connect_socket();
-    if (sock < 0) {
-        return ASTARTE_RESULT_SOCKET_ERROR;
-    }
+    struct http_req_ctx ctx = {
+        .request_ok = true, .resp_buf = resp_buf, .resp_buf_size = resp_buf_size, .bytes_written = 0
+    };
 
-    struct http_request req = { 0 };
-    uint8_t recv_buf[CONFIG_ASTARTE_DEVICE_SDK_ADVANCED_HTTP_RCV_BUFFER_SIZE];
-    memset(&recv_buf, 0, sizeof(recv_buf));
-
-    req.method = HTTP_POST;
-    req.host = CONFIG_ASTARTE_DEVICE_SDK_HOSTNAME;
-#ifdef CONFIG_ASTARTE_DEVICE_SDK_DEVELOP_USE_NON_TLS_HTTP
-    req.port = "80";
-#else
-    req.port = "443";
-#endif
-    req.url = url;
-    req.content_type_value = "application/json";
-    req.header_fields = header_fields;
-    req.protocol = "HTTP/1.1";
-    req.response = http_response_cb;
-    req.payload = payload;
-    req.payload_len = strlen(payload);
-    req.recv_buf = recv_buf;
-    req.recv_buf_len = sizeof(recv_buf);
-
-    bool post_ok = true;
-
-    int http_rc = http_client_req(sock, &req, timeout_ms, &post_ok);
-    if ((http_rc < 0) || !post_ok) {
-        ASTARTE_LOG_ERR("HTTP post request failed: %d", http_rc);
-        ASTARTE_LOG_ERR("Receive buffer content:\n%s", recv_buf);
-        zsock_close(sock);
-        return ASTARTE_RESULT_HTTP_REQUEST_ERROR;
-    }
-
-    // Close the used socket
-    zsock_close(sock);
-
-    // Find the two consecutive CRLF (string "\r\n\r\n") indicating the end of the headers section
-    uint8_t *http_recv_body = NULL;
-    const char two_crlf[] = "\r\n\r\n";
-    for (size_t i = 0; i < CONFIG_ASTARTE_DEVICE_SDK_ADVANCED_HTTP_RCV_BUFFER_SIZE - 4; i++) {
-        if (memcmp(recv_buf + i, two_crlf, 4) == 0) {
-            http_recv_body = recv_buf + i + 4;
-            break;
-        }
-    }
-
-    // Check that sufficient space is present in the response buffer
-    if (resp_buf_size <= strlen(http_recv_body)) {
-        ASTARTE_LOG_ERR("Insufficient output buffer for HTTP post function.");
-        ASTARTE_LOG_ERR("Requires %d bytes.", strlen(http_recv_body) + 1);
-        return ASTARTE_RESULT_INVALID_PARAM;
-    }
-
-    // Copy the received data to the response buffer
-    memcpy(resp_buf, http_recv_body, strlen(http_recv_body) + 1);
-
-    return ASTARTE_RESULT_OK;
+    return astarte_http_do_request(HTTP_POST, timeout_ms, url, header_fields, payload, &ctx);
 }
 
 astarte_result_t astarte_http_get(int32_t timeout_ms, const char *url, const char **header_fields,
     uint8_t *resp_buf, size_t resp_buf_size)
 {
-    // Create and connect the socket to use
-    int sock = create_and_connect_socket();
-    if (sock < 0) {
-        return ASTARTE_RESULT_SOCKET_ERROR;
-    }
+    struct http_req_ctx ctx = {
+        .request_ok = true, .resp_buf = resp_buf, .resp_buf_size = resp_buf_size, .bytes_written = 0
+    };
 
-    struct http_request req = { 0 };
-    uint8_t recv_buf[CONFIG_ASTARTE_DEVICE_SDK_ADVANCED_HTTP_RCV_BUFFER_SIZE];
-    memset(&recv_buf, 0, sizeof(recv_buf));
-
-    req.method = HTTP_GET;
-    req.host = CONFIG_ASTARTE_DEVICE_SDK_HOSTNAME;
-#ifdef CONFIG_ASTARTE_DEVICE_SDK_DEVELOP_USE_NON_TLS_HTTP
-    req.port = "80";
-#else
-    req.port = "443";
-#endif
-    req.url = url;
-    req.content_type_value = "application/json";
-    req.header_fields = header_fields;
-    req.protocol = "HTTP/1.1";
-    req.response = http_response_cb;
-    req.recv_buf = recv_buf;
-    req.recv_buf_len = sizeof(recv_buf);
-
-    bool get_ok = true;
-
-    int http_rc = http_client_req(sock, &req, timeout_ms, &get_ok);
-    if ((http_rc < 0) || !get_ok) {
-        ASTARTE_LOG_ERR("HTTP request failed: %d", http_rc);
-        ASTARTE_LOG_ERR("Receive buffer content:\n%s", recv_buf);
-        zsock_close(sock);
-        return ASTARTE_RESULT_HTTP_REQUEST_ERROR;
-    }
-
-    // Close the socket
-    zsock_close(sock);
-
-    // Find the two consecutive CRLF (string "\r\n\r\n") indicating the end of the headers section
-    uint8_t *http_recv_body = NULL;
-    const char two_crlf[] = "\r\n\r\n";
-    for (size_t i = 0; i < CONFIG_ASTARTE_DEVICE_SDK_ADVANCED_HTTP_RCV_BUFFER_SIZE - 4; i++) {
-        if (memcmp(recv_buf + i, two_crlf, 4) == 0) {
-            http_recv_body = recv_buf + i + 4;
-            break;
-        }
-    }
-
-    // Check that sufficient space is present in the response buffer
-    if (resp_buf_size <= strlen(http_recv_body)) {
-        ASTARTE_LOG_ERR("Insufficient output buffer for HTTP post function.");
-        ASTARTE_LOG_ERR("Requires %d bytes.", strlen(http_recv_body) + 1);
-        return ASTARTE_RESULT_INVALID_PARAM;
-    }
-
-    // Copy the received data to the response buffer
-    memcpy(resp_buf, http_recv_body, strlen(http_recv_body) + 1);
-
-    return ASTARTE_RESULT_OK;
+    return astarte_http_do_request(HTTP_GET, timeout_ms, url, header_fields, NULL, &ctx);
 }
 
 /************************************************
@@ -251,54 +178,69 @@ static int create_and_connect_socket(void)
         return -1;
     }
 
-#ifdef CONFIG_ASTARTE_DEVICE_SDK_HTTP_LOG_LEVEL_DBG
-    dump_addrinfo(broker_addrinfo);
-#endif
-
 #ifdef CONFIG_ASTARTE_DEVICE_SDK_DEVELOP_USE_NON_TLS_HTTP
     int proto = IPPROTO_TCP;
 #else
     int proto = IPPROTO_TLS_1_2;
 #endif
-    int sock = zsock_socket(broker_addrinfo->ai_family, broker_addrinfo->ai_socktype, proto);
-    if (sock == -1) {
-        ASTARTE_LOG_ERR("Socket creation error: %d", sock);
-        zsock_freeaddrinfo(broker_addrinfo);
-        return -1;
-    }
 
-#ifndef CONFIG_ASTARTE_DEVICE_SDK_DEVELOP_USE_NON_TLS_HTTP
-    sec_tag_t sec_tag_opt[] = {
-        CONFIG_ASTARTE_DEVICE_SDK_HTTPS_CA_CERT_TAG,
-    };
-    int sockopt_rc
-        = zsock_setsockopt(sock, SOL_TLS, TLS_SEC_TAG_LIST, sec_tag_opt, sizeof(sec_tag_opt));
-    if (sockopt_rc == -1) {
-        ASTARTE_LOG_ERR("Socket options error: %d", sockopt_rc);
-        zsock_close(sock);
-        zsock_freeaddrinfo(broker_addrinfo);
-        return -1;
-    }
+    int sock = -1;
+    struct zsock_addrinfo *curr_addr = NULL;
 
-    sockopt_rc = zsock_setsockopt(sock, SOL_TLS, TLS_HOSTNAME, hostname, sizeof(hostname));
-    if (sockopt_rc == -1) {
-        ASTARTE_LOG_ERR("Socket options error: %d", sockopt_rc);
-        zsock_close(sock);
-        zsock_freeaddrinfo(broker_addrinfo);
-        return -1;
-    }
+    // Iterate through the linked list of resolved addresses
+    for (curr_addr = broker_addrinfo; curr_addr != NULL; curr_addr = curr_addr->ai_next) {
+#ifdef CONFIG_ASTARTE_DEVICE_SDK_HTTP_LOG_LEVEL_DBG
+        dump_addrinfo(curr_addr);
 #endif
 
-    int connect_rc = zsock_connect(sock, broker_addrinfo->ai_addr, broker_addrinfo->ai_addrlen);
-    if (connect_rc == -1) {
-        ASTARTE_LOG_ERR("Connection error: %d", connect_rc);
-        ASTARTE_LOG_ERR("Errno: (%d) %s", errno, strerror(errno));
-        zsock_close(sock);
-        zsock_freeaddrinfo(broker_addrinfo);
-        return -1;
+        sock = zsock_socket(curr_addr->ai_family, curr_addr->ai_socktype, proto);
+        if (sock == -1) {
+            ASTARTE_LOG_DBG("Socket creation failed, trying next address...");
+            continue;
+        }
+
+#ifndef CONFIG_ASTARTE_DEVICE_SDK_DEVELOP_USE_NON_TLS_HTTP
+        sec_tag_t sec_tag_opt[] = {
+            CONFIG_ASTARTE_DEVICE_SDK_HTTPS_CA_CERT_TAG,
+        };
+        int sockopt_rc
+            = zsock_setsockopt(sock, SOL_TLS, TLS_SEC_TAG_LIST, sec_tag_opt, sizeof(sec_tag_opt));
+        if (sockopt_rc == -1) {
+            ASTARTE_LOG_ERR("Socket options error (TLS_SEC_TAG_LIST): %d", sockopt_rc);
+            zsock_close(sock);
+            sock = -1;
+            continue;
+        }
+
+        sockopt_rc = zsock_setsockopt(sock, SOL_TLS, TLS_HOSTNAME, hostname, strlen(hostname));
+        if (sockopt_rc == -1) {
+            ASTARTE_LOG_ERR("Socket options error (TLS_HOSTNAME): %d", sockopt_rc);
+            zsock_close(sock);
+            sock = -1;
+            continue;
+        }
+#endif
+
+        int connect_rc = zsock_connect(sock, curr_addr->ai_addr, curr_addr->ai_addrlen);
+        if (connect_rc == -1) {
+            ASTARTE_LOG_DBG(
+                "Connection failed (%d -  %s), trying next address...", errno, strerror(errno));
+            zsock_close(sock);
+            sock = -1;
+            continue;
+        }
+
+        // If we reach here, we have successfully connected
+        break;
     }
 
+    // Free the linked list after we are done iterating
     zsock_freeaddrinfo(broker_addrinfo);
+
+    // Check if we exhausted the list without a successful connection
+    if (sock == -1) {
+        ASTARTE_LOG_ERR("Failed to connect to any resolved address.");
+    }
 
     return sock;
 }
@@ -318,3 +260,48 @@ static void dump_addrinfo(const struct zsock_addrinfo *input_addinfo)
         input_addinfo->ai_addrlen);
 }
 #endif
+
+static astarte_result_t astarte_http_do_request(enum http_method method, int32_t timeout_ms,
+    const char *url, const char **header_fields, const char *payload, struct http_req_ctx *ctx)
+{
+    int sock = create_and_connect_socket();
+    if (sock < 0) {
+        return ASTARTE_RESULT_SOCKET_ERROR;
+    }
+
+    struct http_request req = { 0 };
+    // TODO: This buffer is still allocated on the stack. Consider moving this to the heap to avoid
+    // the stack overflow risk.
+    uint8_t recv_buf[CONFIG_ASTARTE_DEVICE_SDK_ADVANCED_HTTP_RCV_BUFFER_SIZE];
+    memset(recv_buf, 0, sizeof(recv_buf));
+
+    req.method = method;
+    req.host = CONFIG_ASTARTE_DEVICE_SDK_HOSTNAME;
+#ifdef CONFIG_ASTARTE_DEVICE_SDK_DEVELOP_USE_NON_TLS_HTTP
+    req.port = "80";
+#else
+    req.port = "443";
+#endif
+    req.url = url;
+    req.header_fields = header_fields;
+    req.protocol = "HTTP/1.1";
+    req.response = http_response_cb;
+    if (payload) {
+        req.content_type_value = "application/json";
+        req.payload = payload;
+        req.payload_len = strlen(payload);
+    }
+    req.recv_buf = recv_buf;
+    req.recv_buf_len = sizeof(recv_buf);
+
+    // Pass context struct as the user_data parameter
+    int http_rc = http_client_req(sock, &req, timeout_ms, ctx);
+    if ((http_rc < 0) || !ctx->request_ok) {
+        ASTARTE_LOG_ERR("HTTP request failed: %d", http_rc);
+        zsock_close(sock);
+        return ASTARTE_RESULT_HTTP_REQUEST_ERROR;
+    }
+
+    zsock_close(sock);
+    return ASTARTE_RESULT_OK;
+}
