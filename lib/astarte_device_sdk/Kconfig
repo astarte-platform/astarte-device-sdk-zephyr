@@ -150,7 +150,7 @@ menu "Advanced options"
 config ASTARTE_DEVICE_SDK_ADVANCED_HTTP_RCV_BUFFER_SIZE
 	int "Receive buffer size for HTTP requests"
 	depends on ASTARTE_DEVICE_SDK
-	default 4096
+	default 1024
 	help
 	  Use this option to increase/decrease the receive buffer size for http requests.
 
