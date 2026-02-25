@@ -67,7 +67,7 @@ int cmd_expect_individual_handler(const struct shell *sh, size_t argc, char **ar
 
     // path and individual will be freed by the idata_unit free function
     CHECK_GOTO(idata_add_individual(idata, interface,
-                   (idata_individual_t) {
+                   (idata_individual_t){
                        .data = data,
                        .path = path,
                        .timestamp = timestamp,
@@ -150,7 +150,7 @@ int cmd_expect_property_set_handler(const struct shell *sh, size_t argc, char **
 
     // path and data will be freed by the idata_unit free function
     CHECK_GOTO(idata_add_property(idata, interface,
-                   (idata_property_t) {
+                   (idata_property_t){
                        .data = data,
                        .path = path,
                    })
@@ -181,7 +181,7 @@ int cmd_expect_property_unset_handler(const struct shell *sh, size_t argc, char 
     CHECK_GOTO(!path, cleanup, "Invalid path parameter passed");
 
     CHECK_GOTO(idata_add_property(idata, interface,
-                   (idata_property_t) {
+                   (idata_property_t){
                        .path = path,
                        .unset = true,
                    })
@@ -411,7 +411,7 @@ static idata_byte_array next_alloc_base64_parameter(char ***args, size_t *argc)
 {
     if (*argc < 1) {
         // no more arguments
-        return (idata_byte_array) {};
+        return (idata_byte_array){};
     }
 
     const char *const arg = (*args)[0];
@@ -421,7 +421,7 @@ static idata_byte_array next_alloc_base64_parameter(char ***args, size_t *argc)
     int res = base64_decode(NULL, 0, &byte_array_length, arg, arg_len);
     if (byte_array_length == 0) {
         LOG_ERR("Error while computing base64 decode buffer length: %d", res); // NOLINT
-        return (idata_byte_array) {};
+        return (idata_byte_array){};
     }
 
     LOG_DBG("The size of the decoded buffer is: %d", byte_array_length); // NOLINT
@@ -432,13 +432,13 @@ static idata_byte_array next_alloc_base64_parameter(char ***args, size_t *argc)
     res = base64_decode(byte_array, byte_array_length, &byte_array_length, arg, arg_len);
     if (res != 0) {
         LOG_ERR("Error while decoding base64 argument %d", res); // NOLINT
-        return (idata_byte_array) {};
+        return (idata_byte_array){};
     }
 
     // move to the next parameter for caller
     *args += 1;
     *argc -= 1;
-    return (idata_byte_array) {
+    return (idata_byte_array){
         .buf = byte_array,
         .len = byte_array_length,
     };
@@ -450,7 +450,7 @@ static idata_timestamp_option_t next_timestamp_parameter(char ***args, size_t *a
 
     if (*argc < 1) {
         // no more arguments
-        return (idata_timestamp_option_t) {};
+        return (idata_timestamp_option_t){};
     }
 
     const char *const arg = (*args)[0];
@@ -459,7 +459,7 @@ static idata_timestamp_option_t next_timestamp_parameter(char ***args, size_t *a
     // move to the next parameter for caller
     *args += 1;
     *argc -= 1;
-    return (idata_timestamp_option_t) {
+    return (idata_timestamp_option_t){
         .value = timestamp,
         .present = true,
     };

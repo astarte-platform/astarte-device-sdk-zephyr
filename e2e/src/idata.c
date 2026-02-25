@@ -82,7 +82,7 @@ idata_handle_t idata_init(
     struct sys_hashmap_data *hashmap_data = calloc(1, sizeof(struct sys_hashmap_data));
     CHECK_HALT(!hashmap_data, "Could not allocate map required memory");
 
-    struct sys_hashmap interface_map = (struct sys_hashmap) {
+    struct sys_hashmap interface_map = (struct sys_hashmap){
         .api = &sys_hashmap_sc_api,
         .config = (const struct sys_hashmap_config *) hashmap_config,
         .data = hashmap_data,
@@ -94,7 +94,7 @@ idata_handle_t idata_init(
         uint64_t key = idata_hash_intf(hash_fn, interfaces[i]);
         idata_map_value_t *allocated_value = malloc(sizeof(idata_map_value_t));
         CHECK_HALT(!allocated_value, "Could not allocate value required memory");
-        idata_map_value_t initialized_value = (idata_map_value_t) {
+        idata_map_value_t initialized_value = (idata_map_value_t){
             .interface = interfaces[i],
             // NOTE the parameters of SPSC_INITIALIZER needs to point to allocated_value
             // since that will be the final memory location
@@ -108,7 +108,7 @@ idata_handle_t idata_init(
     }
 
     struct idata_t *const idata = malloc(sizeof(struct idata_t));
-    *idata = (struct idata_t) {
+    *idata = (struct idata_t){
         .iface_map = interface_map,
         .hash_fn = hash_fn,
     };
