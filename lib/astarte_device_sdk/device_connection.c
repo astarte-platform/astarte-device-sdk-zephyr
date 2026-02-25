@@ -571,7 +571,7 @@ static astarte_result_t send_device_owned_properties(astarte_device_handle_t dev
         free(path);
         path = NULL;
         astarte_device_caching_property_destroy_loaded(data);
-        data = (astarte_data_t) { 0 };
+        data = (astarte_data_t){ 0 };
 
         ares = astarte_device_caching_property_iterator_next(&iter);
         if ((ares != ASTARTE_RESULT_OK) && (ares != ASTARTE_RESULT_NOT_FOUND)) {

@@ -240,7 +240,7 @@ astarte_result_t astarte_mqtt_init(astarte_mqtt_config_t *cfg, astarte_mqtt_t *a
         return ASTARTE_RESULT_INVALID_PARAM;
     }
 
-    *astarte_mqtt = (astarte_mqtt_t) { 0 };
+    *astarte_mqtt = (astarte_mqtt_t){ 0 };
     astarte_mqtt->clean_session = cfg->clean_session;
     astarte_mqtt->connection_timeout_ms = cfg->connection_timeout_ms;
     astarte_mqtt->poll_timeout_ms = cfg->poll_timeout_ms;
@@ -271,7 +271,7 @@ astarte_result_t astarte_mqtt_init(astarte_mqtt_config_t *cfg, astarte_mqtt_t *a
     astarte_mqtt->out_msg_map_config = (const struct sys_hashmap_config) SYS_HASHMAP_CONFIG(
         CONFIG_ASTARTE_DEVICE_SDK_ADVANCED_MQTT_CACHING_HASMAPS_SIZE,
         SYS_HASHMAP_DEFAULT_LOAD_FACTOR);
-    astarte_mqtt->out_msg_map = (struct sys_hashmap) {
+    astarte_mqtt->out_msg_map = (struct sys_hashmap){
         .api = &sys_hashmap_sc_api,
         .config = &astarte_mqtt->out_msg_map_config,
         .data = &astarte_mqtt->out_msg_map_data,
@@ -282,7 +282,7 @@ astarte_result_t astarte_mqtt_init(astarte_mqtt_config_t *cfg, astarte_mqtt_t *a
     astarte_mqtt->in_msg_map_config = (const struct sys_hashmap_config) SYS_HASHMAP_CONFIG(
         CONFIG_ASTARTE_DEVICE_SDK_ADVANCED_MQTT_CACHING_HASMAPS_SIZE,
         SYS_HASHMAP_DEFAULT_LOAD_FACTOR);
-    astarte_mqtt->in_msg_map = (struct sys_hashmap) {
+    astarte_mqtt->in_msg_map = (struct sys_hashmap){
         .api = &sys_hashmap_sc_api,
         .config = &astarte_mqtt->in_msg_map_config,
         .data = &astarte_mqtt->in_msg_map_data,

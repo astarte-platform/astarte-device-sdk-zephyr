@@ -288,7 +288,7 @@ ZTEST_F(astarte_device_sdk_device_caching, test_device_caching_store_load_proper
     zassert_equal(ares, ASTARTE_RESULT_OK, "Res:%s", astarte_result_to_name(ares));
 
     read_major = 0;
-    read_data = (astarte_data_t) { 0 };
+    read_data = (astarte_data_t){ 0 };
     ares = astarte_device_caching_property_load(&fixture->caching_handle, property_2.interface_name,
         property_2.path, (uint32_t *) &read_major, &read_data);
     zassert_equal(ares, ASTARTE_RESULT_OK, "Res:%s", astarte_result_to_name(ares));
@@ -298,7 +298,7 @@ ZTEST_F(astarte_device_sdk_device_caching, test_device_caching_store_load_proper
     astarte_device_caching_property_destroy_loaded(read_data);
 
     read_major = 0;
-    read_data = (astarte_data_t) { 0 };
+    read_data = (astarte_data_t){ 0 };
     ares = astarte_device_caching_property_load(&fixture->caching_handle, property_3.interface_name,
         property_3.path, (uint32_t *) &read_major, &read_data);
     zassert_equal(ares, ASTARTE_RESULT_OK, "Res:%s", astarte_result_to_name(ares));
@@ -309,7 +309,7 @@ ZTEST_F(astarte_device_sdk_device_caching, test_device_caching_store_load_proper
 
     // The first property has been overwritten by the last one
     read_major = 0;
-    read_data = (astarte_data_t) { 0 };
+    read_data = (astarte_data_t){ 0 };
     ares = astarte_device_caching_property_load(&fixture->caching_handle, property_4.interface_name,
         property_4.path, (uint32_t *) &read_major, &read_data);
     zassert_equal(ares, ASTARTE_RESULT_OK, "Res:%s", astarte_result_to_name(ares));
@@ -583,7 +583,7 @@ ZTEST_F(astarte_device_sdk_device_caching, test_device_caching_delete) // NOLINT
     zassert_equal(ares, ASTARTE_RESULT_NOT_FOUND, "Res:%s", astarte_result_to_name(ares));
 
     // Loop over all the stored properties
-    iter = (astarte_device_caching_property_iter_t) { 0 };
+    iter = (astarte_device_caching_property_iter_t){ 0 };
     ares = astarte_device_caching_property_iterator_new(&fixture->caching_handle, &iter);
     zassert_equal(ares, ASTARTE_RESULT_OK, "Res:%s", astarte_result_to_name(ares));
 
