@@ -22,13 +22,13 @@ astarte_result_t astarte_device_id_generate_random(char out[static ASTARTE_DEVIC
 }
 
 astarte_result_t astarte_device_id_generate_deterministic(
-    const uint8_t namespace[static ASTARTE_DEVICE_ID_NAMESPACE_SIZE], const uint8_t *name,
+    const uint8_t nsp[static ASTARTE_DEVICE_ID_NAMESPACE_SIZE], const uint8_t *name,
     size_t name_size, char out[static ASTARTE_DEVICE_ID_LEN + 1])
 {
     astarte_result_t ares = ASTARTE_RESULT_OK;
     uuid_t uuid = { 0 };
 
-    ares = uuid_generate_v5(namespace, name, name_size, uuid);
+    ares = uuid_generate_v5(nsp, name, name_size, uuid);
     if (ares != ASTARTE_RESULT_OK) {
         ASTARTE_LOG_ERR("UUID V5 generation failed: %s", astarte_result_to_name(ares));
         return ares;
