@@ -13,32 +13,150 @@
 #include "utilities.h"
 #include "zephyr/kernel.h"
 
-#define MAIN_THREAD_SLEEP_MS 500
+LOG_MODULE_REGISTER(device_handler, CONFIG_DEVICE_HANDLER_LOG_LEVEL);
 
-enum e2e_thread_flags
-{
-    DEVICE_CONNECTED = 0,
-    THREAD_TERMINATION,
+/************************************************
+ *   Constants, static variables and defines    *
+ ***********************************************/
+
+static astarte_device_handle_t device_handle;
+
+static const astarte_interface_t *device_interfaces[] = {
+    &org_astarte_platform_zephyr_e2etest_DeviceAggregate,
+    &org_astarte_platform_zephyr_e2etest_DeviceDatastream,
+    &org_astarte_platform_zephyr_e2etest_DeviceProperty,
+    &org_astarte_platform_zephyr_e2etest_ServerAggregate,
+    &org_astarte_platform_zephyr_e2etest_ServerDatastream,
+    &org_astarte_platform_zephyr_e2etest_ServerProperty,
 };
 
 K_THREAD_STACK_DEFINE(device_thread_stack_area, CONFIG_DEVICE_THREAD_STACK_SIZE);
 static struct k_thread device_thread_data;
-
-static astarte_device_handle_t device_handle;
-K_SEM_DEFINE(device_sem, 1, 1);
-
 static atomic_t device_thread_flags;
+enum device_thread_flags
+{
+    DEVICE_THREAD_CONNECTED_FLAG = 0,
+    DEVICE_THREAD_TERMINATION_FLAG,
+};
 
-LOG_MODULE_REGISTER(device_handler, CONFIG_DEVICE_HANDLER_LOG_LEVEL); // NOLINT
+/************************************************
+ *         Static functions declaration         *
+ ***********************************************/
 
-static bool get_termination();
 static void connection_callback(astarte_device_connection_event_t event);
 static void disconnection_callback(astarte_device_disconnection_event_t event);
-// write flag DEVICE_CONNECTED
+static void device_individual_callback(astarte_device_datastream_individual_event_t event);
+static void device_object_callback(astarte_device_datastream_object_event_t event);
+static void device_property_set_callback(astarte_device_property_set_event_t event);
+static void device_property_unset_callback(astarte_device_data_event_t event);
+
+static void device_thread_entry_point(void *unused1, void *unused2, void *unused3);
+
+/************************************************
+ *         Global functions definition          *
+ ***********************************************/
+
+void setup_device(void *data)
+{
+
+    LOG_INF("Creating static astarte_device.");
+
+    astarte_device_config_t config = {
+        .device_id = CONFIG_DEVICE_ID,
+        .cred_secr = CONFIG_CREDENTIAL_SECRET,
+        .interfaces = device_interfaces,
+        .interfaces_size = ARRAY_SIZE(device_interfaces),
+        .http_timeout_ms = CONFIG_HTTP_TIMEOUT_MS,
+        .mqtt_connection_timeout_ms = CONFIG_MQTT_CONNECTION_TIMEOUT_MS,
+        .mqtt_poll_timeout_ms = CONFIG_MQTT_POLL_TIMEOUT_MS,
+        .cbk_user_data = data,
+        .connection_cbk = connection_callback,
+        .disconnection_cbk = disconnection_callback,
+        .datastream_individual_cbk = device_individual_callback,
+        .datastream_object_cbk = device_object_callback,
+        .property_set_cbk = device_property_set_callback,
+        .property_unset_cbk = device_property_unset_callback,
+    };
+
+    CHECK_ASTARTE_OK_HALT(astarte_device_new(&config, &device_handle), "Device creation failure.");
+
+    LOG_INF("Spawning a new thread to poll data from the Astarte device.");
+    k_thread_create(&device_thread_data, device_thread_stack_area,
+        K_THREAD_STACK_SIZEOF(device_thread_stack_area), device_thread_entry_point, NULL, NULL,
+        NULL, CONFIG_DEVICE_THREAD_PRIORITY, 0, K_NO_WAIT);
+
+    LOG_INF("Astarte device created.");
+}
+
+static void device_individual_callback(astarte_device_datastream_individual_event_t event) {}
+static void device_object_callback(astarte_device_datastream_object_event_t event) {}
+static void device_property_set_callback(astarte_device_property_set_event_t event) {}
+static void device_property_unset_callback(astarte_device_data_event_t event) {}
+
+static void device_thread_entry_point(void *unused1, void *unused2, void *unused3)
+{
+    ARG_UNUSED(unused1);
+    ARG_UNUSED(unused2);
+    ARG_UNUSED(unused3);
+
+    LOG_INF("Started Astarte device thread.");
+
+    CHECK_ASTARTE_OK_HALT(astarte_device_connect(device_handle), "Device connection failure.");
+
+    while (!atomic_test_bit(&device_thread_flags, DEVICE_THREAD_TERMINATION_FLAG)) {
+        k_timepoint_t timepoint = sys_timepoint_calc(K_MSEC(CONFIG_DEVICE_POLL_PERIOD_MS));
+
+        astarte_result_t res = astarte_device_poll(device_handle);
+        CHECK_HALT(
+            res != ASTARTE_RESULT_TIMEOUT && res != ASTARTE_RESULT_OK, "Device poll failure.");
+
+        k_sleep(sys_timepoint_timeout(timepoint));
+    }
+
+    CHECK_ASTARTE_OK_HALT(
+        astarte_device_disconnect(device_handle, K_SECONDS(10)), "Device disconnection failure.");
+
+    LOG_INF("Exiting from the polling thread.");
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#define MAIN_THREAD_SLEEP_MS 500
+
+// static astarte_device_handle_t device_handle;
+K_SEM_DEFINE(device_sem, 1, 1);
+
+// LOG_MODULE_REGISTER(device_handler, CONFIG_DEVICE_HANDLER_LOG_LEVEL); // NOLINT
+
+static bool get_termination();
+// write flag DEVICE_THREAD_CONNECTED_FLAG
 static void set_connected();
 static void set_disconnected();
 // --
-static void device_thread_entry_point(void *unused1, void *unused2, void *unused3);
 
 void device_setup(astarte_device_config_t config)
 {
@@ -75,19 +193,19 @@ astarte_device_handle_t get_device()
 
 void set_termination()
 {
-    atomic_set_bit(&device_thread_flags, THREAD_TERMINATION);
+    atomic_set_bit(&device_thread_flags, DEVICE_THREAD_TERMINATION_FLAG);
 }
 
 void wait_for_connection()
 {
-    while (!atomic_test_bit(&device_thread_flags, DEVICE_CONNECTED)) {
+    while (!atomic_test_bit(&device_thread_flags, DEVICE_THREAD_CONNECTED_FLAG)) {
         k_sleep(K_MSEC(MAIN_THREAD_SLEEP_MS));
     }
 }
 
 void wait_for_disconnection()
 {
-    while (atomic_test_bit(&device_thread_flags, DEVICE_CONNECTED)) {
+    while (atomic_test_bit(&device_thread_flags, DEVICE_THREAD_CONNECTED_FLAG)) {
         k_sleep(K_MSEC(MAIN_THREAD_SLEEP_MS));
     }
 }
@@ -113,17 +231,17 @@ void free_device()
 
 static bool get_termination()
 {
-    return atomic_test_bit(&device_thread_flags, THREAD_TERMINATION);
+    return atomic_test_bit(&device_thread_flags, DEVICE_THREAD_TERMINATION_FLAG);
 }
 
 static void set_connected()
 {
-    atomic_set_bit(&device_thread_flags, DEVICE_CONNECTED);
+    atomic_set_bit(&device_thread_flags, DEVICE_THREAD_CONNECTED_FLAG);
 }
 
 static void set_disconnected()
 {
-    atomic_clear_bit(&device_thread_flags, DEVICE_CONNECTED);
+    atomic_clear_bit(&device_thread_flags, DEVICE_THREAD_CONNECTED_FLAG);
 }
 
 static void connection_callback(astarte_device_connection_event_t event)

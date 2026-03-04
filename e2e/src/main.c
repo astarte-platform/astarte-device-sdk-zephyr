@@ -17,17 +17,20 @@
 #include <astarte_device_sdk/device_id.h>
 #include <astarte_device_sdk/pairing.h>
 
-#define NEEDS_TLS                                                                                  \
-    (!defined(CONFIG_ASTARTE_DEVICE_SDK_DEVELOP_USE_NON_TLS_HTTP)                                  \
-        || !defined(CONFIG_ASTARTE_DEVICE_SDK_DEVELOP_USE_NON_TLS_MQTT))
+#if !defined(CONFIG_ASTARTE_DEVICE_SDK_DEVELOP_USE_NON_TLS_HTTP)                                   \
+    || !defined(CONFIG_ASTARTE_DEVICE_SDK_DEVELOP_USE_NON_TLS_MQTT)
+#define NEEDS_TLS
+#endif
 
-#if NEEDS_TLS
+#if defined(NEEDS_TLS)
 
 // Enable mbed tls debug
 #define MBEDTLS_DEBUG_C
 
 #if defined(CONFIG_TLS_CERTIFICATE_PATH)
 #include "ca_certificate_inc.h"
+#else
+#error TLS enabled but no generated certificate found: check the CONFIG_TLS_CERTIFICATE_PATH option
 #endif
 
 #include <mbedtls/debug.h>
@@ -88,11 +91,7 @@ int main(void)
         return -1;
     }
 
-#if NEEDS_TLS
-
-#if !defined(CONFIG_TLS_CERTIFICATE_PATH)
-#error TLS is enabled but no generated certificate was found: check the CONFIG_TLS_CERTIFICATE_PATH option
-#endif
+#if defined(NEEDS_TLS)
 
     // Add TLS certificate
     tls_credential_add(CONFIG_ASTARTE_DEVICE_SDK_HTTPS_CA_CERT_TAG, TLS_CREDENTIAL_CA_CERTIFICATE,
@@ -108,18 +107,14 @@ int main(void)
         K_THREAD_STACK_SIZEOF(eth_thread_stack_area), eth_thread_entry_point, NULL, NULL, NULL,
         CONFIG_DEVICE_THREAD_PRIORITY, 0, K_NO_WAIT);
 
-    LOG_INF("Running e2e test.");
-    run_e2e_test();
+    LOG_INF("Running the end to end test.");
+    run_end_to_end_test();
 
     atomic_set_bit(&eth_thread_flags, ETH_THREAD_TERMINATION_FLAG);
     CHECK_HALT(k_thread_join(&eth_thread_data, K_FOREVER) != 0,
         "Failed in waiting for the eth polling thread to terminate.");
 
     LOG_INF("Returning from the end to end test.");
-
-    // Wait to let pytest keep up
-    // TODO: find a more graceful way to do this
-    k_sleep(K_MSEC(10000));
 
 #if defined(CONFIG_ARCH_POSIX)
     // Required to terminate when on posix
@@ -134,7 +129,7 @@ static void eth_thread_entry_point(void *unused1, void *unused2, void *unused3)
     ARG_UNUSED(unused2);
     ARG_UNUSED(unused3);
 
-    LOG_INF("Startied eth polling thread");
+    LOG_INF("Started the eth polling thread");
 
     while (!atomic_test_bit(&eth_thread_flags, ETH_THREAD_TERMINATION_FLAG)) {
         k_timepoint_t timepoint = sys_timepoint_calc(K_MSEC(CONFIG_ETH_POLL_PERIOD_MS));

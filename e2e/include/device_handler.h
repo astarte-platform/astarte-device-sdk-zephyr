@@ -4,15 +4,12 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef E2EDEVICE_HANDLERS_H
-#define E2EDEVICE_HANDLERS_H
-
-/**
- * @file device_handler.h
- * @brief Handle device object and threads, these function should be called by one thread only
- */
+#ifndef DEVICE_HANDLER_H
+#define DEVICE_HANDLER_H
 
 #include <astarte_device_sdk/device.h>
+
+void setup_device(void *data);
 
 // Used only as a token to avoid
 typedef void *test_device_handle_t;
@@ -29,4 +26,4 @@ void set_termination();
 void free_device();
 // --
 
-#endif /* E2ESHELL_HANDLERS_H */
+#endif /* DEVICE_HANDLER_H */

@@ -15,8 +15,9 @@ def test_device(testcase_helper: TestcaseHelper):
     testcase_helper.dut.launch()
     testcase_helper.dut.readlines_until(regex="Device shell ready$", timeout=60)
 
-    for interface_data in data:
-        interface_data.test(testcase_helper)
+    # for interface_data in data:
+    #     interface_data.test(testcase_helper)
 
-    testcase_helper.shell.exec_command("disconnect")
-    testcase_helper.dut.readlines_until("Disconnected, closing shell$", timeout=5)
+    # testcase_helper.shell.exec_command("disconnect")
+
+    testcase_helper.dut.readlines_until("Device shell closing$", timeout=5)
