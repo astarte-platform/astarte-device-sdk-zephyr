@@ -17,6 +17,7 @@ astarte_device_handle_t get_device();
 void wait_for_device_connection();
 void disconnect_device();
 void wait_for_device_disconnection();
+uint64_t perfect_hash_device_interface(const char *interface_name, size_t len);
 
 // // Used only as a token to avoid
 // typedef void *test_device_handle_t;

@@ -41,14 +41,14 @@ LOG_MODULE_REGISTER(runner, CONFIG_RUNNER_LOG_LEVEL);
  * Constants, static variables and defines
  ***********************************************/
 
-const astarte_interface_t *interfaces[] = {
-    &org_astarte_platform_zephyr_e2etest_DeviceAggregate,
-    &org_astarte_platform_zephyr_e2etest_DeviceDatastream,
-    &org_astarte_platform_zephyr_e2etest_DeviceProperty,
-    &org_astarte_platform_zephyr_e2etest_ServerAggregate,
-    &org_astarte_platform_zephyr_e2etest_ServerDatastream,
-    &org_astarte_platform_zephyr_e2etest_ServerProperty,
-};
+// static const astarte_interface_t *interfaces[] = {
+//     &org_astarte_platform_zephyr_e2etest_DeviceAggregate,
+//     &org_astarte_platform_zephyr_e2etest_DeviceDatastream,
+//     &org_astarte_platform_zephyr_e2etest_DeviceProperty,
+//     &org_astarte_platform_zephyr_e2etest_ServerAggregate,
+//     &org_astarte_platform_zephyr_e2etest_ServerDatastream,
+//     &org_astarte_platform_zephyr_e2etest_ServerProperty,
+// };
 
 /************************************************
  * Static functions declaration
@@ -89,7 +89,7 @@ void run_end_to_end_test()
     setup_device(data);
 
     // TODO: Avoid this passing around of the device handle completely
-    init_shell(get_device(), data);
+    init_shell(get_device());
 
     // Wait for the device connection
     LOG_INF("Waiting for the device to be connected");

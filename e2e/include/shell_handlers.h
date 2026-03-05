@@ -10,6 +10,6 @@
 #include <astarte_device_sdk/device.h>
 
 // NOTE: Passing the device handle around like this is highly unsafe
-void init_shell(astarte_device_handle_t device_handle, void *data);
+void init_shell(astarte_device_handle_t device_handle);
 
 #endif /* SHELL_HANDLERS_H */

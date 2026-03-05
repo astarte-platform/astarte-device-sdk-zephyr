@@ -14,6 +14,7 @@
 #include "zephyr/kernel.h"
 
 #include "astarte_generated_interfaces.h"
+#include "data.h"
 
 LOG_MODULE_REGISTER(device_handler, CONFIG_DEVICE_HANDLER_LOG_LEVEL);
 
@@ -65,6 +66,8 @@ void setup_device(void *data)
     LOG_INF("Creating static astarte_device.");
 
     CHECK_HALT(device_handle != NULL, "Attempting to create a device while a device is present.");
+
+    data_init(device_interfaces, ARRAY_SIZE(device_interfaces));
 
     astarte_device_config_t config = {
         .device_id = CONFIG_DEVICE_ID,
@@ -131,6 +134,36 @@ void wait_for_device_disconnection()
     while (atomic_test_bit(&device_thread_flags, DEVICE_THREAD_CONNECTED_FLAG)) {
         k_sleep(K_MSEC(GENERIC_WAIT_SLEEP_500_MS));
     }
+}
+
+// Computes a perfect hash for a device interface name
+// NOTE: this depends on the names used in this case this works because we know the names of the
+// interfaces.
+// The konwn interfaces names are:
+// - org.astarte-platform.zephyr.e2etest.ServerProperty
+// - org.astarte-platform.zephyr.e2etest.DeviceProperty
+// - org.astarte-platform.zephyr.e2etest.ServerAggregate
+// - org.astarte-platform.zephyr.e2etest.DeviceAggregate
+// - org.astarte-platform.zephyr.e2etest.ServerDatastream
+// - org.astarte-platform.zephyr.e2etest.DeviceDatastream
+uint64_t perfect_hash_device_interface(const char *interface_name, size_t len)
+{
+
+    const char base[] = "org.astarte-platform.zephyr.e2etest.";
+    const size_t base_len = ARRAY_SIZE(base) - 1;
+
+    CHECK_HALT(len <= 44 || strncmp(interface_name, base, base_len) != 0,
+        "Received an invalid or unexpected interface name, please update the hash function");
+
+    /* We extract:
+     * Char at [36]: 'S' (Server) or 'D' (Device)
+     * Char at [42]: 'P' (Property), 'A' (Aggregate), 'D' (Datastream)
+     * Char at [43]: 'r', 'g', 'a'... (part of 'Property'/'Aggregate'/'Datastream')
+     */
+    uint32_t hash = ((uint32_t) interface_name[36] << 16) | ((uint32_t) interface_name[42] << 8)
+        | ((uint32_t) interface_name[43]);
+
+    return (uint64_t) hash;
 }
 
 /************************************************
