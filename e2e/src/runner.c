@@ -38,62 +38,6 @@
 LOG_MODULE_REGISTER(runner, CONFIG_RUNNER_LOG_LEVEL);
 
 /************************************************
- * Shell commands declaration
- ***********************************************/
-
-SHELL_STATIC_SUBCMD_SET_CREATE(expect_property_subcommand,
-    SHELL_CMD_ARG(set, NULL,
-        "Expect a property with the data passed as argument."
-        " This command expects <interface_name> <path> <bson_value>",
-        cmd_expect_property_set_handler, 4, 0),
-    SHELL_CMD_ARG(unset, NULL,
-        "Expect an unset of the property with the data passed as argument."
-        " This command expects <interface_name> <path>",
-        cmd_expect_property_unset_handler, 3, 0),
-    SHELL_SUBCMD_SET_END);
-
-SHELL_STATIC_SUBCMD_SET_CREATE(expect_subcommand,
-    SHELL_CMD_ARG(individual, NULL,
-        "Expect an individual property from the device with the data passed as argument."
-        " This command expects <interface_name> <path> <bson_value> <optional_timestamp>",
-        cmd_expect_individual_handler, 4, 1),
-    SHELL_CMD_ARG(object, NULL,
-        "Expect an object with the data passed as argument."
-        " This command expects <interface_name> <path> <bson_value> <optional_timestamp>",
-        cmd_expect_object_handler, 4, 1),
-    SHELL_CMD(property, &expect_property_subcommand, "Expect a property.", NULL),
-    SHELL_SUBCMD_SET_END);
-
-SHELL_STATIC_SUBCMD_SET_CREATE(send_property_subcommand,
-    SHELL_CMD_ARG(set, NULL,
-        "Set a property with the data passed as argument."
-        " This command expects <interface_name> <path> <bson_value>",
-        cmd_send_property_set_handler, 4, 0),
-    SHELL_CMD_ARG(unset, NULL,
-        "Unset a property with the data passed as argument."
-        " This command expects <interface_name> <path>",
-        cmd_send_property_unset_handler, 3, 0),
-    SHELL_SUBCMD_SET_END);
-
-SHELL_STATIC_SUBCMD_SET_CREATE(send_subcommand,
-    SHELL_CMD_ARG(individual, NULL,
-        "Send an individual property from the device with the data passed as argument."
-        " This command expects <interface_name> <path> <bson_value> <optional_timestamp>",
-        cmd_send_individual_handler, 4, 1),
-    SHELL_CMD_ARG(object, NULL,
-        "Send an object from the device with the data passed as argument."
-        " This command expects <interface_name> <path> <bson_value> <optional_timestamp>",
-        cmd_send_object_handler, 4, 1),
-    SHELL_CMD(property, &send_property_subcommand, "Handle send of property interfaces subcommand.",
-        NULL),
-    SHELL_SUBCMD_SET_END);
-
-SHELL_CMD_REGISTER(expect, &expect_subcommand, "Set the data expected from the server", NULL);
-SHELL_CMD_REGISTER(send, &send_subcommand, "Send device data", NULL);
-SHELL_CMD_REGISTER(
-    disconnect, NULL, "Disconnect the device and end the executable", cmd_disconnect);
-
-/************************************************
  * Constants, static variables and defines
  ***********************************************/
 
@@ -157,10 +101,6 @@ void run_end_to_end_test()
 
     // Pytest detects the readyness of the shell through this string
     shell_print(uart_shell, SHELL_IS_READY);
-
-    // TODO: move this in the callback for a shell command
-    k_sleep(K_SECONDS(5));
-    disconnect_device();
 
     // Wait untill a shell command disconnects the device
     wait_for_device_disconnection();

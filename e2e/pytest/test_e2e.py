@@ -8,16 +8,21 @@ from conftest import TestcaseHelper
 from data import data
 import time
 
+SHELL_IS_READY="dvcshellcmd Device shell ready$"
+SHELL_IS_CLOSING="dvcshellcmd Device shell closing$"
+SHELL_CMD_DISCONNECT="dvcshellcmd_disconnect"
 
 def test_device(testcase_helper: TestcaseHelper):
     log.inf("Launching the device")
 
     testcase_helper.dut.launch()
-    testcase_helper.dut.readlines_until(regex="Device shell ready$", timeout=60)
+    testcase_helper.dut.readlines_until(SHELL_IS_READY, timeout=60)
 
     # for interface_data in data:
     #     interface_data.test(testcase_helper)
 
-    # testcase_helper.shell.exec_command("disconnect")
+    # Wait 5 seconds for now
+    time.sleep(5)
 
-    testcase_helper.dut.readlines_until("Device shell closing$", timeout=60)
+    testcase_helper.shell.exec_command(SHELL_CMD_DISCONNECT)
+    testcase_helper.dut.readlines_until(SHELL_IS_CLOSING, timeout=60)

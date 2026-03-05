@@ -7,7 +7,7 @@
 #ifndef SHELL_MACROS_H
 #define SHELL_MACROS_H
 
-#define SHELL_IS_READY "Device shell ready"
-#define SHELL_IS_CLOSING "Device shell closing"
+#define SHELL_IS_READY "dvcshellcmd Device shell ready"
+#define SHELL_IS_CLOSING "dvcshellcmd Device shell closing"
 
 #endif /* SHELL_MACROS_H */

@@ -193,57 +193,57 @@ static void device_property_unset_callback(astarte_device_data_event_t event) {}
 // static void set_disconnected();
 // // --
 
-void device_setup(astarte_device_config_t config)
-{
-    // // override with local callbacks
-    // config.connection_cbk = connection_callback;
-    // config.disconnection_cbk = disconnection_callback;
-
-    // astarte_device_handle_t temp_handle = NULL;
-    // CHECK_HALT(k_sem_count_get(&device_sem) == 0, "The device is already initialized");
-
-    // LOG_INF("Creating static astarte_device by calling astarte_device_new."); // NOLINT
-    // CHECK_ASTARTE_OK_HALT(
-    //     astarte_device_new(&config, &temp_handle), "Astarte device creation failure.");
-
-    // // we take the semaphore after initializing the device to make sure that errors from
-    // // astarte_device_new can be handled separately
-    // CHECK_HALT(k_sem_take(&device_sem, K_NO_WAIT) != 0,
-    //     "Could not take the semaphore, the device is already initialized");
-    // device_handle = temp_handle;
-
-    // LOG_INF("Spawning a new thread to poll data from the Astarte device."); // NOLINT
-    // k_thread_create(&device_thread_data, device_thread_stack_area,
-    //     K_THREAD_STACK_SIZEOF(device_thread_stack_area), device_thread_entry_point, NULL, NULL,
-    //     NULL, CONFIG_DEVICE_THREAD_PRIORITY, 0, K_NO_WAIT);
-}
-
-// astarte_device_handle_t get_device()
+// void device_setup(astarte_device_config_t config)
 // {
-//     // CHECK_HALT(k_sem_count_get(&device_sem) > 0 || get_termination(),
-//     //     "The device is not initialized or is terminating");
+//     // // override with local callbacks
+//     // config.connection_cbk = connection_callback;
+//     // config.disconnection_cbk = disconnection_callback;
 
-//     return device_handle;
+//     // astarte_device_handle_t temp_handle = NULL;
+//     // CHECK_HALT(k_sem_count_get(&device_sem) == 0, "The device is already initialized");
+
+//     // LOG_INF("Creating static astarte_device by calling astarte_device_new."); // NOLINT
+//     // CHECK_ASTARTE_OK_HALT(
+//     //     astarte_device_new(&config, &temp_handle), "Astarte device creation failure.");
+
+//     // // we take the semaphore after initializing the device to make sure that errors from
+//     // // astarte_device_new can be handled separately
+//     // CHECK_HALT(k_sem_take(&device_sem, K_NO_WAIT) != 0,
+//     //     "Could not take the semaphore, the device is already initialized");
+//     // device_handle = temp_handle;
+
+//     // LOG_INF("Spawning a new thread to poll data from the Astarte device."); // NOLINT
+//     // k_thread_create(&device_thread_data, device_thread_stack_area,
+//     //     K_THREAD_STACK_SIZEOF(device_thread_stack_area), device_thread_entry_point, NULL, NULL,
+//     //     NULL, CONFIG_DEVICE_THREAD_PRIORITY, 0, K_NO_WAIT);
 // }
+
+// // astarte_device_handle_t get_device()
+// // {
+// //     // CHECK_HALT(k_sem_count_get(&device_sem) > 0 || get_termination(),
+// //     //     "The device is not initialized or is terminating");
+
+// //     return device_handle;
+// // }
 
 void set_termination()
 {
     // atomic_set_bit(&device_thread_flags, DEVICE_THREAD_TERMINATION_FLAG);
 }
 
-void wait_for_connection()
-{
-    // while (!atomic_test_bit(&device_thread_flags, DEVICE_THREAD_CONNECTED_FLAG)) {
-    //     k_sleep(K_MSEC(MAIN_THREAD_SLEEP_MS));
-    // }
-}
+// void wait_for_connection()
+// {
+//     // while (!atomic_test_bit(&device_thread_flags, DEVICE_THREAD_CONNECTED_FLAG)) {
+//     //     k_sleep(K_MSEC(MAIN_THREAD_SLEEP_MS));
+//     // }
+// }
 
-void wait_for_disconnection()
-{
-    // while (atomic_test_bit(&device_thread_flags, DEVICE_THREAD_CONNECTED_FLAG)) {
-    //     k_sleep(K_MSEC(MAIN_THREAD_SLEEP_MS));
-    // }
-}
+// void wait_for_disconnection()
+// {
+//     // while (atomic_test_bit(&device_thread_flags, DEVICE_THREAD_CONNECTED_FLAG)) {
+//     //     k_sleep(K_MSEC(MAIN_THREAD_SLEEP_MS));
+//     // }
+// }
 
 // void free_device()
 // {

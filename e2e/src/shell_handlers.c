@@ -18,12 +18,107 @@
 #include "idata.h"
 #include "utilities.h"
 
-LOG_MODULE_REGISTER(shell_handlers, CONFIG_SHELL_HANDLERS_LOG_LEVEL); // NOLINT
+LOG_MODULE_REGISTER(shell_handlers, CONFIG_SHELL_HANDLERS_LOG_LEVEL);
+
+
+/************************************************
+ *   Constants, static variables and defines    *
+ ***********************************************/
+
+#define DISCONNECT_CMD dvcshellcmd_disconnect
+#define DISCONNECT_HELP "Disconnect the device and end the executable"
+
+static astarte_device_handle_t device;
+
+/************************************************
+ *         Static functions declaration         *
+ ***********************************************/
+
+static int cmd_disconnect(const struct shell *sh, size_t argc, char **argv);
+
+/************************************************
+ *          Shell commands declaration          *
+ ***********************************************/
+
+// SHELL_STATIC_SUBCMD_SET_CREATE(expect_property_subcommand,
+//     SHELL_CMD_ARG(set, NULL,
+//         "Expect a property with the data passed as argument."
+//         " This command expects <interface_name> <path> <bson_value>",
+//         cmd_expect_property_set_handler, 4, 0),
+//     SHELL_CMD_ARG(unset, NULL,
+//         "Expect an unset of the property with the data passed as argument."
+//         " This command expects <interface_name> <path>",
+//         cmd_expect_property_unset_handler, 3, 0),
+//     SHELL_SUBCMD_SET_END);
+
+// SHELL_STATIC_SUBCMD_SET_CREATE(expect_subcommand,
+//     SHELL_CMD_ARG(individual, NULL,
+//         "Expect an individual property from the device with the data passed as argument."
+//         " This command expects <interface_name> <path> <bson_value> <optional_timestamp>",
+//         cmd_expect_individual_handler, 4, 1),
+//     SHELL_CMD_ARG(object, NULL,
+//         "Expect an object with the data passed as argument."
+//         " This command expects <interface_name> <path> <bson_value> <optional_timestamp>",
+//         cmd_expect_object_handler, 4, 1),
+//     SHELL_CMD(property, &expect_property_subcommand, "Expect a property.", NULL),
+//     SHELL_SUBCMD_SET_END);
+
+// SHELL_STATIC_SUBCMD_SET_CREATE(send_property_subcommand,
+//     SHELL_CMD_ARG(set, NULL,
+//         "Set a property with the data passed as argument."
+//         " This command expects <interface_name> <path> <bson_value>",
+//         cmd_send_property_set_handler, 4, 0),
+//     SHELL_CMD_ARG(unset, NULL,
+//         "Unset a property with the data passed as argument."
+//         " This command expects <interface_name> <path>",
+//         cmd_send_property_unset_handler, 3, 0),
+//     SHELL_SUBCMD_SET_END);
+
+// SHELL_STATIC_SUBCMD_SET_CREATE(send_subcommand,
+//     SHELL_CMD_ARG(individual, NULL,
+//         "Send an individual property from the device with the data passed as argument."
+//         " This command expects <interface_name> <path> <bson_value> <optional_timestamp>",
+//         cmd_send_individual_handler, 4, 1),
+//     SHELL_CMD_ARG(object, NULL,
+//         "Send an object from the device with the data passed as argument."
+//         " This command expects <interface_name> <path> <bson_value> <optional_timestamp>",
+//         cmd_send_object_handler, 4, 1),
+//     SHELL_CMD(property, &send_property_subcommand, "Handle send of property interfaces subcommand.",
+//         NULL),
+//     SHELL_SUBCMD_SET_END);
+
+// SHELL_CMD_REGISTER(expect, &expect_subcommand, "Set the data expected from the server", NULL);
+// SHELL_CMD_REGISTER(send, &send_subcommand, "Send device data", NULL);
+
+SHELL_CMD_REGISTER(DISCONNECT_CMD, NULL, DISCONNECT_HELP, cmd_disconnect);
+
+/************************************************
+ *         Global functions definition          *
+ ***********************************************/
+
+void init_shell(astarte_device_handle_t device_handle, void *data)
+{
+    device = device_handle;
+}
+
+/************************************************
+ *         Static functions definitions         *
+ ***********************************************/
+
+static int cmd_disconnect(const struct shell *sh, size_t argc, char **argv)
+{
+    ARG_UNUSED(sh);
+    ARG_UNUSED(argc);
+    ARG_UNUSED(argv);
+
+    LOG_INF("Disconnect command handler");
+    LOG_INF("Stopping and joining the astarte device polling thread.");
+    disconnect_device();
+    return 0;
+}
 
 // NOLINTNEXTLINE
 static idata_handle_t idata;
-// NOLINTNEXTLINE
-static astarte_device_handle_t device;
 
 static int parse_alloc_astarte_invividual(const astarte_interface_t *interface, char *path,
     idata_byte_array *buf, astarte_data_t *out_data);
@@ -38,11 +133,6 @@ static char *next_alloc_string_parameter(char ***args, size_t *argc);
 // the return of this function needs to be deallocated
 static idata_byte_array next_alloc_base64_parameter(char ***args, size_t *argc);
 
-void init_shell(astarte_device_handle_t device_new, idata_handle_t idata_new)
-{
-    device = device_new;
-    idata = idata_new;
-}
 
 // start expect commands handler
 int cmd_expect_individual_handler(const struct shell *sh, size_t argc, char **argv)
@@ -339,19 +429,6 @@ cleanup:
     return return_code;
 }
 
-int cmd_disconnect(const struct shell *sh, size_t argc, char **argv)
-{
-    ARG_UNUSED(sh);
-    ARG_UNUSED(argc);
-    ARG_UNUSED(argv);
-
-    LOG_INF("Disconnect command handler"); // NOLINT
-
-    LOG_INF("Stopping and joining the astarte device polling thread."); // NOLINT
-    set_termination();
-
-    return 0;
-}
 
 static const astarte_interface_t *next_interface_parameter(char ***args, size_t *argc)
 {
