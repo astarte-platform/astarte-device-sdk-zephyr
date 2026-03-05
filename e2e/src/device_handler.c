@@ -214,7 +214,8 @@ static void device_property_unset_callback(astarte_device_data_event_t event) {}
 
 //     // LOG_INF("Spawning a new thread to poll data from the Astarte device."); // NOLINT
 //     // k_thread_create(&device_thread_data, device_thread_stack_area,
-//     //     K_THREAD_STACK_SIZEOF(device_thread_stack_area), device_thread_entry_point, NULL, NULL,
+//     //     K_THREAD_STACK_SIZEOF(device_thread_stack_area), device_thread_entry_point, NULL,
+//     NULL,
 //     //     NULL, CONFIG_DEVICE_THREAD_PRIORITY, 0, K_NO_WAIT);
 // }
 
