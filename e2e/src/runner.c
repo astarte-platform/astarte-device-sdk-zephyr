@@ -139,35 +139,17 @@ void run_end_to_end_test()
     LOG_WRN("Data received will NOT be checked against expected data");
 #endif
 
+    LOG_INF("Starting the device");
     // TODO: Replace this to a data structure that can temporarely store the expected data
     void *data = NULL;
     setup_device(data);
 
-    // // NOTE the order matters, we must initialize idata and device before the shell is started
-    // idata_handle_t idata = idata_init(interfaces, ARRAY_SIZE(interfaces),
-    // interfaces_perfect_hash);
-    // // sets up the global device_handle
-    // astarte_device_config_t config = {
-    //     .device_id = CONFIG_DEVICE_ID,
-    //     .cred_secr = CONFIG_CREDENTIAL_SECRET,
-    //     .interfaces = interfaces,
-    //     .interfaces_size = ARRAY_SIZE(interfaces),
-    //     .http_timeout_ms = CONFIG_HTTP_TIMEOUT_MS,
-    //     .mqtt_connection_timeout_ms = CONFIG_MQTT_CONNECTION_TIMEOUT_MS,
-    //     .mqtt_poll_timeout_ms = CONFIG_MQTT_POLL_TIMEOUT_MS,
-    //     .cbk_user_data = idata,
-    //     .datastream_individual_cbk = device_individual_callback,
-    //     .datastream_object_cbk = device_object_callback,
-    //     .property_set_cbk = device_property_set_callback,
-    //     .property_unset_cbk = device_property_unset_callback,
-    // };
-    // // NOTE the order matters, we must initialize idata and device before the shell is started
-    // device_setup(config);
-    // // NOTE then we pass it to the shell handlers called before `shell_start`
-    // init_shell(get_device(), idata);
+    // TODO: Avoid this passing around of the device handle completely
+    init_shell(get_device(), data);
 
-    // // wait while device connects
-    // wait_for_connection();
+    // Wait for the device connection
+    LOG_INF("Waiting for the device to be connected");
+    wait_for_device_connection();
 
     // We are ready to send and receive data
     const struct shell *uart_shell = shell_backend_uart_get_ptr();
@@ -176,19 +158,21 @@ void run_end_to_end_test()
     // Pytest detects the readyness of the shell through this string
     shell_print(uart_shell, SHELL_IS_READY);
 
-    // // Unblock the shell commands to the device
-    // unblock_shell_commands();
+    // TODO: move this in the callback for a shell command
+    k_sleep(K_SECONDS(5));
+    disconnect_device();
 
-    // // wait until a command disconnects the device
-    // wait_for_disconnection();
+    // Wait untill a shell command disconnects the device
+    wait_for_device_disconnection();
+    // TODO: check that all devices expected messages have been received
     // CHECK_HALT(check_idata_size(idata) > 0, "Some expected messages didn't get received");
 
     // Pytest detects the a termination of the test through this string
     shell_print(uart_shell, SHELL_IS_CLOSING);
     shell_stop(uart_shell);
 
-    // // Free the device and idata after `shell_stop`
-    // free_device();
+    // Free the device and epxected data structures after `shell_stop`
+    free_device();
     // idata_free(idata);
 
 #if CONFIG_LOG_ONLY

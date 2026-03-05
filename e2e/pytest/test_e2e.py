@@ -20,4 +20,4 @@ def test_device(testcase_helper: TestcaseHelper):
 
     # testcase_helper.shell.exec_command("disconnect")
 
-    testcase_helper.dut.readlines_until("Device shell closing$", timeout=5)
+    testcase_helper.dut.readlines_until("Device shell closing$", timeout=60)

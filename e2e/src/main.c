@@ -123,6 +123,10 @@ int main(void)
     return 0;
 }
 
+/************************************************
+ *         Static functions definitions         *
+ ***********************************************/
+
 static void eth_thread_entry_point(void *unused1, void *unused2, void *unused3)
 {
     ARG_UNUSED(unused1);
