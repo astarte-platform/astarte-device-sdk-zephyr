@@ -134,6 +134,10 @@ void wait_for_device_disconnection()
     while (atomic_test_bit(&device_thread_flags, DEVICE_THREAD_CONNECTED_FLAG)) {
         k_sleep(K_MSEC(GENERIC_WAIT_SLEEP_500_MS));
     }
+
+    // Check that all devices expected messages have been received
+    CHECK_HALT((data_size(device_interfaces, ARRAY_SIZE(device_interfaces)) > 0),
+        "Some expected messages didn't get received");
 }
 
 // Computes a perfect hash for a device interface name
@@ -202,16 +206,51 @@ static void connection_callback(astarte_device_connection_event_t event)
     LOG_INF("Astarte device connected");
     atomic_set_bit(&device_thread_flags, DEVICE_THREAD_CONNECTED_FLAG);
 }
+
 static void disconnection_callback(astarte_device_disconnection_event_t event)
 {
     (void) event;
     LOG_INF("Astarte device disconnected");
     atomic_clear_bit(&device_thread_flags, DEVICE_THREAD_CONNECTED_FLAG);
 }
-static void device_individual_callback(astarte_device_datastream_individual_event_t event) {}
-static void device_object_callback(astarte_device_datastream_object_event_t event) {}
-static void device_property_set_callback(astarte_device_property_set_event_t event) {}
-static void device_property_unset_callback(astarte_device_data_event_t event) {}
+
+static void device_individual_callback(astarte_device_datastream_individual_event_t event)
+{
+    LOG_INF("Individual datastream callback");
+
+    CHECK_HALT(data_expected_individual(
+                   event.base_event.interface_name, event.base_event.path, &event.data)
+            != 0,
+        "Received individual datastream does not match any expected one");
+}
+
+static void device_object_callback(astarte_device_datastream_object_event_t event)
+{
+    LOG_INF("Object datastream callback");
+
+    CHECK_HALT(data_expected_object(event.base_event.interface_name, event.base_event.path,
+                   event.entries, event.entries_len)
+            != 0,
+        "Received object datastream does not match any expected one");
+}
+
+static void device_property_set_callback(astarte_device_property_set_event_t event)
+{
+    LOG_INF("Property set callback");
+
+    // CHECK_HALT(data_expected_set_property(
+    //                event.base_event.interface_name, event.base_event.path, &event.data)
+    //         != 0,
+    //     "Received property set event does not match any expected one");
+}
+
+static void device_property_unset_callback(astarte_device_data_event_t event)
+{
+    LOG_INF("Property unset callback");
+
+    CHECK_HALT(data_expected_unset_property(event.interface_name, event.path) != 0,
+        "Received property unset event does not match any expected one");
+}
 
 // #define MAIN_THREAD_SLEEP_MS 500
 
@@ -260,10 +299,10 @@ static void device_property_unset_callback(astarte_device_data_event_t event) {}
 // //     return device_handle;
 // // }
 
-void set_termination()
-{
-    // atomic_set_bit(&device_thread_flags, DEVICE_THREAD_TERMINATION_FLAG);
-}
+// void set_termination()
+// {
+//     // atomic_set_bit(&device_thread_flags, DEVICE_THREAD_TERMINATION_FLAG);
+// }
 
 // void wait_for_connection()
 // {
