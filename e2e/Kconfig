@@ -111,6 +111,11 @@ module-str = Log level for e2e idata functions
 module-help = Sets log level for e2e idata functions
 source "subsys/logging/Kconfig.template.log_config"
 
+module = DATA
+module-str = Log level for e2e data functions
+module-help = Sets log level for e2e data functions
+source "subsys/logging/Kconfig.template.log_config"
+
 module = UTILITIES
 module-str = Log level for e2e utilities functions
 module-help = Sets log level for e2e utilities functions
