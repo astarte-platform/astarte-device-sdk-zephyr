@@ -58,3 +58,26 @@ const astarte_interface_t *data_get_interface(const char *interface_name, size_t
 
     return NULL;
 }
+
+int data_add_individual(const astarte_interface_t *interface, const char *path,
+    const astarte_data_t *data, const optional_int64_t *timestamp)
+{
+    return 0;
+}
+
+int data_add_object(const astarte_interface_t *interface, const char *path,
+    const byte_array_t *value, const astarte_object_entry_t *entries, size_t entries_length,
+    const optional_int64_t *timestamp)
+{
+    return 0;
+}
+
+int data_add_set_property(
+    const astarte_interface_t *interface, const char *path, const astarte_data_t *data)
+{
+    return 0;
+}
+int data_add_unset_property(const astarte_interface_t *interface, const char *path)
+{
+    return 0;
+}
