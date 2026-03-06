@@ -73,13 +73,6 @@ def test_device(testcase_helper: TestcaseHelper):
     # command = f"{SHELL_CMD_SEND} property unset {interface} {path}"
     # testcase_helper.shell.exec_command(command)
 
-    # interface = "org.astarte-platform.zephyr.e2etest.ServerProperty"
-    # path = "/path84/string_endpoint"
-    # value = "Server Value"
-    # bson_base64 = encode_shell_bson(value)
-    # command = f"{SHELL_CMD_EXPECT} property set {interface} {path} {bson_base64}"
-    # testcase_helper.shell.exec_command(command)
-
     interface = "org.astarte-platform.zephyr.e2etest.ServerDatastream"
     path = "/integer_endpoint"
     value = 42
@@ -87,19 +80,26 @@ def test_device(testcase_helper: TestcaseHelper):
     command = f"{SHELL_CMD_EXPECT} individual {interface} {path} {bson_base64}"
     testcase_helper.shell.exec_command(command)
 
+    # interface = "org.astarte-platform.zephyr.e2etest.ServerProperty"
+    # path = "/path84/string_endpoint"
+    # value = "Server Value"
+    # bson_base64 = encode_shell_bson(value)
+    # command = f"{SHELL_CMD_EXPECT} property set {interface} {path} {bson_base64}"
+    # testcase_helper.shell.exec_command(command)
+
     time.sleep(5)
 
     from http_requests import post_server_data
-
-    # interface = "org.astarte-platform.zephyr.e2etest.ServerProperty"
-    # endpoint = "/path84/string_endpoint"
-    # data = "Hardcoded HTTP value"
-    # post_server_data(testcase_helper.astarte_cfg, interface, endpoint, data)
 
     interface = "org.astarte-platform.zephyr.e2etest.ServerDatastream"
     endpoint = "/integer_endpoint"
     data = 42
     post_server_data(testcase_helper.astarte_cfg, interface, endpoint, data)
+
+    # interface = "org.astarte-platform.zephyr.e2etest.ServerProperty"
+    # endpoint = "/path84/string_endpoint"
+    # data = "Hardcoded HTTP value"
+    # post_server_data(testcase_helper.astarte_cfg, interface, endpoint, data)
 
     # for interface_data in data:
     #     interface_data.test(testcase_helper)
