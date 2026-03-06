@@ -6,6 +6,10 @@
 
 #include "shell_handlers.h"
 
+#include <stdlib.h>
+#include <string.h>
+
+#include <zephyr/logging/log.h>
 #include <zephyr/shell/shell.h>
 #include <zephyr/sys/base64.h>
 
@@ -17,7 +21,6 @@
 
 #include "data.h"
 #include "device_handler.h"
-#include "idata.h"
 #include "utilities.h"
 
 LOG_MODULE_REGISTER(shell_handlers, CONFIG_SHELL_HANDLERS_LOG_LEVEL);
