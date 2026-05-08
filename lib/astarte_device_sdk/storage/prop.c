@@ -283,7 +283,9 @@ astarte_result_t storage_property_iterator_get(storage_property_iter_t *iter, ch
         ares = ASTARTE_RESULT_INVALID_PARAM;
         goto exit;
     }
-    if ((!interface_name && path) || (interface_name && !path)) {
+
+    // Check if one is NULL but the other isn't
+    if ((interface_name == NULL) != (path == NULL)) {
         ASTARTE_LOG_ERR("Parameters interface_name and path can only be NULL at the same time.");
         ares = ASTARTE_RESULT_INVALID_PARAM;
         goto exit;
@@ -313,12 +315,22 @@ astarte_result_t storage_property_iterator_get(storage_property_iter_t *iter, ch
     }
 
     // Split interface name and path
-    char *read_interface_name = strtok(key, ";");
+    char *delimiter_ptr = strchr(key, ';');
+    if (!delimiter_ptr) {
+        ASTARTE_LOG_ERR("Corrupted property key in storage: missing ';' delimiter.");
+        ares = ASTARTE_RESULT_INTERNAL_ERROR;
+        goto exit;
+    }
+    // Replace the ';' with a null terminator to split the string in two
+    *delimiter_ptr = '\0';
+    char *read_interface_name = key;
     size_t read_interface_name_size = strlen(read_interface_name) + 1;
-    char *read_path = strtok(NULL, "\0");
+    // The path starts right after the old ';' delimiter
+    char *read_path = delimiter_ptr + 1;
     size_t read_path_size = strlen(read_path) + 1;
 
-    if (!interface_name && !path) {
+    // Both are NULL or both are valid due to earlier checks
+    if (!interface_name) {
         *interface_name_size = read_interface_name_size;
         *path_size = read_path_size;
         goto exit;
@@ -333,19 +345,9 @@ astarte_result_t storage_property_iterator_get(storage_property_iter_t *iter, ch
     *interface_name_size = read_interface_name_size;
     *path_size = read_path_size;
 
-    int snprintf_rc = snprintf(interface_name, *interface_name_size, "%s", read_interface_name);
-    if (snprintf_rc != read_interface_name_size - 1) {
-        ASTARTE_LOG_ERR("Could not create the property interface name.");
-        ares = ASTARTE_RESULT_INTERNAL_ERROR;
-        goto exit;
-    }
-
-    snprintf_rc = snprintf(path, *path_size, "%s", read_path);
-    if (snprintf_rc != read_path_size - 1) {
-        ASTARTE_LOG_ERR("Could not create the property path.");
-        ares = ASTARTE_RESULT_INTERNAL_ERROR;
-        goto exit;
-    }
+    // Safely copy the values and their null terminators
+    memcpy(interface_name, read_interface_name, read_interface_name_size);
+    memcpy(path, read_path, read_path_size);
 
 exit:
     free(key);
