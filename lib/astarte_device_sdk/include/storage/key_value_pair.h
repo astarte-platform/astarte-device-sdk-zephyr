@@ -4,8 +4,13 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KV_STORAGE_NVS_H
-#define KV_STORAGE_NVS_H
+#ifndef STORAGE_KEY_VALUE_PAIR_H
+#define STORAGE_KEY_VALUE_PAIR_H
+
+/**
+ * @file storage/key_value_pair.h
+ * @brief Helper functions for the key-value persistent storage implementation.
+ */
 
 #include "astarte_device_sdk/result.h"
 
@@ -17,9 +22,12 @@
 #include <zephyr/fs/nvs.h>
 #endif
 
+// TODO: make this internal providing APIs for get/store of each of those
 /** @brief Offsets for the NVS IDs of components of a key-value pair */
 #define NVS_ID_OFFSET_NAMESPACE 0U
+/** @brief Offsets for the NVS IDs of components of a key-value pair */
 #define NVS_ID_OFFSET_KEY 1U
+/** @brief Offsets for the NVS IDs of components of a key-value pair */
 #define NVS_ID_OFFSET_VALUE 2U
 
 /**
@@ -28,7 +36,7 @@
  * @param[in] pair_index The 0-based index of the pair (0 to stored_pairs - 1).
  * @return The NVS ID for the start of that pair's record.
  */
-uint16_t kv_storage_nvs_get_pair_base_id(uint16_t pair_index);
+uint16_t storage_key_value_pair_get_pair_base_id(uint16_t pair_index);
 /**
  * @brief Get number of stored pairs.
  *
@@ -36,7 +44,7 @@ uint16_t kv_storage_nvs_get_pair_base_id(uint16_t pair_index);
  * @param[out] count Number of pairs stored in NVS.
  * @return ASTARTE_RESULT_OK if successful, otherwise an error code.
  */
-astarte_result_t kv_storage_nvs_get_pairs_number(struct nvs_fs *nvs_fs, uint16_t *count);
+astarte_result_t storage_key_value_pair_get_pairs_number(struct nvs_fs *nvs_fs, uint16_t *count);
 /**
  * @brief Update the number of stored pairs.
  *
@@ -44,7 +52,7 @@ astarte_result_t kv_storage_nvs_get_pairs_number(struct nvs_fs *nvs_fs, uint16_t
  * @param[in] count Updated number of pairs stored in NVS.
  * @return ASTARTE_RESULT_OK if successful, otherwise an error code.
  */
-astarte_result_t kv_storage_nvs_set_pairs_number(struct nvs_fs *nvs_fs, uint16_t count);
+astarte_result_t storage_key_value_pair_set_pairs_number(struct nvs_fs *nvs_fs, uint16_t count);
 /**
  * @brief Get data for the NVS entry at the provided ID.
  *
@@ -55,7 +63,7 @@ astarte_result_t kv_storage_nvs_set_pairs_number(struct nvs_fs *nvs_fs, uint16_t
  * Upon success it will be set to the required size to store the data.
  * @return ASTARTE_RESULT_OK if successful, otherwise an error code.
  */
-astarte_result_t kv_storage_nvs_read_entry(
+astarte_result_t storage_key_value_pair_read_entry(
     struct nvs_fs *nvs_fs, uint16_t entry_id, void *data, size_t *data_size);
 /**
  * @brief Get value for the NVS entry at the provided ID. Dynamically allocates the data struct.
@@ -66,7 +74,7 @@ astarte_result_t kv_storage_nvs_read_entry(
  * @param[inout] data_size The size of the allocated @p data buffer.
  * @return ASTARTE_RESULT_OK if successful, otherwise an error code.
  */
-astarte_result_t kv_storage_nvs_read_entry_alloc(
+astarte_result_t storage_key_value_pair_read_entry_alloc(
     struct nvs_fs *nvs_fs, uint16_t entry_id, void **data, size_t *data_size);
 /**
  * @brief Write a key-value pair using an NVS base ID.
@@ -79,7 +87,7 @@ astarte_result_t kv_storage_nvs_read_entry_alloc(
  * @param[in] value_size Size of the value array for the key-value pair.
  * @return ASTARTE_RESULT_OK if successful, otherwise an error code.
  */
-astarte_result_t kv_storage_nvs_write_pair(struct nvs_fs *nvs_fs, uint16_t base_id,
+astarte_result_t storage_key_value_pair_write_pair(struct nvs_fs *nvs_fs, uint16_t base_id,
     const char *namespace, const char *key, const void *value, size_t value_size);
 /**
  * @brief Relocate a single key-value pair.
@@ -89,13 +97,14 @@ astarte_result_t kv_storage_nvs_write_pair(struct nvs_fs *nvs_fs, uint16_t base_
  * @param[in] src_base_id Source NVS base ID where the pair should be relocated.
  * @return ASTARTE_RESULT_OK if successful, otherwise an error code.
  */
-astarte_result_t kv_storage_nvs_relocate_pair(
+astarte_result_t storage_key_value_pair_relocate_pair(
     struct nvs_fs *nvs_fs, uint16_t dst_base_id, uint16_t src_base_id);
 /**
  * @brief Scans storage for duplicate keys caused by interrupted delete operations.
  *
  * @param[in,out] nvs_fs NVS file system to use.
+ * @return ASTARTE_RESULT_OK if successful, otherwise an error code.
  */
-astarte_result_t kv_storage_nvs_remove_duplicates(struct nvs_fs *nvs_fs);
+astarte_result_t storage_key_value_pair_remove_duplicates(struct nvs_fs *nvs_fs);
 
-#endif // KV_STORAGE_NVS_H
+#endif // STORAGE_KEY_VALUE_PAIR_H

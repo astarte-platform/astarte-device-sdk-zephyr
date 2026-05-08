@@ -12,7 +12,7 @@
 #include "bson_deserializer.h"
 #include "data_validation.h"
 #ifdef CONFIG_ASTARTE_DEVICE_SDK_PERMANENT_STORAGE
-#include "device_caching.h"
+#include "storage/prop.h"
 #endif
 #include "data_deserialize.h"
 #include "interface_private.h"
@@ -256,11 +256,11 @@ exit:
 static void purge_server_properties(astarte_device_handle_t device, sys_slist_t *allow_list)
 {
     astarte_result_t ares = ASTARTE_RESULT_OK;
-    astarte_device_caching_property_iter_t iter = { 0 };
+    storage_property_iter_t iter = { 0 };
     char *interface_name = NULL;
     char *path = NULL;
 
-    ares = astarte_device_caching_property_iterator_new(&device->caching, &iter);
+    ares = storage_property_iterator_new(&device->caching, &iter);
     if ((ares != ASTARTE_RESULT_OK) && (ares != ASTARTE_RESULT_NOT_FOUND)) {
         ASTARTE_LOG_ERR("Properties iterator init failed: %s", astarte_result_to_name(ares));
         goto end;
@@ -269,8 +269,7 @@ static void purge_server_properties(astarte_device_handle_t device, sys_slist_t 
     while (ares != ASTARTE_RESULT_NOT_FOUND) {
         size_t interface_name_size = 0U;
         size_t path_size = 0U;
-        ares = astarte_device_caching_property_iterator_get(
-            &iter, NULL, &interface_name_size, NULL, &path_size);
+        ares = storage_property_iterator_get(&iter, NULL, &interface_name_size, NULL, &path_size);
         if (ares != ASTARTE_RESULT_OK) {
             ASTARTE_LOG_ERR("Properties iterator get error: %s", astarte_result_to_name(ares));
             goto end;
@@ -284,7 +283,7 @@ static void purge_server_properties(astarte_device_handle_t device, sys_slist_t 
             goto end;
         }
 
-        ares = astarte_device_caching_property_iterator_get(
+        ares = storage_property_iterator_get(
             &iter, interface_name, &interface_name_size, path, &path_size);
         if (ares != ASTARTE_RESULT_OK) {
             ASTARTE_LOG_ERR("Properties iterator get error: %s", astarte_result_to_name(ares));
@@ -299,7 +298,7 @@ static void purge_server_properties(astarte_device_handle_t device, sys_slist_t 
         free(path);
         path = NULL;
 
-        ares = astarte_device_caching_property_iterator_next(&iter);
+        ares = storage_property_iterator_next(&iter);
         if ((ares != ASTARTE_RESULT_OK) && (ares != ASTARTE_RESULT_NOT_FOUND)) {
             ASTARTE_LOG_ERR("Iterator next error: %s", astarte_result_to_name(ares));
             goto end;
@@ -321,7 +320,7 @@ static void purge_server_property(
         &device->introspection, interface_name);
     if (!interface) {
         ASTARTE_LOG_DBG("Purging property from unknown interface: '%s%s'", interface_name, path);
-        ares = astarte_device_caching_property_delete(&device->caching, interface_name, path);
+        ares = storage_property_delete(&device->caching, interface_name, path);
         if ((ares != ASTARTE_RESULT_OK) && (ares != ASTARTE_RESULT_NOT_FOUND)) {
             ASTARTE_LOG_COND_ERR(ares != ASTARTE_RESULT_OK,
                 "Failed deleting the cached property: %s", astarte_result_to_name(ares));
@@ -358,7 +357,7 @@ static void purge_server_property(
     }
 
     ASTARTE_LOG_DBG("Purging property not in allow list: '%s%s'", interface_name, path);
-    ares = astarte_device_caching_property_delete(&device->caching, interface_name, path);
+    ares = storage_property_delete(&device->caching, interface_name, path);
     if ((ares != ASTARTE_RESULT_OK) && (ares != ASTARTE_RESULT_NOT_FOUND)) {
         ASTARTE_LOG_COND_ERR(ares != ASTARTE_RESULT_OK, "Failed deleting the cached property: %s",
             astarte_result_to_name(ares));
@@ -457,8 +456,7 @@ static void on_unset_property(astarte_device_handle_t device, astarte_device_dat
     }
 
 #ifdef CONFIG_ASTARTE_DEVICE_SDK_PERMANENT_STORAGE
-    ares = astarte_device_caching_property_delete(
-        &device->caching, event.interface_name, event.path);
+    ares = storage_property_delete(&device->caching, event.interface_name, event.path);
     if (ares != ASTARTE_RESULT_OK) {
         ASTARTE_LOG_ERR("Failed deleting the stored server property.");
     }
@@ -489,8 +487,8 @@ static void on_set_property(
     }
 
 #ifdef CONFIG_ASTARTE_DEVICE_SDK_PERMANENT_STORAGE
-    ares = astarte_device_caching_property_store(&device->caching, base_event.interface_name,
-        base_event.path, interface->major_version, data);
+    ares = storage_property_store(&device->caching, base_event.interface_name, base_event.path,
+        interface->major_version, data);
     if (ares != ASTARTE_RESULT_OK) {
         ASTARTE_LOG_ERR("Failed storing the server property.");
     }

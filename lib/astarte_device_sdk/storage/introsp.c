@@ -4,14 +4,14 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "device_caching.h"
+#include "storage/introsp.h"
 
 #include <stdlib.h>
 #include <string.h>
 #include <zephyr/kernel.h>
 
 #include "log.h"
-ASTARTE_LOG_MODULE_DECLARE(device_caching, CONFIG_ASTARTE_DEVICE_SDK_DEVICE_CACHING_LOG_LEVEL);
+ASTARTE_LOG_MODULE_DECLARE(device_storage, CONFIG_ASTARTE_DEVICE_SDK_DEVICE_STORAGE_LOG_LEVEL);
 
 /************************************************
  *        Defines, constants and typedef        *
@@ -23,8 +23,8 @@ ASTARTE_LOG_MODULE_DECLARE(device_caching, CONFIG_ASTARTE_DEVICE_SDK_DEVICE_CACH
  *         Global functions definitions         *
  ***********************************************/
 
-astarte_result_t astarte_device_caching_introspection_store(
-    astarte_device_caching_t *handle, const char *intr, size_t intr_size)
+astarte_result_t storage_introspection_store(
+    storage_data_t *handle, const char *intr, size_t intr_size)
 {
     astarte_result_t ares = ASTARTE_RESULT_OK;
 
@@ -36,7 +36,7 @@ astarte_result_t astarte_device_caching_introspection_store(
     ASTARTE_LOG_DBG("Storing introspection in key-value storage: '%s' (%d).", intr, intr_size);
 
     ASTARTE_LOG_DBG("Inserting pair in storage. Key: %s", INTROSPECTION_KEY);
-    ares = astarte_kv_storage_insert(&handle->intro_storage, INTROSPECTION_KEY, intr, intr_size);
+    ares = storage_key_value_insert(&handle->intro_storage, INTROSPECTION_KEY, intr, intr_size);
     if (ares != ASTARTE_RESULT_OK) {
         ASTARTE_LOG_ERR("Error caching introspection: %s.", astarte_result_to_name(ares));
     }
@@ -44,8 +44,8 @@ astarte_result_t astarte_device_caching_introspection_store(
     return ares;
 }
 
-astarte_result_t astarte_device_caching_introspection_check(
-    astarte_device_caching_t *handle, const char *intr, size_t intr_size)
+astarte_result_t storage_introspection_check(
+    storage_data_t *handle, const char *intr, size_t intr_size)
 {
     astarte_result_t ares = ASTARTE_RESULT_OK;
     char *read_intr = NULL;
@@ -59,8 +59,7 @@ astarte_result_t astarte_device_caching_introspection_check(
     ASTARTE_LOG_DBG("Checking stored introspection against new one: '%s' (%d).", intr, intr_size);
 
     ASTARTE_LOG_DBG("Searching for pair in storage. Key: '%s'", INTROSPECTION_KEY);
-    ares
-        = astarte_kv_storage_find(&handle->intro_storage, INTROSPECTION_KEY, NULL, &read_intr_size);
+    ares = storage_key_value_find(&handle->intro_storage, INTROSPECTION_KEY, NULL, &read_intr_size);
     if (ares == ASTARTE_RESULT_NOT_FOUND) {
         ares = ASTARTE_RESULT_DEVICE_CACHING_OUTDATED_INTROSPECTION;
         goto exit;
@@ -83,7 +82,7 @@ astarte_result_t astarte_device_caching_introspection_check(
     }
 
     ASTARTE_LOG_DBG("Searching for pair in storage. Key: '%s'", INTROSPECTION_KEY);
-    ares = astarte_kv_storage_find(
+    ares = storage_key_value_find(
         &handle->intro_storage, INTROSPECTION_KEY, read_intr, &read_intr_size);
     if (ares != ASTARTE_RESULT_OK) {
         ASTARTE_LOG_ERR("Fetch error for cached introspection: %s.", astarte_result_to_name(ares));

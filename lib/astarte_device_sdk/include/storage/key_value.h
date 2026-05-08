@@ -4,11 +4,11 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KV_STORAGE_H
-#define KV_STORAGE_H
+#ifndef STORAGE_KEY_VALUE_H
+#define STORAGE_KEY_VALUE_H
 
 /**
- * @file kv_storage.h
+ * @file storage/key_value.h
  * @brief Key-value persistent storage implementation, with namespacing. Uses NVS as backend.
  *
  * @details
@@ -72,7 +72,7 @@ typedef struct
     off_t flash_offset;
     /** @brief Full size of the partition */
     uint64_t flash_partition_size;
-} astarte_kv_storage_cfg_t;
+} storage_key_value_cfg_t;
 
 /** @brief Data struct for an instance of the key-value storage driver. */
 typedef struct
@@ -81,16 +81,16 @@ typedef struct
     char *namespace;
     /** @brief Persistent NVS file system context */
     struct nvs_fs *nvs_fs;
-} astarte_kv_storage_t;
+} storage_key_value_t;
 
 /** @brief Iterator struct for the key-value pair storage. */
 typedef struct
 {
     /** @brief Reference to the storage instance used by the iterator. */
-    astarte_kv_storage_t *kv_storage;
+    storage_key_value_t *kv_storage;
     /** @brief Current key-value pair pointed by the iterator. */
     uint16_t current_pair;
-} astarte_kv_storage_iter_t;
+} storage_key_value_iter_t;
 
 #ifdef __cplusplus
 extern "C" {
@@ -106,29 +106,29 @@ extern "C" {
  * @param[in,out] nvs_fs The NVS file system context to open.
  * @return ASTARTE_RESULT_OK if successful, otherwise an error code.
  */
-astarte_result_t astarte_kv_storage_open(astarte_kv_storage_cfg_t config, struct nvs_fs *nvs_fs);
+astarte_result_t storage_key_value_open(storage_key_value_cfg_t config, struct nvs_fs *nvs_fs);
 
 /**
  * @brief Create a new instance of the key-value pairs storage driver for a specific namespace.
  *
  * @note After being used the key-value storage instance should be destroyed with
- * #astarte_kv_storage_destroy.
+ * #storage_key_value_destroy.
  *
  * @param[in,out] nvs_fs The NVS file system context to use. This should have been opened previously
- * using #astarte_kv_storage_open
+ * using #storage_key_value_open
  * @param[in] namespace The namespace to be used for this storage instance.
  * @param[out] kv_storage Data struct for the key-value storage instance to initialize.
  * @return ASTARTE_RESULT_OK if successful, otherwise an error code.
  */
-astarte_result_t astarte_kv_storage_new(
-    struct nvs_fs *nvs_fs, const char *namespace, astarte_kv_storage_t *kv_storage);
+astarte_result_t storage_key_value_new(
+    struct nvs_fs *nvs_fs, const char *namespace, storage_key_value_t *kv_storage);
 
 /**
  * @brief Destroy an instance of the key-value pairs storage driver.
  *
  * @param[inout] kv_storage The storage instance to destroy.
  */
-void astarte_kv_storage_destroy(astarte_kv_storage_t *kv_storage);
+void storage_key_value_destroy(storage_key_value_t *kv_storage);
 
 /**
  * @brief Insert or update a new key-value pair into storage.
@@ -139,8 +139,8 @@ void astarte_kv_storage_destroy(astarte_kv_storage_t *kv_storage);
  * @param[in] value_size Size of the value to store.
  * @return ASTARTE_RESULT_OK if successful, otherwise an error code.
  */
-astarte_result_t astarte_kv_storage_insert(
-    astarte_kv_storage_t *kv_storage, const char *key, const void *value, size_t value_size);
+astarte_result_t storage_key_value_insert(
+    storage_key_value_t *kv_storage, const char *key, const void *value, size_t value_size);
 
 /**
  * @brief Find an key-value pair matching the @p key in storage.
@@ -152,8 +152,8 @@ astarte_result_t astarte_kv_storage_insert(
  * buffer. Upon success it will be set to the size of the read data or to the required buffer size.
  * @return ASTARTE_RESULT_OK if successful, otherwise an error code.
  */
-astarte_result_t astarte_kv_storage_find(
-    astarte_kv_storage_t *kv_storage, const char *key, void *value, size_t *value_size);
+astarte_result_t storage_key_value_find(
+    storage_key_value_t *kv_storage, const char *key, void *value, size_t *value_size);
 
 /**
  * @brief Delete an existing key-value pair from storage.
@@ -162,7 +162,7 @@ astarte_result_t astarte_kv_storage_find(
  * @param[in] key Key of the key-value pair to delete.
  * @return ASTARTE_RESULT_OK if successful, otherwise an error code.
  */
-astarte_result_t astarte_kv_storage_delete(astarte_kv_storage_t *kv_storage, const char *key);
+astarte_result_t storage_key_value_delete(storage_key_value_t *kv_storage, const char *key);
 
 /**
  * @brief Initialize a new iterator to be used to iterate over the keys present in storage.
@@ -172,8 +172,8 @@ astarte_result_t astarte_kv_storage_delete(astarte_kv_storage_t *kv_storage, con
  * @return ASTARTE_RESULT_OK if successful, ASTARTE_RESULT_NOT_FOUND if not found, otherwise an
  * error code.
  */
-astarte_result_t astarte_kv_storage_iterator_init(
-    astarte_kv_storage_t *kv_storage, astarte_kv_storage_iter_t *iter);
+astarte_result_t storage_key_value_iterator_init(
+    storage_key_value_t *kv_storage, storage_key_value_iter_t *iter);
 
 /**
  * @brief Advance the iterator of one position.
@@ -182,7 +182,7 @@ astarte_result_t astarte_kv_storage_iterator_init(
  * @return ASTARTE_RESULT_OK if successful, ASTARTE_RESULT_NOT_FOUND if not found, otherwise an
  * error code.
  */
-astarte_result_t astarte_kv_storage_iterator_next(astarte_kv_storage_iter_t *iter);
+astarte_result_t storage_key_value_iterator_next(storage_key_value_iter_t *iter);
 
 /**
  * @brief Get the key for the key-valie pair pointed to by the iterator.
@@ -193,11 +193,11 @@ astarte_result_t astarte_kv_storage_iterator_next(astarte_kv_storage_iter_t *ite
  * buffer. Upon success it will be set to the size of the read data or to the required buffer size.
  * @return ASTARTE_RESULT_OK if successful, otherwise an error code.
  */
-astarte_result_t astarte_kv_storage_iterator_get(
-    astarte_kv_storage_iter_t *iter, void *key, size_t *key_size);
+astarte_result_t storage_key_value_iterator_get(
+    storage_key_value_iter_t *iter, void *key, size_t *key_size);
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif // KV_STORAGE_H
+#endif // STORAGE_KEY_VALUE_H

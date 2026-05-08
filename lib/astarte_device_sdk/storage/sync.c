@@ -4,10 +4,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "device_caching.h"
+#include "storage/core.h"
 
 #include "log.h"
-ASTARTE_LOG_MODULE_DECLARE(device_caching, CONFIG_ASTARTE_DEVICE_SDK_DEVICE_CACHING_LOG_LEVEL);
+ASTARTE_LOG_MODULE_DECLARE(device_storage, CONFIG_ASTARTE_DEVICE_SDK_DEVICE_STORAGE_LOG_LEVEL);
 
 /************************************************
  *        Defines, constants and typedef        *
@@ -19,8 +19,7 @@ ASTARTE_LOG_MODULE_DECLARE(device_caching, CONFIG_ASTARTE_DEVICE_SDK_DEVICE_CACH
  *         Global functions definitions         *
  ***********************************************/
 
-astarte_result_t astarte_device_caching_synchronization_get(
-    astarte_device_caching_t *handle, bool *sync)
+astarte_result_t storage_synchronization_get(storage_data_t *handle, bool *sync)
 {
     astarte_result_t ares = ASTARTE_RESULT_OK;
 
@@ -33,7 +32,7 @@ astarte_result_t astarte_device_caching_synchronization_get(
     size_t read_sync_size = sizeof(read_sync);
 
     ASTARTE_LOG_DBG("Searching for pair in storage. Key: '%s'", SYNCHRONIZATION_KEY);
-    ares = astarte_kv_storage_find(
+    ares = storage_key_value_find(
         &handle->sync_storage, SYNCHRONIZATION_KEY, &read_sync, &read_sync_size);
     if (ares == ASTARTE_RESULT_NOT_FOUND) {
         ASTARTE_LOG_INF("No previous synchronization with Astarte present.");
@@ -53,8 +52,7 @@ astarte_result_t astarte_device_caching_synchronization_get(
     return ares;
 }
 
-astarte_result_t astarte_device_caching_synchronization_set(
-    astarte_device_caching_t *handle, bool sync)
+astarte_result_t storage_synchronization_set(storage_data_t *handle, bool sync)
 {
     astarte_result_t ares = ASTARTE_RESULT_OK;
 
@@ -66,8 +64,8 @@ astarte_result_t astarte_device_caching_synchronization_set(
     ASTARTE_LOG_DBG("Storing synchronization: %s", (sync) ? "synchronized" : "not synchronized");
 
     ASTARTE_LOG_DBG("Inserting pair in storage. Key: %s", SYNCHRONIZATION_KEY);
-    ares = astarte_kv_storage_insert(
-        &handle->sync_storage, SYNCHRONIZATION_KEY, &sync, sizeof(sync));
+    ares
+        = storage_key_value_insert(&handle->sync_storage, SYNCHRONIZATION_KEY, &sync, sizeof(sync));
     if (ares != ASTARTE_RESULT_OK) {
         ASTARTE_LOG_ERR("Error caching synchronization: %s.", astarte_result_to_name(ares));
     }
