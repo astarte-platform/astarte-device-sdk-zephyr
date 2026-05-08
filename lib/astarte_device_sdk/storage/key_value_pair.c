@@ -21,6 +21,41 @@ ASTARTE_LOG_MODULE_DECLARE(astarte_kv_storage, CONFIG_ASTARTE_DEVICE_SDK_KV_STOR
 /** @brief Number of NVS entries required to hold a key-value pair */
 #define NVS_ENTRIES_FOR_PAIR 3U
 
+/** @brief Offsets for the NVS ID of the namespace of a key-value pair */
+#define NVS_ID_OFFSET_NAMESPACE 0U
+/** @brief Offsets for the NVS ID of the key of a key-value pair */
+#define NVS_ID_OFFSET_KEY 1U
+/** @brief Offsets for the NVS ID of the value of a key-value pair */
+#define NVS_ID_OFFSET_VALUE 2U
+
+/************************************************
+ *         Static functions declaration         *
+ ***********************************************/
+
+/**
+ * @brief Get data for the NVS entry at the provided ID.
+ *
+ * @param[inout] nvs_fs NVS file system from which to fetch the entry.
+ * @param[in] entry_id NVS ID for the entry to read.
+ * @param[out] data Buffer where to store the NVS entry data, can be NULL.
+ * @param[inout] data_size When @p data is non NULL should correspond the the size of @p data.
+ * Upon success it will be set to the required size to store the data.
+ * @return ASTARTE_RESULT_OK if successful, otherwise an error code.
+ */
+static astarte_result_t read_entry(
+    struct nvs_fs *nvs_fs, uint16_t entry_id, void *data, size_t *data_size);
+/**
+ * @brief Get value for the NVS entry at the provided ID. Dynamically allocates the data struct.
+ *
+ * @param[inout] nvs_fs NVS file system from which to fetch the entry.
+ * @param[in] entry_id NVS ID for the entry to read.
+ * @param[out] data On success will point to a dynamically allocated buffer containing the data.
+ * @param[inout] data_size The size of the allocated @p data buffer.
+ * @return ASTARTE_RESULT_OK if successful, otherwise an error code.
+ */
+static astarte_result_t read_entry_alloc(
+    struct nvs_fs *nvs_fs, uint16_t entry_id, void **data, size_t *data_size);
+
 /************************************************
  *         Global functions definitions         *
  ***********************************************/
@@ -29,6 +64,20 @@ uint16_t storage_key_value_pair_get_pair_base_id(uint16_t pair_index)
 {
     // 1 is the offset for the global counter (STORED_PAIRS_NVS_ID is 0)
     return 1U + (pair_index * NVS_ENTRIES_FOR_PAIR);
+}
+
+astarte_result_t storage_key_value_pair_get_new_base_id(uint16_t pair_index, uint16_t *base_id)
+{
+    // Cast to uint32_t to safely detect overflow before it happens within a 16-bit boundary
+    uint32_t max_required_id
+        = 1U + ((uint32_t) pair_index * NVS_ENTRIES_FOR_PAIR) + NVS_ID_OFFSET_VALUE;
+
+    if (max_required_id >= UINT16_MAX) {
+        return ASTARTE_RESULT_KV_STORAGE_FULL;
+    }
+
+    *base_id = (uint16_t) (1U + (pair_index * NVS_ENTRIES_FOR_PAIR));
+    return ASTARTE_RESULT_OK;
 }
 
 astarte_result_t storage_key_value_pair_get_pairs_number(struct nvs_fs *nvs_fs, uint16_t *count)
@@ -54,57 +103,22 @@ astarte_result_t storage_key_value_pair_set_pairs_number(struct nvs_fs *nvs_fs, 
     return ASTARTE_RESULT_OK;
 }
 
-astarte_result_t storage_key_value_pair_read_entry(
-    struct nvs_fs *nvs_fs, uint16_t entry_id, void *data, size_t *data_size)
+astarte_result_t storage_key_value_pair_read_namespace(
+    struct nvs_fs *nvs_fs, uint16_t base_id, char *namespace, size_t *namespace_size)
 {
-    int nvs_rc = 0;
-    if (!data) {
-        nvs_rc = nvs_read(nvs_fs, entry_id, NULL, 0);
-    } else {
-        nvs_rc = nvs_read(nvs_fs, entry_id, data, *data_size);
-    }
-
-    if (nvs_rc < 0) {
-        ASTARTE_LOG_ERR("NVS read error: %s (%d).", strerror(-nvs_rc), nvs_rc);
-        return ASTARTE_RESULT_NVS_ERROR;
-    }
-
-    if (data && (nvs_rc > *data_size)) {
-        ASTARTE_LOG_ERR("Stored data is too large for provided buffer.");
-        return ASTARTE_RESULT_INVALID_PARAM;
-    }
-
-    *data_size = nvs_rc;
-    return ASTARTE_RESULT_OK;
+    return read_entry(nvs_fs, base_id + NVS_ID_OFFSET_NAMESPACE, namespace, namespace_size);
 }
 
-astarte_result_t storage_key_value_pair_read_entry_alloc(
-    struct nvs_fs *nvs_fs, uint16_t entry_id, void **data, size_t *data_size)
+astarte_result_t storage_key_value_pair_read_key(
+    struct nvs_fs *nvs_fs, uint16_t base_id, char *key, size_t *key_size)
 {
-    astarte_result_t ares = ASTARTE_RESULT_OK;
-    size_t required_size = 0;
+    return read_entry(nvs_fs, base_id + NVS_ID_OFFSET_KEY, key, key_size);
+}
 
-    // First call to get size
-    ares = storage_key_value_pair_read_entry(nvs_fs, entry_id, NULL, &required_size);
-    if (ares != ASTARTE_RESULT_OK) {
-        return ares;
-    }
-
-    void *buff = calloc(required_size, sizeof(uint8_t));
-    if (!buff) {
-        return ASTARTE_RESULT_OUT_OF_MEMORY;
-    }
-
-    // Second call to get data
-    ares = storage_key_value_pair_read_entry(nvs_fs, entry_id, buff, &required_size);
-    if (ares != ASTARTE_RESULT_OK) {
-        free(buff);
-        return ares;
-    }
-
-    *data = buff;
-    *data_size = required_size;
-    return ASTARTE_RESULT_OK;
+astarte_result_t storage_key_value_pair_read_value(
+    struct nvs_fs *nvs_fs, uint16_t base_id, void *value, size_t *value_size)
+{
+    return read_entry(nvs_fs, base_id + NVS_ID_OFFSET_VALUE, value, value_size);
 }
 
 astarte_result_t storage_key_value_pair_write_pair(struct nvs_fs *nvs_fs, uint16_t base_id,
@@ -144,22 +158,19 @@ astarte_result_t storage_key_value_pair_relocate_pair(
 
     // Fetch all components from source
     size_t nsp_len = 0;
-    ares = storage_key_value_pair_read_entry_alloc(
-        nvs_fs, src_base_id + NVS_ID_OFFSET_NAMESPACE, &nsp, &nsp_len);
+    ares = read_entry_alloc(nvs_fs, src_base_id + NVS_ID_OFFSET_NAMESPACE, &nsp, &nsp_len);
     if (ares != ASTARTE_RESULT_OK) {
         ASTARTE_LOG_ERR("Failed fetching entry namespace %s.", astarte_result_to_name(ares));
         goto exit;
     }
     size_t key_len = 0;
-    ares = storage_key_value_pair_read_entry_alloc(
-        nvs_fs, src_base_id + NVS_ID_OFFSET_KEY, &key, &key_len);
+    ares = read_entry_alloc(nvs_fs, src_base_id + NVS_ID_OFFSET_KEY, &key, &key_len);
     if (ares != ASTARTE_RESULT_OK) {
         ASTARTE_LOG_ERR("Failed fetching entry key %s.", astarte_result_to_name(ares));
         goto exit;
     }
     size_t val_len = 0;
-    ares = storage_key_value_pair_read_entry_alloc(
-        nvs_fs, src_base_id + NVS_ID_OFFSET_VALUE, &val, &val_len);
+    ares = read_entry_alloc(nvs_fs, src_base_id + NVS_ID_OFFSET_VALUE, &val, &val_len);
     if (ares != ASTARTE_RESULT_OK) {
         ASTARTE_LOG_ERR("Failed fetching entry value %s.", astarte_result_to_name(ares));
         goto exit;
@@ -205,13 +216,11 @@ astarte_result_t storage_key_value_pair_remove_duplicates(struct nvs_fs *nvs_fs)
     size_t last_nsp_len = 0;
 
     // Fetch the last pair (the potential duplicate)
-    ares = storage_key_value_pair_read_entry_alloc(
-        nvs_fs, last_key_id, (void **) &last_key, &last_key_len);
+    ares = read_entry_alloc(nvs_fs, last_key_id, (void **) &last_key, &last_key_len);
     if (ares != ASTARTE_RESULT_OK) {
         goto exit;
     }
-    ares = storage_key_value_pair_read_entry_alloc(
-        nvs_fs, last_nsp_id, (void **) &last_nsp, &last_nsp_len);
+    ares = read_entry_alloc(nvs_fs, last_nsp_id, (void **) &last_nsp, &last_nsp_len);
     if (ares != ASTARTE_RESULT_OK) {
         goto exit;
     }
@@ -232,7 +241,7 @@ astarte_result_t storage_key_value_pair_remove_duplicates(struct nvs_fs *nvs_fs)
         size_t size = 0;
 
         // Check if the current pair key matches first the length then the content of the last
-        ares = storage_key_value_pair_read_entry(nvs_fs, curr_key_id, NULL, &size);
+        ares = read_entry(nvs_fs, curr_key_id, NULL, &size);
         if (ares != ASTARTE_RESULT_OK) {
             goto exit;
         }
@@ -241,7 +250,7 @@ astarte_result_t storage_key_value_pair_remove_duplicates(struct nvs_fs *nvs_fs)
             continue;
         }
 
-        ares = storage_key_value_pair_read_entry(nvs_fs, curr_key_id, curr_key, &size);
+        ares = read_entry(nvs_fs, curr_key_id, curr_key, &size);
         if (ares != ASTARTE_RESULT_OK) {
             goto exit;
         }
@@ -251,7 +260,7 @@ astarte_result_t storage_key_value_pair_remove_duplicates(struct nvs_fs *nvs_fs)
         }
 
         // Check if the current pair namespace matches first the length then the content of the last
-        ares = storage_key_value_pair_read_entry(nvs_fs, curr_nsp_id, NULL, &size);
+        ares = read_entry(nvs_fs, curr_nsp_id, NULL, &size);
         if (ares != ASTARTE_RESULT_OK) {
             goto exit;
         }
@@ -260,7 +269,7 @@ astarte_result_t storage_key_value_pair_remove_duplicates(struct nvs_fs *nvs_fs)
             continue;
         }
 
-        ares = storage_key_value_pair_read_entry(nvs_fs, curr_nsp_id, curr_nsp, &size);
+        ares = read_entry(nvs_fs, curr_nsp_id, curr_nsp, &size);
         if (ares != ASTARTE_RESULT_OK) {
             goto exit;
         }
@@ -279,4 +288,61 @@ exit:
     free(curr_key);
     free(curr_nsp);
     return ares;
+}
+
+/************************************************
+ *         Static functions definitions         *
+ ***********************************************/
+
+static astarte_result_t read_entry(
+    struct nvs_fs *nvs_fs, uint16_t entry_id, void *data, size_t *data_size)
+{
+    int nvs_rc = 0;
+    if (!data) {
+        nvs_rc = nvs_read(nvs_fs, entry_id, NULL, 0);
+    } else {
+        nvs_rc = nvs_read(nvs_fs, entry_id, data, *data_size);
+    }
+
+    if (nvs_rc < 0) {
+        ASTARTE_LOG_ERR("NVS read error: %s (%d).", strerror(-nvs_rc), nvs_rc);
+        return ASTARTE_RESULT_NVS_ERROR;
+    }
+
+    if (data && (nvs_rc > *data_size)) {
+        ASTARTE_LOG_ERR("Stored data is too large for provided buffer.");
+        return ASTARTE_RESULT_INVALID_PARAM;
+    }
+
+    *data_size = nvs_rc;
+    return ASTARTE_RESULT_OK;
+}
+
+static astarte_result_t read_entry_alloc(
+    struct nvs_fs *nvs_fs, uint16_t entry_id, void **data, size_t *data_size)
+{
+    astarte_result_t ares = ASTARTE_RESULT_OK;
+    size_t required_size = 0;
+
+    // First call to get size
+    ares = read_entry(nvs_fs, entry_id, NULL, &required_size);
+    if (ares != ASTARTE_RESULT_OK) {
+        return ares;
+    }
+
+    void *buff = calloc(required_size, sizeof(uint8_t));
+    if (!buff) {
+        return ASTARTE_RESULT_OUT_OF_MEMORY;
+    }
+
+    // Second call to get data
+    ares = read_entry(nvs_fs, entry_id, buff, &required_size);
+    if (ares != ASTARTE_RESULT_OK) {
+        free(buff);
+        return ares;
+    }
+
+    *data = buff;
+    *data_size = required_size;
+    return ASTARTE_RESULT_OK;
 }

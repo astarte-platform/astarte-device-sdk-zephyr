@@ -22,14 +22,6 @@
 #include <zephyr/fs/nvs.h>
 #endif
 
-// TODO: make this internal providing APIs for get/store of each of those
-/** @brief Offsets for the NVS IDs of components of a key-value pair */
-#define NVS_ID_OFFSET_NAMESPACE 0U
-/** @brief Offsets for the NVS IDs of components of a key-value pair */
-#define NVS_ID_OFFSET_KEY 1U
-/** @brief Offsets for the NVS IDs of components of a key-value pair */
-#define NVS_ID_OFFSET_VALUE 2U
-
 /**
  * @brief Calculate the base NVS ID for a given pair index.
  *
@@ -37,6 +29,14 @@
  * @return The NVS ID for the start of that pair's record.
  */
 uint16_t storage_key_value_pair_get_pair_base_id(uint16_t pair_index);
+/**
+ * @brief Calculate the base NVS ID for a new pair, safely checking for overflow.
+ *
+ * @param[in] pair_index The 0-based index of the pair to insert (0 to stored_pairs - 1).
+ * @param[out] base_id Upon success, contains the valid base NVS ID.
+ * @return ASTARTE_RESULT_OK if successful, ASTARTE_RESULT_KV_STORAGE_FULL if IDs would overflow.
+ */
+astarte_result_t storage_key_value_pair_get_new_base_id(uint16_t pair_index, uint16_t *base_id);
 /**
  * @brief Get number of stored pairs.
  *
@@ -54,28 +54,41 @@ astarte_result_t storage_key_value_pair_get_pairs_number(struct nvs_fs *nvs_fs, 
  */
 astarte_result_t storage_key_value_pair_set_pairs_number(struct nvs_fs *nvs_fs, uint16_t count);
 /**
- * @brief Get data for the NVS entry at the provided ID.
+ * @brief Get the namespace for the NVS pair at the provided base ID.
  *
- * @param[inout] nvs_fs NVS file system from which to fetch the entry.
- * @param[in] entry_id NVS ID for the entry to read.
- * @param[out] data Buffer where to store the NVS entry data, can be NULL.
- * @param[inout] data_size When @p data is non NULL should correspond the the size of @p data.
- * Upon success it will be set to the required size to store the data.
+ * @param[inout] nvs_fs NVS file system from which to fetch the pair.
+ * @param[in] base_id NVS base ID for the pair to read.
+ * @param[out] namespace Buffer where to store the NVS namespace, can be NULL.
+ * @param[inout] namespace_size When @p namespace is non NULL should be the size of @p namespace.
+ * Upon success it will be set to the required size to store the namespace.
  * @return ASTARTE_RESULT_OK if successful, otherwise an error code.
  */
-astarte_result_t storage_key_value_pair_read_entry(
-    struct nvs_fs *nvs_fs, uint16_t entry_id, void *data, size_t *data_size);
+astarte_result_t storage_key_value_pair_read_namespace(
+    struct nvs_fs *nvs_fs, uint16_t base_id, char *namespace, size_t *namespace_size);
 /**
- * @brief Get value for the NVS entry at the provided ID. Dynamically allocates the data struct.
+ * @brief Get the key for the NVS pair at the provided base ID.
  *
- * @param[inout] nvs_fs NVS file system from which to fetch the entry.
- * @param[in] entry_id NVS ID for the entry to read.
- * @param[out] data On success will point to a dynamically allocated buffer containing the data.
- * @param[inout] data_size The size of the allocated @p data buffer.
+ * @param[inout] nvs_fs NVS file system from which to fetch the pair.
+ * @param[in] base_id NVS base ID for the pair to read.
+ * @param[out] key Buffer where to store the NVS key, can be NULL.
+ * @param[inout] key_size When @p key is non NULL should be the size of @p key.
+ * Upon success it will be set to the required size to store the key.
  * @return ASTARTE_RESULT_OK if successful, otherwise an error code.
  */
-astarte_result_t storage_key_value_pair_read_entry_alloc(
-    struct nvs_fs *nvs_fs, uint16_t entry_id, void **data, size_t *data_size);
+astarte_result_t storage_key_value_pair_read_key(
+    struct nvs_fs *nvs_fs, uint16_t base_id, char *key, size_t *key_size);
+/**
+ * @brief Get the value for the NVS pair at the provided base ID.
+ *
+ * @param[inout] nvs_fs NVS file system from which to fetch the pair.
+ * @param[in] base_id NVS base ID for the pair to read.
+ * @param[out] value Buffer where to store the NVS value, can be NULL.
+ * @param[inout] value_size When @p value is non NULL should be the size of @p value.
+ * Upon success it will be set to the required size to store the value.
+ * @return ASTARTE_RESULT_OK if successful, otherwise an error code.
+ */
+astarte_result_t storage_key_value_pair_read_value(
+    struct nvs_fs *nvs_fs, uint16_t base_id, void *value, size_t *value_size);
 /**
  * @brief Write a key-value pair using an NVS base ID.
  *
