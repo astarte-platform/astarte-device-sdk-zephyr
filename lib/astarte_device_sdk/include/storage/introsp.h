@@ -29,8 +29,8 @@ extern "C" {
  * @param[in] intr_size Size in chars of the @p buffer parameter.
  * @return ASTARTE_RESULT_OK if successful, otherwise an error code.
  */
-astarte_result_t storage_introspection_store(
-    storage_data_t *handle, const char *intr, size_t intr_size);
+astarte_result_t astarte_storage_introspection_store(
+    astarte_storage_data_t *handle, const char *intr, size_t intr_size);
 
 /**
  * @brief Check if the stored introspection exists and it's identical to the input one.
@@ -40,8 +40,8 @@ astarte_result_t storage_introspection_store(
  * @param[in] intr_size Size in chars of the @p buffer parameter.
  * @return ASTARTE_RESULT_OK if successful, otherwise an error code.
  */
-astarte_result_t storage_introspection_check(
-    storage_data_t *handle, const char *intr, size_t intr_size);
+astarte_result_t astarte_storage_introspection_check(
+    astarte_storage_data_t *handle, const char *intr, size_t intr_size);
 
 #ifdef __cplusplus
 }

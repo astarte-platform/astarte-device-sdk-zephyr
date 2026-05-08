@@ -29,7 +29,7 @@ extern "C" {
  * has been previously achieved with Astarte.
  * @return ASTARTE_RESULT_OK if successful, otherwise an error code.
  */
-astarte_result_t storage_synchronization_get(storage_data_t *handle, bool *sync);
+astarte_result_t astarte_storage_synchronization_get(astarte_storage_data_t *handle, bool *sync);
 
 /**
  * @brief Set the synchronization state.
@@ -39,7 +39,7 @@ astarte_result_t storage_synchronization_get(storage_data_t *handle, bool *sync)
  * has been achieved with Astarte.
  * @return ASTARTE_RESULT_OK if successful, otherwise an error code.
  */
-astarte_result_t storage_synchronization_set(storage_data_t *handle, bool sync);
+astarte_result_t astarte_storage_synchronization_set(astarte_storage_data_t *handle, bool sync);
 
 #ifdef __cplusplus
 }

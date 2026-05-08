@@ -47,7 +47,7 @@ static astarte_result_t parse_property_bson(
  * @param[in] str_buff_size Size of the @p str_buff buffer.
  * @return ASTARTE_RESULT_OK if successful, otherwise an error code.
  */
-static astarte_result_t append_property_to_string(storage_data_t *handle,
+static astarte_result_t append_property_to_string(astarte_storage_data_t *handle,
     introspection_t *introspection, char *interface_name, char *path, size_t *str_size,
     char *str_buff, size_t str_buff_size);
 
@@ -55,8 +55,8 @@ static astarte_result_t append_property_to_string(storage_data_t *handle,
  *         Global functions definitions         *
  ***********************************************/
 
-astarte_result_t storage_property_store(storage_data_t *handle, const char *interface_name,
-    const char *path, uint32_t major, astarte_data_t data)
+astarte_result_t astarte_storage_property_store(astarte_storage_data_t *handle,
+    const char *interface_name, const char *path, uint32_t major, astarte_data_t data)
 {
     astarte_result_t ares = ASTARTE_RESULT_OK;
     char *key = NULL;
@@ -121,7 +121,7 @@ astarte_result_t storage_property_store(storage_data_t *handle, const char *inte
     }
 
     ASTARTE_LOG_DBG("Inserting pair in storage. Key: %s", key);
-    ares = storage_key_value_insert(&handle->prop_storage, key, data_ser, data_ser_len);
+    ares = astarte_storage_key_value_insert(&handle->prop_storage, key, data_ser, data_ser_len);
     if (ares != ASTARTE_RESULT_OK) {
         ASTARTE_LOG_ERR("Error caching property: %s.", astarte_result_to_name(ares));
     }
@@ -132,8 +132,8 @@ exit:
     return ares;
 }
 
-astarte_result_t storage_property_load(storage_data_t *handle, const char *interface_name,
-    const char *path, uint32_t *out_major, astarte_data_t *data)
+astarte_result_t astarte_storage_property_load(astarte_storage_data_t *handle,
+    const char *interface_name, const char *path, uint32_t *out_major, astarte_data_t *data)
 {
     astarte_result_t ares = ASTARTE_RESULT_OK;
     char *key = NULL;
@@ -163,7 +163,7 @@ astarte_result_t storage_property_load(storage_data_t *handle, const char *inter
 
     ASTARTE_LOG_DBG("Searching for pair in storage. Key: '%s'", key);
     size_t value_len = 0;
-    ares = storage_key_value_find(&handle->prop_storage, key, NULL, &value_len);
+    ares = astarte_storage_key_value_find(&handle->prop_storage, key, NULL, &value_len);
     if (ares != ASTARTE_RESULT_OK) {
         goto exit;
     }
@@ -178,7 +178,7 @@ astarte_result_t storage_property_load(storage_data_t *handle, const char *inter
 
     // Get the data from NVS
     ASTARTE_LOG_DBG("Searching for pair in storage. Key: '%s'", key);
-    ares = storage_key_value_find(&handle->prop_storage, key, value, &value_len);
+    ares = astarte_storage_key_value_find(&handle->prop_storage, key, value, &value_len);
     if (ares != ASTARTE_RESULT_OK) {
         ASTARTE_LOG_ERR("Could not get property from storage: %s.", astarte_result_to_name(ares));
         goto exit;
@@ -195,13 +195,13 @@ exit:
     return ares;
 }
 
-void storage_property_destroy_loaded(astarte_data_t data)
+void astarte_storage_property_destroy_loaded(astarte_data_t data)
 {
     data_destroy_deserialized(data);
 }
 
-astarte_result_t storage_property_delete(
-    storage_data_t *handle, const char *interface_name, const char *path)
+astarte_result_t astarte_storage_property_delete(
+    astarte_storage_data_t *handle, const char *interface_name, const char *path)
 {
     astarte_result_t ares = ASTARTE_RESULT_OK;
     char *key = NULL;
@@ -229,7 +229,7 @@ astarte_result_t storage_property_delete(
     }
 
     ASTARTE_LOG_DBG("Deleting pair from storage. Key: %s", key);
-    ares = storage_key_value_delete(&handle->prop_storage, key);
+    ares = astarte_storage_key_value_delete(&handle->prop_storage, key);
     if ((ares != ASTARTE_RESULT_OK) && (ares != ASTARTE_RESULT_NOT_FOUND)) {
         ASTARTE_LOG_ERR("Error deleting cached property: %s.", astarte_result_to_name(ares));
     }
@@ -239,8 +239,8 @@ exit:
     return ares;
 }
 
-astarte_result_t storage_property_iterator_new(
-    storage_data_t *handle, storage_property_iter_t *iter)
+astarte_result_t astarte_storage_property_iterator_new(
+    astarte_storage_data_t *handle, astarte_storage_property_iter_t *iter)
 {
     astarte_result_t ares = ASTARTE_RESULT_OK;
 
@@ -250,7 +250,7 @@ astarte_result_t storage_property_iterator_new(
     }
 
     ASTARTE_LOG_DBG("Initializing iterator for key value storage.");
-    ares = storage_key_value_iterator_init(&handle->prop_storage, &iter->kv_iter);
+    ares = astarte_storage_key_value_iterator_init(&handle->prop_storage, &iter->kv_iter);
     if ((ares != ASTARTE_RESULT_OK) && (ares != ASTARTE_RESULT_NOT_FOUND)) {
         ASTARTE_LOG_ERR("Key-value storage iterator init error: %s.", astarte_result_to_name(ares));
     }
@@ -258,12 +258,12 @@ astarte_result_t storage_property_iterator_new(
     return ares;
 }
 
-astarte_result_t storage_property_iterator_next(storage_property_iter_t *iter)
+astarte_result_t astarte_storage_property_iterator_next(astarte_storage_property_iter_t *iter)
 {
     astarte_result_t ares = ASTARTE_RESULT_OK;
 
     ASTARTE_LOG_DBG("Advancing iterator for key value storage.");
-    ares = storage_key_value_iterator_next(&iter->kv_iter);
+    ares = astarte_storage_key_value_iterator_next(&iter->kv_iter);
     if ((ares != ASTARTE_RESULT_OK) && (ares != ASTARTE_RESULT_NOT_FOUND)) {
         ASTARTE_LOG_ERR("Key-value storage iterator error: %s.", astarte_result_to_name(ares));
     }
@@ -271,8 +271,8 @@ astarte_result_t storage_property_iterator_next(storage_property_iter_t *iter)
     return ares;
 }
 
-astarte_result_t storage_property_iterator_get(storage_property_iter_t *iter, char *interface_name,
-    size_t *interface_name_size, char *path, size_t *path_size)
+astarte_result_t astarte_storage_property_iterator_get(astarte_storage_property_iter_t *iter,
+    char *interface_name, size_t *interface_name_size, char *path, size_t *path_size)
 {
     astarte_result_t ares = ASTARTE_RESULT_OK;
     char *key = NULL;
@@ -294,7 +294,7 @@ astarte_result_t storage_property_iterator_get(storage_property_iter_t *iter, ch
     // Get size of item key
     size_t key_size = 0U;
     ASTARTE_LOG_DBG("Getting the key size for the pair pointer by the storage iterator.");
-    ares = storage_key_value_iterator_get(&iter->kv_iter, NULL, &key_size);
+    ares = astarte_storage_key_value_iterator_get(&iter->kv_iter, NULL, &key_size);
     if (ares != ASTARTE_RESULT_OK) {
         ASTARTE_LOG_ERR("Key-value storage iterator error: %s.", astarte_result_to_name(ares));
         goto exit;
@@ -308,7 +308,7 @@ astarte_result_t storage_property_iterator_get(storage_property_iter_t *iter, ch
     }
 
     ASTARTE_LOG_DBG("Getting the key data for the pair pointer by the storage iterator.");
-    ares = storage_key_value_iterator_get(&iter->kv_iter, key, &key_size);
+    ares = astarte_storage_key_value_iterator_get(&iter->kv_iter, key, &key_size);
     if (ares != ASTARTE_RESULT_OK) {
         ASTARTE_LOG_ERR("Key-value storage iterator error: %s.", astarte_result_to_name(ares));
         goto exit;
@@ -337,7 +337,7 @@ astarte_result_t storage_property_iterator_get(storage_property_iter_t *iter, ch
     }
 
     if ((*interface_name_size < read_interface_name_size) || (*path_size < read_path_size)) {
-        ASTARTE_LOG_ERR("Insufficient buff size in storage_property_iterator_get.");
+        ASTARTE_LOG_ERR("Insufficient buff size in astarte_storage_property_iterator_get.");
         ares = ASTARTE_RESULT_INVALID_PARAM;
         goto exit;
     }
@@ -354,16 +354,16 @@ exit:
     return ares;
 }
 
-astarte_result_t storage_property_get_device_string(
-    storage_data_t *handle, introspection_t *introspection, char *output, size_t *output_size)
+astarte_result_t astarte_storage_property_get_device_string(astarte_storage_data_t *handle,
+    introspection_t *introspection, char *output, size_t *output_size)
 {
     astarte_result_t ares = ASTARTE_RESULT_OK;
-    storage_property_iter_t iter = { 0 };
+    astarte_storage_property_iter_t iter = { 0 };
     size_t string_size = 0U;
     char *interface_name = NULL;
     char *path = NULL;
 
-    ares = storage_property_iterator_new(handle, &iter);
+    ares = astarte_storage_property_iterator_new(handle, &iter);
     if ((ares != ASTARTE_RESULT_OK) && (ares != ASTARTE_RESULT_NOT_FOUND)) {
         ASTARTE_LOG_ERR("Properties iterator init failed: %s", astarte_result_to_name(ares));
         goto error;
@@ -376,7 +376,8 @@ astarte_result_t storage_property_get_device_string(
     while (ares != ASTARTE_RESULT_NOT_FOUND) {
         size_t interface_name_size = 0U;
         size_t path_size = 0U;
-        ares = storage_property_iterator_get(&iter, NULL, &interface_name_size, NULL, &path_size);
+        ares = astarte_storage_property_iterator_get(
+            &iter, NULL, &interface_name_size, NULL, &path_size);
         if (ares != ASTARTE_RESULT_OK) {
             ASTARTE_LOG_ERR("Properties iterator get error: %s", astarte_result_to_name(ares));
             goto error;
@@ -389,7 +390,7 @@ astarte_result_t storage_property_get_device_string(
             goto error;
         }
 
-        ares = storage_property_iterator_get(
+        ares = astarte_storage_property_iterator_get(
             &iter, interface_name, &interface_name_size, path, &path_size);
         if (ares != ASTARTE_RESULT_OK) {
             ASTARTE_LOG_ERR("Properties iterator get error: %s", astarte_result_to_name(ares));
@@ -409,7 +410,7 @@ astarte_result_t storage_property_get_device_string(
         free(path);
         path = NULL;
 
-        ares = storage_property_iterator_next(&iter);
+        ares = astarte_storage_property_iterator_next(&iter);
         if ((ares != ASTARTE_RESULT_OK) && (ares != ASTARTE_RESULT_NOT_FOUND)) {
             ASTARTE_LOG_ERR("Iterator next error: %s", astarte_result_to_name(ares));
             goto error;
@@ -474,7 +475,7 @@ static astarte_result_t parse_property_bson(
 
 // Function is still readable for now
 // NOLINTNEXTLINE(readability-function-size)
-static astarte_result_t append_property_to_string(storage_data_t *handle,
+static astarte_result_t append_property_to_string(astarte_storage_data_t *handle,
     introspection_t *introspection, char *interface_name, char *path, size_t *str_size,
     char *str_buff, size_t str_buff_size)
 {
@@ -483,7 +484,7 @@ static astarte_result_t append_property_to_string(storage_data_t *handle,
     const astarte_interface_t *interface = introspection_get(introspection, interface_name);
     if (!interface) {
         ASTARTE_LOG_DBG("Purge property from unknown interface: '%s%s'", interface_name, path);
-        ares = storage_property_delete(handle, interface_name, path);
+        ares = astarte_storage_property_delete(handle, interface_name, path);
         if ((ares != ASTARTE_RESULT_OK) && (ares != ASTARTE_RESULT_NOT_FOUND)) {
             ASTARTE_LOG_COND_ERR(ares != ASTARTE_RESULT_OK,
                 "Failed deleting the cached property: %s", astarte_result_to_name(ares));

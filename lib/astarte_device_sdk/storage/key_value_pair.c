@@ -60,13 +60,14 @@ static astarte_result_t read_entry_alloc(
  *         Global functions definitions         *
  ***********************************************/
 
-uint16_t storage_key_value_pair_get_pair_base_id(uint16_t pair_index)
+uint16_t astarte_storage_key_value_pair_get_pair_base_id(uint16_t pair_index)
 {
     // 1 is the offset for the global counter (STORED_PAIRS_NVS_ID is 0)
     return 1U + (pair_index * NVS_ENTRIES_FOR_PAIR);
 }
 
-astarte_result_t storage_key_value_pair_get_new_base_id(uint16_t pair_index, uint16_t *base_id)
+astarte_result_t astarte_storage_key_value_pair_get_new_base_id(
+    uint16_t pair_index, uint16_t *base_id)
 {
     // Cast to uint32_t to safely detect overflow before it happens within a 16-bit boundary
     uint32_t max_required_id
@@ -80,7 +81,8 @@ astarte_result_t storage_key_value_pair_get_new_base_id(uint16_t pair_index, uin
     return ASTARTE_RESULT_OK;
 }
 
-astarte_result_t storage_key_value_pair_get_pairs_number(struct nvs_fs *nvs_fs, uint16_t *count)
+astarte_result_t astarte_storage_key_value_pair_get_pairs_number(
+    struct nvs_fs *nvs_fs, uint16_t *count)
 {
     uint16_t data = 0;
     int nvs_rc = nvs_read(nvs_fs, STORED_PAIRS_NVS_ID, &data, sizeof(data));
@@ -93,7 +95,8 @@ astarte_result_t storage_key_value_pair_get_pairs_number(struct nvs_fs *nvs_fs, 
     return ASTARTE_RESULT_OK;
 }
 
-astarte_result_t storage_key_value_pair_set_pairs_number(struct nvs_fs *nvs_fs, uint16_t count)
+astarte_result_t astarte_storage_key_value_pair_set_pairs_number(
+    struct nvs_fs *nvs_fs, uint16_t count)
 {
     int nvs_rc = nvs_write(nvs_fs, STORED_PAIRS_NVS_ID, &count, sizeof(count));
     if (nvs_rc < 0) {
@@ -103,25 +106,25 @@ astarte_result_t storage_key_value_pair_set_pairs_number(struct nvs_fs *nvs_fs, 
     return ASTARTE_RESULT_OK;
 }
 
-astarte_result_t storage_key_value_pair_read_namespace(
+astarte_result_t astarte_storage_key_value_pair_read_namespace(
     struct nvs_fs *nvs_fs, uint16_t base_id, char *namespace, size_t *namespace_size)
 {
     return read_entry(nvs_fs, base_id + NVS_ID_OFFSET_NAMESPACE, namespace, namespace_size);
 }
 
-astarte_result_t storage_key_value_pair_read_key(
+astarte_result_t astarte_storage_key_value_pair_read_key(
     struct nvs_fs *nvs_fs, uint16_t base_id, char *key, size_t *key_size)
 {
     return read_entry(nvs_fs, base_id + NVS_ID_OFFSET_KEY, key, key_size);
 }
 
-astarte_result_t storage_key_value_pair_read_value(
+astarte_result_t astarte_storage_key_value_pair_read_value(
     struct nvs_fs *nvs_fs, uint16_t base_id, void *value, size_t *value_size)
 {
     return read_entry(nvs_fs, base_id + NVS_ID_OFFSET_VALUE, value, value_size);
 }
 
-astarte_result_t storage_key_value_pair_write_pair(struct nvs_fs *nvs_fs, uint16_t base_id,
+astarte_result_t astarte_storage_key_value_pair_write_pair(struct nvs_fs *nvs_fs, uint16_t base_id,
     const char *namespace, const char *key, const void *value, size_t value_size)
 {
     ssize_t nvs_rc = 0;
@@ -148,7 +151,7 @@ astarte_result_t storage_key_value_pair_write_pair(struct nvs_fs *nvs_fs, uint16
     return ASTARTE_RESULT_OK;
 }
 
-astarte_result_t storage_key_value_pair_relocate_pair(
+astarte_result_t astarte_storage_key_value_pair_relocate_pair(
     struct nvs_fs *nvs_fs, uint16_t dst_base_id, uint16_t src_base_id)
 {
     astarte_result_t ares = ASTARTE_RESULT_OK;
@@ -177,7 +180,7 @@ astarte_result_t storage_key_value_pair_relocate_pair(
     }
 
     // Write to destination
-    ares = storage_key_value_pair_write_pair(
+    ares = astarte_storage_key_value_pair_write_pair(
         nvs_fs, dst_base_id, (char *) nsp, (char *) key, val, val_len);
     if (ares != ASTARTE_RESULT_OK) {
         ASTARTE_LOG_ERR("Failed relocating entry %s.", astarte_result_to_name(ares));
@@ -192,19 +195,19 @@ exit:
 
 // This function is still understandable
 // NOLINTNEXTLINE(readability-function-cognitive-complexity)
-astarte_result_t storage_key_value_pair_remove_duplicates(struct nvs_fs *nvs_fs)
+astarte_result_t astarte_storage_key_value_pair_remove_duplicates(struct nvs_fs *nvs_fs)
 {
     astarte_result_t ares = ASTARTE_RESULT_OK;
     uint16_t pairs_number = 0;
 
-    ares = storage_key_value_pair_get_pairs_number(nvs_fs, &pairs_number);
+    ares = astarte_storage_key_value_pair_get_pairs_number(nvs_fs, &pairs_number);
     if ((ares != ASTARTE_RESULT_OK) || pairs_number < 2) {
         // Error, or if we have 0 or 1 items no chance of duplication
         return ares;
     }
 
     uint16_t last_idx = pairs_number - 1;
-    uint16_t last_base_id = storage_key_value_pair_get_pair_base_id(last_idx);
+    uint16_t last_base_id = astarte_storage_key_value_pair_get_pair_base_id(last_idx);
     uint16_t last_key_id = last_base_id + NVS_ID_OFFSET_KEY;
     uint16_t last_nsp_id = last_base_id + NVS_ID_OFFSET_NAMESPACE;
 
@@ -235,7 +238,7 @@ astarte_result_t storage_key_value_pair_remove_duplicates(struct nvs_fs *nvs_fs)
 
     // Scan previous items
     for (uint16_t curr_idx = 0; curr_idx < last_idx; curr_idx++) {
-        uint16_t curr_base_id = storage_key_value_pair_get_pair_base_id(curr_idx);
+        uint16_t curr_base_id = astarte_storage_key_value_pair_get_pair_base_id(curr_idx);
         uint16_t curr_key_id = curr_base_id + NVS_ID_OFFSET_KEY;
         uint16_t curr_nsp_id = curr_base_id + NVS_ID_OFFSET_NAMESPACE;
         size_t size = 0;
@@ -277,7 +280,7 @@ astarte_result_t storage_key_value_pair_remove_duplicates(struct nvs_fs *nvs_fs)
         if (strcmp(last_nsp, curr_nsp) == 0) {
             ASTARTE_LOG_WRN("Recovering duplicate pair IDs %d and %d.", curr_base_id, last_base_id);
             pairs_number--;
-            ares = storage_key_value_pair_set_pairs_number(nvs_fs, pairs_number);
+            ares = astarte_storage_key_value_pair_set_pairs_number(nvs_fs, pairs_number);
             goto exit;
         }
     }

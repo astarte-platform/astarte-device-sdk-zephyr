@@ -26,14 +26,14 @@ typedef struct
     /** @brief NVS file system handle shared between all storages */
     struct nvs_fs nvs_fs;
     /** @brief Key value storage handle for synchronization state */
-    storage_key_value_t sync_storage;
+    astarte_storage_key_value_t sync_storage;
     /** @brief Key value storage handle for introspection data */
-    storage_key_value_t intro_storage;
+    astarte_storage_key_value_t intro_storage;
     /** @brief Key value storage handle for device properties */
-    storage_key_value_t prop_storage;
+    astarte_storage_key_value_t prop_storage;
     /** @brief Flag to ensure we don't double-init or use uninitialized handles */
     bool initialized;
-} storage_data_t;
+} astarte_storage_data_t;
 
 #ifdef __cplusplus
 extern "C" {
@@ -44,13 +44,13 @@ extern "C" {
  * @param[in,out] handle Pointer to the handle structure to initialize.
  * @return ASTARTE_RESULT_OK if successful.
  */
-astarte_result_t storage_init(storage_data_t *handle);
+astarte_result_t astarte_storage_init(astarte_storage_data_t *handle);
 
 /**
  * @brief Close and clean up the device storage.
  * * @param[in] handle Pointer to the handle structure to destroy.
  */
-void storage_destroy(storage_data_t *handle);
+void astarte_storage_destroy(astarte_storage_data_t *handle);
 
 #ifdef __cplusplus
 }

@@ -136,7 +136,7 @@ struct astarte_device
     char control_producer_prop_topic[MQTT_CONTROL_PRODUCER_PROP_TOPIC_LEN + 1];
 #ifdef CONFIG_ASTARTE_DEVICE_SDK_PERMANENT_STORAGE
     /** @brief Device caching instance, used to acced non volatile storage. */
-    storage_data_t caching;
+    astarte_storage_data_t caching;
 #endif
 };
 

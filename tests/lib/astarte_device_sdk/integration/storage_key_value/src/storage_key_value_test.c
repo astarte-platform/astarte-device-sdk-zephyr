@@ -34,7 +34,7 @@ struct astarte_device_sdk_storage_key_value_fixture
     struct k_mutex test_mutex;
 };
 
-static void *storage_key_value_test_setup(void)
+static void *astarte_storage_key_value_test_setup(void)
 {
     struct flash_pages_info fp_info;
     const struct device *device = NVS_PARTITION_DEVICE;
@@ -56,7 +56,7 @@ static void *storage_key_value_test_setup(void)
     return fixture;
 }
 
-static void storage_key_value_test_before(void *f)
+static void astarte_storage_key_value_test_before(void *f)
 {
     struct astarte_device_sdk_storage_key_value_fixture *fixture
         = (struct astarte_device_sdk_storage_key_value_fixture *) f;
@@ -73,7 +73,7 @@ static void storage_key_value_test_before(void *f)
     zassert_equal(nvs_clear(&nvs_fs), 0, "NVS clear failed.");
 }
 
-static void storage_key_value_test_after(void *f)
+static void astarte_storage_key_value_test_after(void *f)
 {
     struct astarte_device_sdk_storage_key_value_fixture *fixture
         = (struct astarte_device_sdk_storage_key_value_fixture *) f;
@@ -90,7 +90,7 @@ static void storage_key_value_test_after(void *f)
     k_mutex_unlock(&fixture->test_mutex);
 }
 
-static void storage_key_value_test_teardown(void *f)
+static void astarte_storage_key_value_test_teardown(void *f)
 {
     struct astarte_device_sdk_storage_key_value_fixture *fixture
         = (struct astarte_device_sdk_storage_key_value_fixture *) f;
@@ -98,9 +98,9 @@ static void storage_key_value_test_teardown(void *f)
     free(fixture);
 }
 
-ZTEST_SUITE(astarte_device_sdk_storage_key_value, NULL, storage_key_value_test_setup,
-    storage_key_value_test_before, storage_key_value_test_after,
-    storage_key_value_test_teardown); // NOLINT
+ZTEST_SUITE(astarte_device_sdk_storage_key_value, NULL, astarte_storage_key_value_test_setup,
+    astarte_storage_key_value_test_before, astarte_storage_key_value_test_after,
+    astarte_storage_key_value_test_teardown); // NOLINT
 
 const char key1[] = "first key";
 char res_key1[ARRAY_SIZE(key1)] = { 0 };
@@ -123,509 +123,514 @@ char res_key5[ARRAY_SIZE(key5)] = { 0 };
 const char value5[] = "fifth value";
 char res_value5[ARRAY_SIZE(value5)] = { 0 };
 
-ZTEST_F(astarte_device_sdk_storage_key_value, test_storage_key_value_store_and_find) // NOLINT
+ZTEST_F(astarte_device_sdk_storage_key_value,
+    test_astarte_storage_key_value_store_and_find) // NOLINT
 {
     size_t value_size = 0U;
 
     // Initialize storage driver
-    storage_key_value_t kv_storage = { 0 };
+    astarte_storage_key_value_t kv_storage = { 0 };
     struct nvs_fs nvs_fs = { 0 };
     const char namespace[] = "simple namespace";
 
-    storage_key_value_cfg_t storage_cfg = {
+    astarte_storage_key_value_cfg_t astarte_storage_cfg = {
         .flash_device = fixture->flash_device,
         .flash_offset = fixture->flash_offset,
         .flash_partition_size = fixture->flash_partition_size,
     };
 
-    astarte_result_t ret = storage_key_value_open(storage_cfg, &nvs_fs);
+    astarte_result_t ret = astarte_storage_key_value_open(astarte_storage_cfg, &nvs_fs);
     zassert_equal(ret, ASTARTE_RESULT_OK, "Res:%s", astarte_result_to_name(ret));
 
-    ret = storage_key_value_new(&nvs_fs, namespace, &kv_storage);
+    ret = astarte_storage_key_value_new(&nvs_fs, namespace, &kv_storage);
     zassert_equal(ret, ASTARTE_RESULT_OK, "Res:%s", astarte_result_to_name(ret));
 
     // Insert some key-value pairs
-    ret = storage_key_value_insert(&kv_storage, key1, value1, ARRAY_SIZE(value1));
+    ret = astarte_storage_key_value_insert(&kv_storage, key1, value1, ARRAY_SIZE(value1));
     zassert_equal(ret, ASTARTE_RESULT_OK, "Res:%s", astarte_result_to_name(ret));
-    ret = storage_key_value_insert(&kv_storage, key2, value2, ARRAY_SIZE(value2));
+    ret = astarte_storage_key_value_insert(&kv_storage, key2, value2, ARRAY_SIZE(value2));
     zassert_equal(ret, ASTARTE_RESULT_OK, "Res:%s", astarte_result_to_name(ret));
-    ret = storage_key_value_insert(&kv_storage, key3, value3, ARRAY_SIZE(value3));
+    ret = astarte_storage_key_value_insert(&kv_storage, key3, value3, ARRAY_SIZE(value3));
     zassert_equal(ret, ASTARTE_RESULT_OK, "Res:%s", astarte_result_to_name(ret));
-    ret = storage_key_value_insert(&kv_storage, key4, value4, ARRAY_SIZE(value4));
+    ret = astarte_storage_key_value_insert(&kv_storage, key4, value4, ARRAY_SIZE(value4));
     zassert_equal(ret, ASTARTE_RESULT_OK, "Res:%s", astarte_result_to_name(ret));
 
     // Check content of storage
     value_size = ARRAY_SIZE(res_value2);
-    ret = storage_key_value_find(&kv_storage, key2, res_value2, &value_size);
+    ret = astarte_storage_key_value_find(&kv_storage, key2, res_value2, &value_size);
     zassert_equal(ret, ASTARTE_RESULT_OK, "Res:%s", astarte_result_to_name(ret));
     zassert_equal(value_size, ARRAY_SIZE(value2), "Incorrect value size:%s", value_size);
     zassert_mem_equal(res_value2, value2, ARRAY_SIZE(value2), "Mismatched values.");
     value_size = ARRAY_SIZE(res_value1);
-    ret = storage_key_value_find(&kv_storage, key1, res_value1, &value_size);
+    ret = astarte_storage_key_value_find(&kv_storage, key1, res_value1, &value_size);
     zassert_equal(ret, ASTARTE_RESULT_OK, "Res:%s", astarte_result_to_name(ret));
     zassert_equal(value_size, ARRAY_SIZE(value1), "Incorrect value size:%s", value_size);
     zassert_mem_equal(res_value1, value1, ARRAY_SIZE(value1), "Mismatched values.");
     value_size = 0;
-    ret = storage_key_value_find(&kv_storage, key5, NULL, &value_size);
+    ret = astarte_storage_key_value_find(&kv_storage, key5, NULL, &value_size);
     zassert_equal(ret, ASTARTE_RESULT_NOT_FOUND, "Res:%s", astarte_result_to_name(ret));
     value_size = ARRAY_SIZE(res_value3);
-    ret = storage_key_value_find(&kv_storage, key3, res_value3, &value_size);
+    ret = astarte_storage_key_value_find(&kv_storage, key3, res_value3, &value_size);
     zassert_equal(ret, ASTARTE_RESULT_OK, "Res:%s", astarte_result_to_name(ret));
     zassert_equal(value_size, ARRAY_SIZE(value3), "Incorrect value size:%s", value_size);
     zassert_mem_equal(res_value3, value3, ARRAY_SIZE(value3), "Mismatched values.");
     value_size = ARRAY_SIZE(res_value4);
-    ret = storage_key_value_find(&kv_storage, key4, res_value4, &value_size);
+    ret = astarte_storage_key_value_find(&kv_storage, key4, res_value4, &value_size);
     zassert_equal(ret, ASTARTE_RESULT_OK, "Res:%s", astarte_result_to_name(ret));
     zassert_equal(value_size, ARRAY_SIZE(value4), "Incorrect value size:%s", value_size);
     zassert_mem_equal(res_value4, value4, ARRAY_SIZE(value4), "Mismatched values.");
 
     // Delete some key-value pairs
-    ret = storage_key_value_delete(&kv_storage, key2);
+    ret = astarte_storage_key_value_delete(&kv_storage, key2);
     zassert_equal(ret, ASTARTE_RESULT_OK, "Res:%s", astarte_result_to_name(ret));
 
     // Check content of storage
     value_size = 0;
-    ret = storage_key_value_find(&kv_storage, key2, NULL, &value_size);
+    ret = astarte_storage_key_value_find(&kv_storage, key2, NULL, &value_size);
     zassert_equal(ret, ASTARTE_RESULT_NOT_FOUND, "Res:%s", astarte_result_to_name(ret));
     value_size = ARRAY_SIZE(res_value1);
-    ret = storage_key_value_find(&kv_storage, key1, res_value1, &value_size);
+    ret = astarte_storage_key_value_find(&kv_storage, key1, res_value1, &value_size);
     zassert_equal(ret, ASTARTE_RESULT_OK, "Res:%s", astarte_result_to_name(ret));
     zassert_equal(value_size, ARRAY_SIZE(value1), "Incorrect value size:%s", value_size);
     zassert_mem_equal(res_value1, value1, ARRAY_SIZE(value1), "Mismatched values.");
     value_size = 0;
-    ret = storage_key_value_find(&kv_storage, key5, NULL, &value_size);
+    ret = astarte_storage_key_value_find(&kv_storage, key5, NULL, &value_size);
     zassert_equal(ret, ASTARTE_RESULT_NOT_FOUND, "Res:%s", astarte_result_to_name(ret));
     value_size = ARRAY_SIZE(res_value3);
-    ret = storage_key_value_find(&kv_storage, key3, res_value3, &value_size);
+    ret = astarte_storage_key_value_find(&kv_storage, key3, res_value3, &value_size);
     zassert_equal(ret, ASTARTE_RESULT_OK, "Res:%s", astarte_result_to_name(ret));
     zassert_equal(value_size, ARRAY_SIZE(value3), "Incorrect value size:%s", value_size);
     zassert_mem_equal(res_value3, value3, ARRAY_SIZE(value3), "Mismatched values.");
     value_size = ARRAY_SIZE(res_value4);
-    ret = storage_key_value_find(&kv_storage, key4, res_value4, &value_size);
+    ret = astarte_storage_key_value_find(&kv_storage, key4, res_value4, &value_size);
     zassert_equal(ret, ASTARTE_RESULT_OK, "Res:%s", astarte_result_to_name(ret));
     zassert_equal(value_size, ARRAY_SIZE(value4), "Incorrect value size:%s", value_size);
     zassert_mem_equal(res_value4, value4, ARRAY_SIZE(value4), "Mismatched values.");
 
     // Delete some key-value pairs
-    ret = storage_key_value_delete(&kv_storage, key4);
+    ret = astarte_storage_key_value_delete(&kv_storage, key4);
     zassert_equal(ret, ASTARTE_RESULT_OK, "Res:%s", astarte_result_to_name(ret));
-    ret = storage_key_value_delete(&kv_storage, key1);
+    ret = astarte_storage_key_value_delete(&kv_storage, key1);
     zassert_equal(ret, ASTARTE_RESULT_OK, "Res:%s", astarte_result_to_name(ret));
 
     // Check content of storage
     value_size = 0;
-    ret = storage_key_value_find(&kv_storage, key2, NULL, &value_size);
+    ret = astarte_storage_key_value_find(&kv_storage, key2, NULL, &value_size);
     zassert_equal(ret, ASTARTE_RESULT_NOT_FOUND, "Res:%s", astarte_result_to_name(ret));
     value_size = 0;
-    ret = storage_key_value_find(&kv_storage, key1, NULL, &value_size);
+    ret = astarte_storage_key_value_find(&kv_storage, key1, NULL, &value_size);
     zassert_equal(ret, ASTARTE_RESULT_NOT_FOUND, "Res:%s", astarte_result_to_name(ret));
     value_size = 0;
-    ret = storage_key_value_find(&kv_storage, key5, NULL, &value_size);
+    ret = astarte_storage_key_value_find(&kv_storage, key5, NULL, &value_size);
     zassert_equal(ret, ASTARTE_RESULT_NOT_FOUND, "Res:%s", astarte_result_to_name(ret));
     value_size = ARRAY_SIZE(res_value3);
-    ret = storage_key_value_find(&kv_storage, key3, res_value3, &value_size);
+    ret = astarte_storage_key_value_find(&kv_storage, key3, res_value3, &value_size);
     zassert_equal(ret, ASTARTE_RESULT_OK, "Res:%s", astarte_result_to_name(ret));
     zassert_equal(value_size, ARRAY_SIZE(value3), "Incorrect value size:%s", value_size);
     zassert_mem_equal(res_value3, value3, ARRAY_SIZE(value3), "Mismatched values.");
     value_size = 0;
-    ret = storage_key_value_find(&kv_storage, key4, NULL, &value_size);
+    ret = astarte_storage_key_value_find(&kv_storage, key4, NULL, &value_size);
     zassert_equal(ret, ASTARTE_RESULT_NOT_FOUND, "Res:%s", astarte_result_to_name(ret));
 
     // Delete some key-value pairs
-    ret = storage_key_value_delete(&kv_storage, key3);
+    ret = astarte_storage_key_value_delete(&kv_storage, key3);
     zassert_equal(ret, ASTARTE_RESULT_OK, "Res:%s", astarte_result_to_name(ret));
 
     // Check content of storage
     value_size = 0;
-    ret = storage_key_value_find(&kv_storage, key2, NULL, &value_size);
+    ret = astarte_storage_key_value_find(&kv_storage, key2, NULL, &value_size);
     zassert_equal(ret, ASTARTE_RESULT_NOT_FOUND, "Res:%s", astarte_result_to_name(ret));
     value_size = 0;
-    ret = storage_key_value_find(&kv_storage, key1, NULL, &value_size);
+    ret = astarte_storage_key_value_find(&kv_storage, key1, NULL, &value_size);
     zassert_equal(ret, ASTARTE_RESULT_NOT_FOUND, "Res:%s", astarte_result_to_name(ret));
     value_size = 0;
-    ret = storage_key_value_find(&kv_storage, key5, NULL, &value_size);
+    ret = astarte_storage_key_value_find(&kv_storage, key5, NULL, &value_size);
     zassert_equal(ret, ASTARTE_RESULT_NOT_FOUND, "Res:%s", astarte_result_to_name(ret));
     value_size = 0;
-    ret = storage_key_value_find(&kv_storage, key3, NULL, &value_size);
+    ret = astarte_storage_key_value_find(&kv_storage, key3, NULL, &value_size);
     zassert_equal(ret, ASTARTE_RESULT_NOT_FOUND, "Res:%s", astarte_result_to_name(ret));
     value_size = 0;
-    ret = storage_key_value_find(&kv_storage, key4, NULL, &value_size);
+    ret = astarte_storage_key_value_find(&kv_storage, key4, NULL, &value_size);
     zassert_equal(ret, ASTARTE_RESULT_NOT_FOUND, "Res:%s", astarte_result_to_name(ret));
 
-    storage_key_value_destroy(&kv_storage);
+    astarte_storage_key_value_destroy(&kv_storage);
 }
 
-ZTEST_F(astarte_device_sdk_storage_key_value, test_storage_key_value_read_sizes) // NOLINT
+ZTEST_F(astarte_device_sdk_storage_key_value,
+    test_astarte_storage_key_value_read_sizes) // NOLINT
 {
     size_t value_size = 0U;
 
     // Initialize storage driver
-    storage_key_value_t kv_storage = { 0 };
+    astarte_storage_key_value_t kv_storage = { 0 };
     struct nvs_fs nvs_fs = { 0 };
     const char namespace[] = "simple namespace";
 
-    storage_key_value_cfg_t storage_cfg = {
+    astarte_storage_key_value_cfg_t astarte_storage_cfg = {
         .flash_device = fixture->flash_device,
         .flash_offset = fixture->flash_offset,
         .flash_partition_size = fixture->flash_partition_size,
     };
 
-    astarte_result_t ret = storage_key_value_open(storage_cfg, &nvs_fs);
+    astarte_result_t ret = astarte_storage_key_value_open(astarte_storage_cfg, &nvs_fs);
     zassert_equal(ret, ASTARTE_RESULT_OK, "Res:%s", astarte_result_to_name(ret));
 
-    ret = storage_key_value_new(&nvs_fs, namespace, &kv_storage);
+    ret = astarte_storage_key_value_new(&nvs_fs, namespace, &kv_storage);
     zassert_equal(ret, ASTARTE_RESULT_OK, "Res:%s", astarte_result_to_name(ret));
 
     // Insert some key-value pairs
-    ret = storage_key_value_insert(&kv_storage, key1, value1, ARRAY_SIZE(value1));
+    ret = astarte_storage_key_value_insert(&kv_storage, key1, value1, ARRAY_SIZE(value1));
     zassert_equal(ret, ASTARTE_RESULT_OK, "Res:%s", astarte_result_to_name(ret));
-    ret = storage_key_value_insert(&kv_storage, key2, value2, ARRAY_SIZE(value2));
+    ret = astarte_storage_key_value_insert(&kv_storage, key2, value2, ARRAY_SIZE(value2));
     zassert_equal(ret, ASTARTE_RESULT_OK, "Res:%s", astarte_result_to_name(ret));
-    ret = storage_key_value_insert(&kv_storage, key3, value3, ARRAY_SIZE(value3));
+    ret = astarte_storage_key_value_insert(&kv_storage, key3, value3, ARRAY_SIZE(value3));
     zassert_equal(ret, ASTARTE_RESULT_OK, "Res:%s", astarte_result_to_name(ret));
-    ret = storage_key_value_insert(&kv_storage, key4, value4, ARRAY_SIZE(value4));
+    ret = astarte_storage_key_value_insert(&kv_storage, key4, value4, ARRAY_SIZE(value4));
     zassert_equal(ret, ASTARTE_RESULT_OK, "Res:%s", astarte_result_to_name(ret));
 
     // Check content of storage
     value_size = 0;
-    ret = storage_key_value_find(&kv_storage, key2, NULL, &value_size);
+    ret = astarte_storage_key_value_find(&kv_storage, key2, NULL, &value_size);
     zassert_equal(ret, ASTARTE_RESULT_OK, "Res:%s", astarte_result_to_name(ret));
     zassert_equal(value_size, ARRAY_SIZE(value2), "Incorrect value size:%s", value_size);
-    ret = storage_key_value_find(&kv_storage, key2, res_value2, &value_size);
+    ret = astarte_storage_key_value_find(&kv_storage, key2, res_value2, &value_size);
     zassert_equal(ret, ASTARTE_RESULT_OK, "Res:%s", astarte_result_to_name(ret));
     zassert_equal(value_size, ARRAY_SIZE(value2), "Incorrect value size:%s", value_size);
     zassert_mem_equal(res_value2, value2, ARRAY_SIZE(value2), "Mismatched values.");
     value_size = 0;
-    ret = storage_key_value_find(&kv_storage, key1, NULL, &value_size);
+    ret = astarte_storage_key_value_find(&kv_storage, key1, NULL, &value_size);
     zassert_equal(ret, ASTARTE_RESULT_OK, "Res:%s", astarte_result_to_name(ret));
     zassert_equal(value_size, ARRAY_SIZE(value1), "Incorrect value size:%s", value_size);
-    ret = storage_key_value_find(&kv_storage, key1, res_value1, &value_size);
+    ret = astarte_storage_key_value_find(&kv_storage, key1, res_value1, &value_size);
     zassert_equal(ret, ASTARTE_RESULT_OK, "Res:%s", astarte_result_to_name(ret));
     zassert_equal(value_size, ARRAY_SIZE(value1), "Incorrect value size:%s", value_size);
     zassert_mem_equal(res_value1, value1, ARRAY_SIZE(value1), "Mismatched values.");
     value_size = 0;
-    ret = storage_key_value_find(&kv_storage, key5, NULL, &value_size);
+    ret = astarte_storage_key_value_find(&kv_storage, key5, NULL, &value_size);
     zassert_equal(ret, ASTARTE_RESULT_NOT_FOUND, "Res:%s", astarte_result_to_name(ret));
     value_size = 0;
-    ret = storage_key_value_find(&kv_storage, key3, NULL, &value_size);
+    ret = astarte_storage_key_value_find(&kv_storage, key3, NULL, &value_size);
     zassert_equal(ret, ASTARTE_RESULT_OK, "Res:%s", astarte_result_to_name(ret));
     zassert_equal(value_size, ARRAY_SIZE(value3), "Incorrect value size:%s", value_size);
-    ret = storage_key_value_find(&kv_storage, key3, res_value3, &value_size);
+    ret = astarte_storage_key_value_find(&kv_storage, key3, res_value3, &value_size);
     zassert_equal(ret, ASTARTE_RESULT_OK, "Res:%s", astarte_result_to_name(ret));
     zassert_equal(value_size, ARRAY_SIZE(value3), "Incorrect value size:%s", value_size);
     zassert_mem_equal(res_value3, value3, ARRAY_SIZE(value3), "Mismatched values.");
     value_size = 0;
-    ret = storage_key_value_find(&kv_storage, key4, NULL, &value_size);
+    ret = astarte_storage_key_value_find(&kv_storage, key4, NULL, &value_size);
     zassert_equal(ret, ASTARTE_RESULT_OK, "Res:%s", astarte_result_to_name(ret));
     zassert_equal(value_size, ARRAY_SIZE(value4), "Incorrect value size:%s", value_size);
-    ret = storage_key_value_find(&kv_storage, key4, res_value4, &value_size);
+    ret = astarte_storage_key_value_find(&kv_storage, key4, res_value4, &value_size);
     zassert_equal(ret, ASTARTE_RESULT_OK, "Res:%s", astarte_result_to_name(ret));
     zassert_equal(value_size, ARRAY_SIZE(value4), "Incorrect value size:%s", value_size);
     zassert_mem_equal(res_value4, value4, ARRAY_SIZE(value4), "Mismatched values.");
 
-    storage_key_value_destroy(&kv_storage);
+    astarte_storage_key_value_destroy(&kv_storage);
 }
 
-ZTEST_F(astarte_device_sdk_storage_key_value, test_storage_key_value_overwrite) // NOLINT
+ZTEST_F(astarte_device_sdk_storage_key_value,
+    test_astarte_storage_key_value_overwrite) // NOLINT
 {
     size_t value_size = 0U;
 
     // Initialize storage driver
-    storage_key_value_t kv_storage = { 0 };
+    astarte_storage_key_value_t kv_storage = { 0 };
     struct nvs_fs nvs_fs = { 0 };
     const char namespace[] = "simple namespace";
 
-    storage_key_value_cfg_t storage_cfg = {
+    astarte_storage_key_value_cfg_t astarte_storage_cfg = {
         .flash_device = fixture->flash_device,
         .flash_offset = fixture->flash_offset,
         .flash_partition_size = fixture->flash_partition_size,
     };
 
-    astarte_result_t ret = storage_key_value_open(storage_cfg, &nvs_fs);
+    astarte_result_t ret = astarte_storage_key_value_open(astarte_storage_cfg, &nvs_fs);
     zassert_equal(ret, ASTARTE_RESULT_OK, "Res:%s", astarte_result_to_name(ret));
 
-    ret = storage_key_value_new(&nvs_fs, namespace, &kv_storage);
+    ret = astarte_storage_key_value_new(&nvs_fs, namespace, &kv_storage);
     zassert_equal(ret, ASTARTE_RESULT_OK, "Res:%s", astarte_result_to_name(ret));
 
     // Insert some key-value pairs
-    ret = storage_key_value_insert(&kv_storage, key1, value1, ARRAY_SIZE(value1));
+    ret = astarte_storage_key_value_insert(&kv_storage, key1, value1, ARRAY_SIZE(value1));
     zassert_equal(ret, ASTARTE_RESULT_OK, "Res:%s", astarte_result_to_name(ret));
-    ret = storage_key_value_insert(&kv_storage, key3, value3, ARRAY_SIZE(value3));
+    ret = astarte_storage_key_value_insert(&kv_storage, key3, value3, ARRAY_SIZE(value3));
     zassert_equal(ret, ASTARTE_RESULT_OK, "Res:%s", astarte_result_to_name(ret));
-    ret = storage_key_value_insert(&kv_storage, key4, value4, ARRAY_SIZE(value4));
+    ret = astarte_storage_key_value_insert(&kv_storage, key4, value4, ARRAY_SIZE(value4));
     zassert_equal(ret, ASTARTE_RESULT_OK, "Res:%s", astarte_result_to_name(ret));
 
     // Check content of storage
     value_size = 0;
-    ret = storage_key_value_find(&kv_storage, key2, NULL, &value_size);
+    ret = astarte_storage_key_value_find(&kv_storage, key2, NULL, &value_size);
     zassert_equal(ret, ASTARTE_RESULT_NOT_FOUND, "Res:%s", astarte_result_to_name(ret));
     value_size = ARRAY_SIZE(res_value1);
-    ret = storage_key_value_find(&kv_storage, key1, res_value1, &value_size);
+    ret = astarte_storage_key_value_find(&kv_storage, key1, res_value1, &value_size);
     zassert_equal(ret, ASTARTE_RESULT_OK, "Res:%s", astarte_result_to_name(ret));
     zassert_equal(value_size, ARRAY_SIZE(value1), "Incorrect value size:%s", value_size);
     zassert_mem_equal(res_value1, value1, ARRAY_SIZE(value1), "Mismatched values.");
     value_size = 0;
-    ret = storage_key_value_find(&kv_storage, key5, NULL, &value_size);
+    ret = astarte_storage_key_value_find(&kv_storage, key5, NULL, &value_size);
     zassert_equal(ret, ASTARTE_RESULT_NOT_FOUND, "Res:%s", astarte_result_to_name(ret));
     value_size = ARRAY_SIZE(res_value3);
-    ret = storage_key_value_find(&kv_storage, key3, res_value3, &value_size);
+    ret = astarte_storage_key_value_find(&kv_storage, key3, res_value3, &value_size);
     zassert_equal(ret, ASTARTE_RESULT_OK, "Res:%s", astarte_result_to_name(ret));
     zassert_equal(value_size, ARRAY_SIZE(value3), "Incorrect value size:%s", value_size);
     zassert_mem_equal(res_value3, value3, ARRAY_SIZE(value3), "Mismatched values.");
     value_size = ARRAY_SIZE(res_value4);
-    ret = storage_key_value_find(&kv_storage, key4, res_value4, &value_size);
+    ret = astarte_storage_key_value_find(&kv_storage, key4, res_value4, &value_size);
     zassert_equal(ret, ASTARTE_RESULT_OK, "Res:%s", astarte_result_to_name(ret));
     zassert_equal(value_size, ARRAY_SIZE(value4), "Incorrect value size:%s", value_size);
     zassert_mem_equal(res_value4, value4, ARRAY_SIZE(value4), "Mismatched values.");
 
     // Overwrite a storage entry
-    ret = storage_key_value_insert(&kv_storage, key1, value5, ARRAY_SIZE(value5));
+    ret = astarte_storage_key_value_insert(&kv_storage, key1, value5, ARRAY_SIZE(value5));
     zassert_equal(ret, ASTARTE_RESULT_OK, "Res:%s", astarte_result_to_name(ret));
 
     // Check content of storage
     value_size = 0;
-    ret = storage_key_value_find(&kv_storage, key2, NULL, &value_size);
+    ret = astarte_storage_key_value_find(&kv_storage, key2, NULL, &value_size);
     zassert_equal(ret, ASTARTE_RESULT_NOT_FOUND, "Res:%s", astarte_result_to_name(ret));
     value_size = ARRAY_SIZE(res_value5);
-    ret = storage_key_value_find(&kv_storage, key1, res_value5, &value_size);
+    ret = astarte_storage_key_value_find(&kv_storage, key1, res_value5, &value_size);
     zassert_equal(ret, ASTARTE_RESULT_OK, "Res:%s", astarte_result_to_name(ret));
     zassert_equal(value_size, ARRAY_SIZE(value5), "Incorrect value size:%s", value_size);
     zassert_mem_equal(res_value5, value5, ARRAY_SIZE(value5), "Mismatched values.");
     value_size = 0;
-    ret = storage_key_value_find(&kv_storage, key5, NULL, &value_size);
+    ret = astarte_storage_key_value_find(&kv_storage, key5, NULL, &value_size);
     zassert_equal(ret, ASTARTE_RESULT_NOT_FOUND, "Res:%s", astarte_result_to_name(ret));
     value_size = ARRAY_SIZE(res_value3);
-    ret = storage_key_value_find(&kv_storage, key3, res_value3, &value_size);
+    ret = astarte_storage_key_value_find(&kv_storage, key3, res_value3, &value_size);
     zassert_equal(ret, ASTARTE_RESULT_OK, "Res:%s", astarte_result_to_name(ret));
     zassert_equal(value_size, ARRAY_SIZE(value3), "Incorrect value size:%s", value_size);
     zassert_mem_equal(res_value3, value3, ARRAY_SIZE(value3), "Mismatched values.");
     value_size = ARRAY_SIZE(res_value4);
-    ret = storage_key_value_find(&kv_storage, key4, res_value4, &value_size);
+    ret = astarte_storage_key_value_find(&kv_storage, key4, res_value4, &value_size);
     zassert_equal(ret, ASTARTE_RESULT_OK, "Res:%s", astarte_result_to_name(ret));
     zassert_equal(value_size, ARRAY_SIZE(value4), "Incorrect value size:%s", value_size);
     zassert_mem_equal(res_value4, value4, ARRAY_SIZE(value4), "Mismatched values.");
 
-    storage_key_value_destroy(&kv_storage);
+    astarte_storage_key_value_destroy(&kv_storage);
 }
 
-ZTEST_F(astarte_device_sdk_storage_key_value, test_storage_key_value_iteration) // NOLINT
+ZTEST_F(astarte_device_sdk_storage_key_value,
+    test_astarte_storage_key_value_iteration) // NOLINT
 {
     size_t value_size = 0U;
 
     // Initialize storage driver
-    storage_key_value_t kv_storage = { 0 };
+    astarte_storage_key_value_t kv_storage = { 0 };
     struct nvs_fs nvs_fs = { 0 };
     const char namespace[] = "simple namespace";
 
-    storage_key_value_cfg_t storage_cfg = {
+    astarte_storage_key_value_cfg_t astarte_storage_cfg = {
         .flash_device = fixture->flash_device,
         .flash_offset = fixture->flash_offset,
         .flash_partition_size = fixture->flash_partition_size,
     };
 
-    astarte_result_t ret = storage_key_value_open(storage_cfg, &nvs_fs);
+    astarte_result_t ret = astarte_storage_key_value_open(astarte_storage_cfg, &nvs_fs);
     zassert_equal(ret, ASTARTE_RESULT_OK, "Res:%s", astarte_result_to_name(ret));
 
-    ret = storage_key_value_new(&nvs_fs, namespace, &kv_storage);
+    ret = astarte_storage_key_value_new(&nvs_fs, namespace, &kv_storage);
     zassert_equal(ret, ASTARTE_RESULT_OK, "Res:%s", astarte_result_to_name(ret));
 
     // Insert some key-value pairs
-    ret = storage_key_value_insert(&kv_storage, key1, value1, ARRAY_SIZE(value1));
+    ret = astarte_storage_key_value_insert(&kv_storage, key1, value1, ARRAY_SIZE(value1));
     zassert_equal(ret, ASTARTE_RESULT_OK, "Res:%s", astarte_result_to_name(ret));
-    ret = storage_key_value_insert(&kv_storage, key3, value3, ARRAY_SIZE(value3));
+    ret = astarte_storage_key_value_insert(&kv_storage, key3, value3, ARRAY_SIZE(value3));
     zassert_equal(ret, ASTARTE_RESULT_OK, "Res:%s", astarte_result_to_name(ret));
-    ret = storage_key_value_insert(&kv_storage, key4, value4, ARRAY_SIZE(value4));
+    ret = astarte_storage_key_value_insert(&kv_storage, key4, value4, ARRAY_SIZE(value4));
     zassert_equal(ret, ASTARTE_RESULT_OK, "Res:%s", astarte_result_to_name(ret));
 
     // Check content of storage
     value_size = 0;
-    ret = storage_key_value_find(&kv_storage, key2, NULL, &value_size);
+    ret = astarte_storage_key_value_find(&kv_storage, key2, NULL, &value_size);
     zassert_equal(ret, ASTARTE_RESULT_NOT_FOUND, "Res:%s", astarte_result_to_name(ret));
     value_size = ARRAY_SIZE(res_value1);
-    ret = storage_key_value_find(&kv_storage, key1, res_value1, &value_size);
+    ret = astarte_storage_key_value_find(&kv_storage, key1, res_value1, &value_size);
     zassert_equal(ret, ASTARTE_RESULT_OK, "Res:%s", astarte_result_to_name(ret));
     zassert_equal(value_size, ARRAY_SIZE(value1), "Incorrect value size:%s", value_size);
     zassert_mem_equal(res_value1, value1, ARRAY_SIZE(value1), "Mismatched values.");
     value_size = 0;
-    ret = storage_key_value_find(&kv_storage, key5, NULL, &value_size);
+    ret = astarte_storage_key_value_find(&kv_storage, key5, NULL, &value_size);
     zassert_equal(ret, ASTARTE_RESULT_NOT_FOUND, "Res:%s", astarte_result_to_name(ret));
     value_size = ARRAY_SIZE(res_value3);
-    ret = storage_key_value_find(&kv_storage, key3, res_value3, &value_size);
+    ret = astarte_storage_key_value_find(&kv_storage, key3, res_value3, &value_size);
     zassert_equal(ret, ASTARTE_RESULT_OK, "Res:%s", astarte_result_to_name(ret));
     zassert_equal(value_size, ARRAY_SIZE(value3), "Incorrect value size:%s", value_size);
     zassert_mem_equal(res_value3, value3, ARRAY_SIZE(value3), "Mismatched values.");
     value_size = ARRAY_SIZE(res_value4);
-    ret = storage_key_value_find(&kv_storage, key4, res_value4, &value_size);
+    ret = astarte_storage_key_value_find(&kv_storage, key4, res_value4, &value_size);
     zassert_equal(ret, ASTARTE_RESULT_OK, "Res:%s", astarte_result_to_name(ret));
     zassert_equal(value_size, ARRAY_SIZE(value4), "Incorrect value size:%s", value_size);
     zassert_mem_equal(res_value4, value4, ARRAY_SIZE(value4), "Mismatched values.");
 
     // Iterate over storage
-    storage_key_value_iter_t iter = { 0 };
-    ret = storage_key_value_iterator_init(&kv_storage, &iter);
+    astarte_storage_key_value_iter_t iter = { 0 };
+    ret = astarte_storage_key_value_iterator_init(&kv_storage, &iter);
     zassert_equal(ret, ASTARTE_RESULT_OK, "Res:%s", astarte_result_to_name(ret));
 
     value_size = 0U;
-    ret = storage_key_value_iterator_get(&iter, NULL, &value_size);
+    ret = astarte_storage_key_value_iterator_get(&iter, NULL, &value_size);
     zassert_equal(ret, ASTARTE_RESULT_OK, "Res:%s", astarte_result_to_name(ret));
     zassert_equal(value_size, ARRAY_SIZE(key4), "Incorrect value size:%s", value_size);
-    ret = storage_key_value_iterator_get(&iter, res_key4, &value_size);
+    ret = astarte_storage_key_value_iterator_get(&iter, res_key4, &value_size);
     zassert_equal(ret, ASTARTE_RESULT_OK, "Res:%s", astarte_result_to_name(ret));
     zassert_equal(value_size, ARRAY_SIZE(key4), "Incorrect value size:%s", value_size);
     zassert_mem_equal(res_key4, key4, ARRAY_SIZE(key4), "Mismatched values.");
 
-    ret = storage_key_value_iterator_next(&iter);
+    ret = astarte_storage_key_value_iterator_next(&iter);
     zassert_equal(ret, ASTARTE_RESULT_OK, "Res:%s", astarte_result_to_name(ret));
 
     value_size = 0U;
-    ret = storage_key_value_iterator_get(&iter, NULL, &value_size);
+    ret = astarte_storage_key_value_iterator_get(&iter, NULL, &value_size);
     zassert_equal(ret, ASTARTE_RESULT_OK, "Res:%s", astarte_result_to_name(ret));
     zassert_equal(value_size, ARRAY_SIZE(key3), "Incorrect value size:%s", value_size);
-    ret = storage_key_value_iterator_get(&iter, res_key3, &value_size);
+    ret = astarte_storage_key_value_iterator_get(&iter, res_key3, &value_size);
     zassert_equal(ret, ASTARTE_RESULT_OK, "Res:%s", astarte_result_to_name(ret));
     zassert_equal(value_size, ARRAY_SIZE(key3), "Incorrect value size:%s", value_size);
     zassert_mem_equal(res_key3, key3, ARRAY_SIZE(key3), "Mismatched values.");
 
-    ret = storage_key_value_iterator_next(&iter);
+    ret = astarte_storage_key_value_iterator_next(&iter);
     zassert_equal(ret, ASTARTE_RESULT_OK, "Res:%s", astarte_result_to_name(ret));
 
     value_size = 0U;
-    ret = storage_key_value_iterator_get(&iter, NULL, &value_size);
+    ret = astarte_storage_key_value_iterator_get(&iter, NULL, &value_size);
     zassert_equal(ret, ASTARTE_RESULT_OK, "Res:%s", astarte_result_to_name(ret));
     zassert_equal(value_size, ARRAY_SIZE(key1), "Incorrect value size:%s", value_size);
-    ret = storage_key_value_iterator_get(&iter, res_key1, &value_size);
+    ret = astarte_storage_key_value_iterator_get(&iter, res_key1, &value_size);
     zassert_equal(ret, ASTARTE_RESULT_OK, "Res:%s", astarte_result_to_name(ret));
     zassert_equal(value_size, ARRAY_SIZE(key1), "Incorrect value size:%s", value_size);
     zassert_mem_equal(res_key1, key1, ARRAY_SIZE(key1), "Mismatched values.");
 
-    ret = storage_key_value_iterator_next(&iter);
+    ret = astarte_storage_key_value_iterator_next(&iter);
     zassert_equal(ret, ASTARTE_RESULT_NOT_FOUND, "Res:%s", astarte_result_to_name(ret));
 
-    storage_key_value_destroy(&kv_storage);
+    astarte_storage_key_value_destroy(&kv_storage);
 }
 
-ZTEST_F(
-    astarte_device_sdk_storage_key_value, test_storage_key_value_iteration_empty_storage) // NOLINT
+ZTEST_F(astarte_device_sdk_storage_key_value,
+    test_astarte_storage_key_value_iteration_empty_storage) // NOLINT
 {
     // Initialize storage driver
-    storage_key_value_t kv_storage = { 0 };
+    astarte_storage_key_value_t kv_storage = { 0 };
     struct nvs_fs nvs_fs = { 0 };
     const char namespace[] = "simple namespace";
 
-    storage_key_value_cfg_t storage_cfg = {
+    astarte_storage_key_value_cfg_t astarte_storage_cfg = {
         .flash_device = fixture->flash_device,
         .flash_offset = fixture->flash_offset,
         .flash_partition_size = fixture->flash_partition_size,
     };
 
-    astarte_result_t ret = storage_key_value_open(storage_cfg, &nvs_fs);
+    astarte_result_t ret = astarte_storage_key_value_open(astarte_storage_cfg, &nvs_fs);
     zassert_equal(ret, ASTARTE_RESULT_OK, "Res:%s", astarte_result_to_name(ret));
 
-    ret = storage_key_value_new(&nvs_fs, namespace, &kv_storage);
+    ret = astarte_storage_key_value_new(&nvs_fs, namespace, &kv_storage);
     zassert_equal(ret, ASTARTE_RESULT_OK, "Res:%s", astarte_result_to_name(ret));
 
     // Iterate over storage
-    storage_key_value_iter_t iter = { 0 };
-    ret = storage_key_value_iterator_init(&kv_storage, &iter);
+    astarte_storage_key_value_iter_t iter = { 0 };
+    ret = astarte_storage_key_value_iterator_init(&kv_storage, &iter);
     zassert_equal(ret, ASTARTE_RESULT_NOT_FOUND, "Res:%s", astarte_result_to_name(ret));
 
-    storage_key_value_destroy(&kv_storage);
+    astarte_storage_key_value_destroy(&kv_storage);
 }
 
-ZTEST_F(astarte_device_sdk_storage_key_value, test_storage_key_value_multiple_namespaces) // NOLINT
+ZTEST_F(astarte_device_sdk_storage_key_value,
+    test_astarte_storage_key_value_multiple_namespaces) // NOLINT
 {
     astarte_result_t ret = ASTARTE_RESULT_OK;
     size_t value_size = 0U;
 
     struct nvs_fs nvs_fs = { 0 };
-    storage_key_value_cfg_t storage_cfg = {
+    astarte_storage_key_value_cfg_t astarte_storage_cfg = {
         .flash_device = fixture->flash_device,
         .flash_offset = fixture->flash_offset,
         .flash_partition_size = fixture->flash_partition_size,
     };
 
-    ret = storage_key_value_open(storage_cfg, &nvs_fs);
+    ret = astarte_storage_key_value_open(astarte_storage_cfg, &nvs_fs);
     zassert_equal(ret, ASTARTE_RESULT_OK, "Res:%s", astarte_result_to_name(ret));
 
     // Initialize first storage driver
-    storage_key_value_t kv_storage_1 = { 0 };
+    astarte_storage_key_value_t kv_astarte_storage_1 = { 0 };
     const char namespace_1[] = "first namespace";
-    ret = storage_key_value_new(&nvs_fs, namespace_1, &kv_storage_1);
+    ret = astarte_storage_key_value_new(&nvs_fs, namespace_1, &kv_astarte_storage_1);
     zassert_equal(ret, ASTARTE_RESULT_OK, "Res:%s", astarte_result_to_name(ret));
 
     // Initialize second storage driver
-    storage_key_value_t kv_storage_2 = { 0 };
+    astarte_storage_key_value_t kv_astarte_storage_2 = { 0 };
     const char namespace_2[] = "second namespace";
-    ret = storage_key_value_new(&nvs_fs, namespace_2, &kv_storage_2);
+    ret = astarte_storage_key_value_new(&nvs_fs, namespace_2, &kv_astarte_storage_2);
     zassert_equal(ret, ASTARTE_RESULT_OK, "Res:%s", astarte_result_to_name(ret));
 
     // Insert some key-value pairs with multiple namespaces
-    ret = storage_key_value_insert(&kv_storage_1, key1, value1, ARRAY_SIZE(value1));
+    ret = astarte_storage_key_value_insert(&kv_astarte_storage_1, key1, value1, ARRAY_SIZE(value1));
     zassert_equal(ret, ASTARTE_RESULT_OK, "Res:%s", astarte_result_to_name(ret));
-    ret = storage_key_value_insert(&kv_storage_2, key2, value2, ARRAY_SIZE(value2));
+    ret = astarte_storage_key_value_insert(&kv_astarte_storage_2, key2, value2, ARRAY_SIZE(value2));
     zassert_equal(ret, ASTARTE_RESULT_OK, "Res:%s", astarte_result_to_name(ret));
-    ret = storage_key_value_insert(&kv_storage_2, key3, value3, ARRAY_SIZE(value3));
+    ret = astarte_storage_key_value_insert(&kv_astarte_storage_2, key3, value3, ARRAY_SIZE(value3));
     zassert_equal(ret, ASTARTE_RESULT_OK, "Res:%s", astarte_result_to_name(ret));
-    ret = storage_key_value_insert(&kv_storage_1, key4, value4, ARRAY_SIZE(value4));
+    ret = astarte_storage_key_value_insert(&kv_astarte_storage_1, key4, value4, ARRAY_SIZE(value4));
     zassert_equal(ret, ASTARTE_RESULT_OK, "Res:%s", astarte_result_to_name(ret));
-    ret = storage_key_value_insert(&kv_storage_2, key5, value5, ARRAY_SIZE(value5));
+    ret = astarte_storage_key_value_insert(&kv_astarte_storage_2, key5, value5, ARRAY_SIZE(value5));
     zassert_equal(ret, ASTARTE_RESULT_OK, "Res:%s", astarte_result_to_name(ret));
 
     // Iterate over first storage
-    storage_key_value_iter_t iter_1 = { 0 };
-    ret = storage_key_value_iterator_init(&kv_storage_1, &iter_1);
+    astarte_storage_key_value_iter_t iter_1 = { 0 };
+    ret = astarte_storage_key_value_iterator_init(&kv_astarte_storage_1, &iter_1);
     zassert_equal(ret, ASTARTE_RESULT_OK, "Res:%s", astarte_result_to_name(ret));
 
     value_size = ARRAY_SIZE(res_key4);
-    ret = storage_key_value_iterator_get(&iter_1, res_key4, &value_size);
+    ret = astarte_storage_key_value_iterator_get(&iter_1, res_key4, &value_size);
     zassert_equal(ret, ASTARTE_RESULT_OK, "Res:%s", astarte_result_to_name(ret));
     zassert_equal(value_size, ARRAY_SIZE(key4), "Incorrect value size:%s", value_size);
     zassert_mem_equal(res_key4, key4, ARRAY_SIZE(key4), "Mismatched values", res_key4);
 
-    ret = storage_key_value_iterator_next(&iter_1);
+    ret = astarte_storage_key_value_iterator_next(&iter_1);
     zassert_equal(ret, ASTARTE_RESULT_OK, "Res:%s", astarte_result_to_name(ret));
 
     value_size = ARRAY_SIZE(res_key1);
-    ret = storage_key_value_iterator_get(&iter_1, res_key1, &value_size);
+    ret = astarte_storage_key_value_iterator_get(&iter_1, res_key1, &value_size);
     zassert_equal(ret, ASTARTE_RESULT_OK, "Res:%s", astarte_result_to_name(ret));
     zassert_equal(value_size, ARRAY_SIZE(key1), "Incorrect value size:%s", value_size);
     zassert_mem_equal(res_key1, key1, ARRAY_SIZE(key1), "Mismatched values", res_key1);
 
-    ret = storage_key_value_iterator_next(&iter_1);
+    ret = astarte_storage_key_value_iterator_next(&iter_1);
     zassert_equal(ret, ASTARTE_RESULT_NOT_FOUND, "Res:%s", astarte_result_to_name(ret));
 
     // Iterate over second storage
-    storage_key_value_iter_t iter_2 = { 0 };
-    ret = storage_key_value_iterator_init(&kv_storage_2, &iter_2);
+    astarte_storage_key_value_iter_t iter_2 = { 0 };
+    ret = astarte_storage_key_value_iterator_init(&kv_astarte_storage_2, &iter_2);
     zassert_equal(ret, ASTARTE_RESULT_OK, "Res:%s", astarte_result_to_name(ret));
 
     value_size = ARRAY_SIZE(res_key5);
-    ret = storage_key_value_iterator_get(&iter_2, res_key5, &value_size);
+    ret = astarte_storage_key_value_iterator_get(&iter_2, res_key5, &value_size);
     zassert_equal(ret, ASTARTE_RESULT_OK, "Res:%s", astarte_result_to_name(ret));
     zassert_equal(value_size, ARRAY_SIZE(key5), "Incorrect value size:%s", value_size);
     zassert_mem_equal(res_key5, key5, ARRAY_SIZE(key5), "Mismatched values", res_key5);
 
-    ret = storage_key_value_iterator_next(&iter_2);
+    ret = astarte_storage_key_value_iterator_next(&iter_2);
     zassert_equal(ret, ASTARTE_RESULT_OK, "Res:%s", astarte_result_to_name(ret));
 
     value_size = ARRAY_SIZE(res_key3);
-    ret = storage_key_value_iterator_get(&iter_2, res_key3, &value_size);
+    ret = astarte_storage_key_value_iterator_get(&iter_2, res_key3, &value_size);
     zassert_equal(ret, ASTARTE_RESULT_OK, "Res:%s", astarte_result_to_name(ret));
     zassert_equal(value_size, ARRAY_SIZE(key3), "Incorrect value size:%s", value_size);
     zassert_mem_equal(res_key3, key3, ARRAY_SIZE(key3), "Mismatched values", res_key3);
 
-    ret = storage_key_value_iterator_next(&iter_2);
+    ret = astarte_storage_key_value_iterator_next(&iter_2);
     zassert_equal(ret, ASTARTE_RESULT_OK, "Res:%s", astarte_result_to_name(ret));
 
     value_size = ARRAY_SIZE(res_key2);
-    ret = storage_key_value_iterator_get(&iter_2, res_key2, &value_size);
+    ret = astarte_storage_key_value_iterator_get(&iter_2, res_key2, &value_size);
     zassert_equal(ret, ASTARTE_RESULT_OK, "Res:%s", astarte_result_to_name(ret));
     zassert_equal(value_size, ARRAY_SIZE(key2), "Incorrect value size:%s", value_size);
     zassert_mem_equal(res_key2, key2, ARRAY_SIZE(key2), "Mismatched values", res_key2);
 
-    ret = storage_key_value_iterator_next(&iter_2);
+    ret = astarte_storage_key_value_iterator_next(&iter_2);
     zassert_equal(ret, ASTARTE_RESULT_NOT_FOUND, "Res:%s", astarte_result_to_name(ret));
 
-    storage_key_value_destroy(&kv_storage_1);
-    storage_key_value_destroy(&kv_storage_2);
+    astarte_storage_key_value_destroy(&kv_astarte_storage_1);
+    astarte_storage_key_value_destroy(&kv_astarte_storage_2);
 }

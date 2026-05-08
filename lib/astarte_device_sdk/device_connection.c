@@ -297,7 +297,7 @@ static void state_machine_start_handshake_run(astarte_device_handle_t device)
 #ifdef CONFIG_ASTARTE_DEVICE_SDK_PERMANENT_STORAGE
     if ((device->mqtt_session_present_flag != 0) && device->synchronization_completed) {
         astarte_result_t ares
-            = storage_introspection_check(&device->caching, intr_str, intr_str_size);
+            = astarte_storage_introspection_check(&device->caching, intr_str, intr_str_size);
         if (ares == ASTARTE_RESULT_OK) {
             ASTARTE_LOG_DBG("Device connection state -> END_HANDSHAKE.");
             device->connection_state = DEVICE_END_HANDSHAKE;
@@ -354,7 +354,7 @@ static void state_machine_end_handshake_run(astarte_device_handle_t device)
         device->connection_state = DEVICE_CONNECTED;
 
 #ifdef CONFIG_ASTARTE_DEVICE_SDK_PERMANENT_STORAGE
-        astarte_result_t ares = storage_synchronization_set(&device->caching, true);
+        astarte_result_t ares = astarte_storage_synchronization_set(&device->caching, true);
         if (ares != ASTARTE_RESULT_OK) {
             ASTARTE_LOG_ERR("Synchronization state set failure %s.", astarte_result_to_name(ares));
         }
@@ -369,10 +369,10 @@ static void state_machine_end_handshake_run(astarte_device_handle_t device)
         }
         introspection_fill_string(&device->introspection, intr_str, intr_str_size);
 
-        ares = storage_introspection_check(&device->caching, intr_str, intr_str_size);
+        ares = astarte_storage_introspection_check(&device->caching, intr_str, intr_str_size);
         if (ares == ASTARTE_RESULT_DEVICE_CACHING_OUTDATED_INTROSPECTION) {
             ASTARTE_LOG_DBG("Introspection requires updating.");
-            ares = storage_introspection_store(&device->caching, intr_str, intr_str_size);
+            ares = astarte_storage_introspection_store(&device->caching, intr_str, intr_str_size);
         }
         if (ares != ASTARTE_RESULT_OK) {
             ASTARTE_LOG_DBG("Introspection update failed: %s", astarte_result_to_name(ares));
@@ -397,7 +397,7 @@ static void state_machine_handshake_error_run(astarte_device_handle_t device)
     if (device->synchronization_completed) {
         device->synchronization_completed = false;
 #ifdef CONFIG_ASTARTE_DEVICE_SDK_PERMANENT_STORAGE
-        astarte_result_t ares = storage_synchronization_set(&device->caching, false);
+        astarte_result_t ares = astarte_storage_synchronization_set(&device->caching, false);
         if (ares != ASTARTE_RESULT_OK) {
             ASTARTE_LOG_ERR("Synchronization state set failure %s.", astarte_result_to_name(ares));
         }
@@ -427,7 +427,7 @@ static astarte_result_t send_purge_device_properties(astarte_device_handle_t dev
     uint8_t *payload = NULL;
 
     size_t intr_str_size = 0U;
-    ares = storage_property_get_device_string(
+    ares = astarte_storage_property_get_device_string(
         &device->caching, &device->introspection, NULL, &intr_str_size);
     if (ares != ASTARTE_RESULT_OK) {
         ASTARTE_LOG_ERR("Error getting cached properties string: %s", astarte_result_to_name(ares));
@@ -441,7 +441,7 @@ static astarte_result_t send_purge_device_properties(astarte_device_handle_t dev
             goto exit;
         }
 
-        ares = storage_property_get_device_string(
+        ares = astarte_storage_property_get_device_string(
             &device->caching, &device->introspection, intr_str, &intr_str_size);
         if (ares != ASTARTE_RESULT_OK) {
             ASTARTE_LOG_ERR("Can't get cached properties string: %s", astarte_result_to_name(ares));
@@ -503,7 +503,7 @@ static void send_device_owned_property(astarte_device_handle_t device, const cha
         &device->introspection, interface_name);
     if ((!interface) || (interface->major_version != major)) {
         ASTARTE_LOG_DBG("Removing property from storage: '%s%s'", interface_name, path);
-        ares = storage_property_delete(&device->caching, interface_name, path);
+        ares = astarte_storage_property_delete(&device->caching, interface_name, path);
         if ((ares != ASTARTE_RESULT_OK) && (ares != ASTARTE_RESULT_NOT_FOUND)) {
             ASTARTE_LOG_COND_ERR(ares != ASTARTE_RESULT_OK,
                 "Failed deleting the cached property: %s", astarte_result_to_name(ares));
@@ -521,12 +521,12 @@ static void send_device_owned_property(astarte_device_handle_t device, const cha
 static astarte_result_t send_device_owned_properties(astarte_device_handle_t device)
 {
     astarte_result_t ares = ASTARTE_RESULT_OK;
-    storage_property_iter_t iter = { 0 };
+    astarte_storage_property_iter_t iter = { 0 };
     char *interface_name = NULL;
     char *path = NULL;
     astarte_data_t data = { 0 };
 
-    ares = storage_property_iterator_new(&device->caching, &iter);
+    ares = astarte_storage_property_iterator_new(&device->caching, &iter);
     if ((ares != ASTARTE_RESULT_OK) && (ares != ASTARTE_RESULT_NOT_FOUND)) {
         ASTARTE_LOG_ERR("Properties iterator init failed: %s", astarte_result_to_name(ares));
         goto end;
@@ -535,7 +535,8 @@ static astarte_result_t send_device_owned_properties(astarte_device_handle_t dev
     while (ares != ASTARTE_RESULT_NOT_FOUND) {
         size_t interface_name_size = 0U;
         size_t path_size = 0U;
-        ares = storage_property_iterator_get(&iter, NULL, &interface_name_size, NULL, &path_size);
+        ares = astarte_storage_property_iterator_get(
+            &iter, NULL, &interface_name_size, NULL, &path_size);
         if (ares != ASTARTE_RESULT_OK) {
             ASTARTE_LOG_ERR("Properties iterator get error: %s", astarte_result_to_name(ares));
             goto end;
@@ -550,7 +551,7 @@ static astarte_result_t send_device_owned_properties(astarte_device_handle_t dev
             goto end;
         }
 
-        ares = storage_property_iterator_get(
+        ares = astarte_storage_property_iterator_get(
             &iter, interface_name, &interface_name_size, path, &path_size);
         if (ares != ASTARTE_RESULT_OK) {
             ASTARTE_LOG_ERR("Properties iterator get error: %s", astarte_result_to_name(ares));
@@ -558,7 +559,7 @@ static astarte_result_t send_device_owned_properties(astarte_device_handle_t dev
         }
 
         uint32_t major = 0U;
-        ares = storage_property_load(&device->caching, interface_name, path, &major, &data);
+        ares = astarte_storage_property_load(&device->caching, interface_name, path, &major, &data);
         if (ares != ASTARTE_RESULT_OK) {
             ASTARTE_LOG_ERR("Properties load property error: %s", astarte_result_to_name(ares));
             goto end;
@@ -570,10 +571,10 @@ static astarte_result_t send_device_owned_properties(astarte_device_handle_t dev
         interface_name = NULL;
         free(path);
         path = NULL;
-        storage_property_destroy_loaded(data);
+        astarte_storage_property_destroy_loaded(data);
         data = (astarte_data_t){ 0 };
 
-        ares = storage_property_iterator_next(&iter);
+        ares = astarte_storage_property_iterator_next(&iter);
         if ((ares != ASTARTE_RESULT_OK) && (ares != ASTARTE_RESULT_NOT_FOUND)) {
             ASTARTE_LOG_ERR("Iterator next error: %s", astarte_result_to_name(ares));
             goto end;
@@ -584,7 +585,7 @@ end:
     // Free all data
     free(interface_name);
     free(path);
-    storage_property_destroy_loaded(data);
+    astarte_storage_property_destroy_loaded(data);
     return (ares == ASTARTE_RESULT_NOT_FOUND) ? ASTARTE_RESULT_OK : ares;
 }
 #endif

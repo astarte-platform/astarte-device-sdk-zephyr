@@ -196,7 +196,7 @@ astarte_result_t astarte_device_tx_set_property(astarte_device_handle_t device,
     }
 
 #ifdef CONFIG_ASTARTE_DEVICE_SDK_PERMANENT_STORAGE
-    ares = storage_property_store(
+    ares = astarte_storage_property_store(
         &device->caching, interface_name, path, interface->major_version, data);
     if (ares != ASTARTE_RESULT_OK) {
         ASTARTE_LOG_ERR("Failed storing the property.");
@@ -223,7 +223,7 @@ astarte_result_t astarte_device_tx_unset_property(
     }
 
 #ifdef CONFIG_ASTARTE_DEVICE_SDK_PERMANENT_STORAGE
-    ares = storage_property_delete(&device->caching, interface_name, path);
+    ares = astarte_storage_property_delete(&device->caching, interface_name, path);
     if (ares != ASTARTE_RESULT_OK) {
         ASTARTE_LOG_ERR("Failed deleting the stored property.");
     }
