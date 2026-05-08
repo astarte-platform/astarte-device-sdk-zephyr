@@ -132,6 +132,8 @@ interface_source_template = Template(r"""/**
  * @warning Do not modify this file manually.
  */
 
+// NOLINENUMBERLINT
+
 // clang-format off
 
 #include "${output_filename}.h"
