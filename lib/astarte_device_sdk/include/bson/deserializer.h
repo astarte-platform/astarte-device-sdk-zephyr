@@ -8,7 +8,7 @@
 #define BSON_DESERIALIZER_H
 
 /**
- * @file bson_deserializer.h
+ * @file bson/deserializer.h
  * @brief Astarte BSON deserialization functions.
  *
  * @details This library follows the v1.1 of the BSON standard, but does not provide support

@@ -9,7 +9,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "bson_deserializer.h"
+#include "bson/deserializer.h"
 #include "bson_types.h"
 #include "interface_private.h"
 #include "mapping_private.h"

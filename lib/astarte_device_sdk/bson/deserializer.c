@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "bson_deserializer.h"
+#include "bson/deserializer.h"
 
 #include <string.h>
 #include <zephyr/sys/byteorder.h>

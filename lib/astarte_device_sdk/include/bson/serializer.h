@@ -8,7 +8,7 @@
 #define BSON_SERIALIZER_H
 
 /**
- * @file bson_serializer.h
+ * @file bson/serializer.h
  * @brief Astarte BSON serializer functions.
  */
 

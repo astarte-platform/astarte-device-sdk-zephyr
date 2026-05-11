@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "bson_serializer.h"
+#include "bson/serializer.h"
 
 #include <stdio.h>
 #include <stdlib.h>

@@ -24,7 +24,7 @@
 #include "data_serialize.h"
 #include "lib/astarte_device_sdk/data_serialize.c"
 
-#include "bson_serializer.h"
+#include "bson/serializer.h"
 
 ZTEST_SUITE(astarte_device_sdk_astarte_data_serialize, NULL, NULL, NULL, NULL, NULL);
 
