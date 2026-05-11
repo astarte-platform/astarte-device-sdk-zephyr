@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 tests:
-  lib.astarte_device_sdk.integration.device_caching:
+  lib.astarte_device_sdk.integration.astarte_storage_key_value:
     tags: astarte_device_sdk
     platform_allow:
       - native_sim

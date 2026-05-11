@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "device_caching.h"
+#include "storage/prop.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -14,7 +14,7 @@
 #include "data_serialize.h"
 
 #include "log.h"
-ASTARTE_LOG_MODULE_DECLARE(device_caching, CONFIG_ASTARTE_DEVICE_SDK_DEVICE_CACHING_LOG_LEVEL);
+ASTARTE_LOG_MODULE_DECLARE(device_storage, CONFIG_ASTARTE_DEVICE_SDK_DEVICE_STORAGE_LOG_LEVEL);
 
 /************************************************
  *         Static functions declaration         *
@@ -47,7 +47,7 @@ static astarte_result_t parse_property_bson(
  * @param[in] str_buff_size Size of the @p str_buff buffer.
  * @return ASTARTE_RESULT_OK if successful, otherwise an error code.
  */
-static astarte_result_t append_property_to_string(astarte_device_caching_t *handle,
+static astarte_result_t append_property_to_string(astarte_storage_data_t *handle,
     introspection_t *introspection, char *interface_name, char *path, size_t *str_size,
     char *str_buff, size_t str_buff_size);
 
@@ -55,7 +55,7 @@ static astarte_result_t append_property_to_string(astarte_device_caching_t *hand
  *         Global functions definitions         *
  ***********************************************/
 
-astarte_result_t astarte_device_caching_property_store(astarte_device_caching_t *handle,
+astarte_result_t astarte_storage_property_store(astarte_storage_data_t *handle,
     const char *interface_name, const char *path, uint32_t major, astarte_data_t data)
 {
     astarte_result_t ares = ASTARTE_RESULT_OK;
@@ -121,7 +121,7 @@ astarte_result_t astarte_device_caching_property_store(astarte_device_caching_t 
     }
 
     ASTARTE_LOG_DBG("Inserting pair in storage. Key: %s", key);
-    ares = astarte_kv_storage_insert(&handle->prop_storage, key, data_ser, data_ser_len);
+    ares = astarte_storage_key_value_insert(&handle->prop_storage, key, data_ser, data_ser_len);
     if (ares != ASTARTE_RESULT_OK) {
         ASTARTE_LOG_ERR("Error caching property: %s.", astarte_result_to_name(ares));
     }
@@ -132,7 +132,7 @@ exit:
     return ares;
 }
 
-astarte_result_t astarte_device_caching_property_load(astarte_device_caching_t *handle,
+astarte_result_t astarte_storage_property_load(astarte_storage_data_t *handle,
     const char *interface_name, const char *path, uint32_t *out_major, astarte_data_t *data)
 {
     astarte_result_t ares = ASTARTE_RESULT_OK;
@@ -163,7 +163,7 @@ astarte_result_t astarte_device_caching_property_load(astarte_device_caching_t *
 
     ASTARTE_LOG_DBG("Searching for pair in storage. Key: '%s'", key);
     size_t value_len = 0;
-    ares = astarte_kv_storage_find(&handle->prop_storage, key, NULL, &value_len);
+    ares = astarte_storage_key_value_find(&handle->prop_storage, key, NULL, &value_len);
     if (ares != ASTARTE_RESULT_OK) {
         goto exit;
     }
@@ -178,7 +178,7 @@ astarte_result_t astarte_device_caching_property_load(astarte_device_caching_t *
 
     // Get the data from NVS
     ASTARTE_LOG_DBG("Searching for pair in storage. Key: '%s'", key);
-    ares = astarte_kv_storage_find(&handle->prop_storage, key, value, &value_len);
+    ares = astarte_storage_key_value_find(&handle->prop_storage, key, value, &value_len);
     if (ares != ASTARTE_RESULT_OK) {
         ASTARTE_LOG_ERR("Could not get property from storage: %s.", astarte_result_to_name(ares));
         goto exit;
@@ -195,13 +195,13 @@ exit:
     return ares;
 }
 
-void astarte_device_caching_property_destroy_loaded(astarte_data_t data)
+void astarte_storage_property_destroy_loaded(astarte_data_t data)
 {
     data_destroy_deserialized(data);
 }
 
-astarte_result_t astarte_device_caching_property_delete(
-    astarte_device_caching_t *handle, const char *interface_name, const char *path)
+astarte_result_t astarte_storage_property_delete(
+    astarte_storage_data_t *handle, const char *interface_name, const char *path)
 {
     astarte_result_t ares = ASTARTE_RESULT_OK;
     char *key = NULL;
@@ -229,7 +229,7 @@ astarte_result_t astarte_device_caching_property_delete(
     }
 
     ASTARTE_LOG_DBG("Deleting pair from storage. Key: %s", key);
-    ares = astarte_kv_storage_delete(&handle->prop_storage, key);
+    ares = astarte_storage_key_value_delete(&handle->prop_storage, key);
     if ((ares != ASTARTE_RESULT_OK) && (ares != ASTARTE_RESULT_NOT_FOUND)) {
         ASTARTE_LOG_ERR("Error deleting cached property: %s.", astarte_result_to_name(ares));
     }
@@ -239,8 +239,8 @@ exit:
     return ares;
 }
 
-astarte_result_t astarte_device_caching_property_iterator_new(
-    astarte_device_caching_t *handle, astarte_device_caching_property_iter_t *iter)
+astarte_result_t astarte_storage_property_iterator_new(
+    astarte_storage_data_t *handle, astarte_storage_property_iter_t *iter)
 {
     astarte_result_t ares = ASTARTE_RESULT_OK;
 
@@ -250,7 +250,7 @@ astarte_result_t astarte_device_caching_property_iterator_new(
     }
 
     ASTARTE_LOG_DBG("Initializing iterator for key value storage.");
-    ares = astarte_kv_storage_iterator_init(&handle->prop_storage, &iter->kv_iter);
+    ares = astarte_storage_key_value_iterator_init(&handle->prop_storage, &iter->kv_iter);
     if ((ares != ASTARTE_RESULT_OK) && (ares != ASTARTE_RESULT_NOT_FOUND)) {
         ASTARTE_LOG_ERR("Key-value storage iterator init error: %s.", astarte_result_to_name(ares));
     }
@@ -258,13 +258,12 @@ astarte_result_t astarte_device_caching_property_iterator_new(
     return ares;
 }
 
-astarte_result_t astarte_device_caching_property_iterator_next(
-    astarte_device_caching_property_iter_t *iter)
+astarte_result_t astarte_storage_property_iterator_next(astarte_storage_property_iter_t *iter)
 {
     astarte_result_t ares = ASTARTE_RESULT_OK;
 
     ASTARTE_LOG_DBG("Advancing iterator for key value storage.");
-    ares = astarte_kv_storage_iterator_next(&iter->kv_iter);
+    ares = astarte_storage_key_value_iterator_next(&iter->kv_iter);
     if ((ares != ASTARTE_RESULT_OK) && (ares != ASTARTE_RESULT_NOT_FOUND)) {
         ASTARTE_LOG_ERR("Key-value storage iterator error: %s.", astarte_result_to_name(ares));
     }
@@ -272,9 +271,8 @@ astarte_result_t astarte_device_caching_property_iterator_next(
     return ares;
 }
 
-astarte_result_t astarte_device_caching_property_iterator_get(
-    astarte_device_caching_property_iter_t *iter, char *interface_name, size_t *interface_name_size,
-    char *path, size_t *path_size)
+astarte_result_t astarte_storage_property_iterator_get(astarte_storage_property_iter_t *iter,
+    char *interface_name, size_t *interface_name_size, char *path, size_t *path_size)
 {
     astarte_result_t ares = ASTARTE_RESULT_OK;
     char *key = NULL;
@@ -285,7 +283,9 @@ astarte_result_t astarte_device_caching_property_iterator_get(
         ares = ASTARTE_RESULT_INVALID_PARAM;
         goto exit;
     }
-    if ((!interface_name && path) || (interface_name && !path)) {
+
+    // Check if one is NULL but the other isn't
+    if ((interface_name == NULL) != (path == NULL)) {
         ASTARTE_LOG_ERR("Parameters interface_name and path can only be NULL at the same time.");
         ares = ASTARTE_RESULT_INVALID_PARAM;
         goto exit;
@@ -294,7 +294,7 @@ astarte_result_t astarte_device_caching_property_iterator_get(
     // Get size of item key
     size_t key_size = 0U;
     ASTARTE_LOG_DBG("Getting the key size for the pair pointer by the storage iterator.");
-    ares = astarte_kv_storage_iterator_get(&iter->kv_iter, NULL, &key_size);
+    ares = astarte_storage_key_value_iterator_get(&iter->kv_iter, NULL, &key_size);
     if (ares != ASTARTE_RESULT_OK) {
         ASTARTE_LOG_ERR("Key-value storage iterator error: %s.", astarte_result_to_name(ares));
         goto exit;
@@ -308,26 +308,36 @@ astarte_result_t astarte_device_caching_property_iterator_get(
     }
 
     ASTARTE_LOG_DBG("Getting the key data for the pair pointer by the storage iterator.");
-    ares = astarte_kv_storage_iterator_get(&iter->kv_iter, key, &key_size);
+    ares = astarte_storage_key_value_iterator_get(&iter->kv_iter, key, &key_size);
     if (ares != ASTARTE_RESULT_OK) {
         ASTARTE_LOG_ERR("Key-value storage iterator error: %s.", astarte_result_to_name(ares));
         goto exit;
     }
 
     // Split interface name and path
-    char *read_interface_name = strtok(key, ";");
+    char *delimiter_ptr = strchr(key, ';');
+    if (!delimiter_ptr) {
+        ASTARTE_LOG_ERR("Corrupted property key in storage: missing ';' delimiter.");
+        ares = ASTARTE_RESULT_INTERNAL_ERROR;
+        goto exit;
+    }
+    // Replace the ';' with a null terminator to split the string in two
+    *delimiter_ptr = '\0';
+    char *read_interface_name = key;
     size_t read_interface_name_size = strlen(read_interface_name) + 1;
-    char *read_path = strtok(NULL, "\0");
+    // The path starts right after the old ';' delimiter
+    char *read_path = delimiter_ptr + 1;
     size_t read_path_size = strlen(read_path) + 1;
 
-    if (!interface_name && !path) {
+    // Both are NULL or both are valid due to earlier checks
+    if (!interface_name) {
         *interface_name_size = read_interface_name_size;
         *path_size = read_path_size;
         goto exit;
     }
 
     if ((*interface_name_size < read_interface_name_size) || (*path_size < read_path_size)) {
-        ASTARTE_LOG_ERR("Insufficient buff size in astarte_device_caching_property_iterator_get.");
+        ASTARTE_LOG_ERR("Insufficient buff size in astarte_storage_property_iterator_get.");
         ares = ASTARTE_RESULT_INVALID_PARAM;
         goto exit;
     }
@@ -335,35 +345,25 @@ astarte_result_t astarte_device_caching_property_iterator_get(
     *interface_name_size = read_interface_name_size;
     *path_size = read_path_size;
 
-    int snprintf_rc = snprintf(interface_name, *interface_name_size, "%s", read_interface_name);
-    if (snprintf_rc != read_interface_name_size - 1) {
-        ASTARTE_LOG_ERR("Could not create the property interface name.");
-        ares = ASTARTE_RESULT_INTERNAL_ERROR;
-        goto exit;
-    }
-
-    snprintf_rc = snprintf(path, *path_size, "%s", read_path);
-    if (snprintf_rc != read_path_size - 1) {
-        ASTARTE_LOG_ERR("Could not create the property path.");
-        ares = ASTARTE_RESULT_INTERNAL_ERROR;
-        goto exit;
-    }
+    // Safely copy the values and their null terminators
+    memcpy(interface_name, read_interface_name, read_interface_name_size);
+    memcpy(path, read_path, read_path_size);
 
 exit:
     free(key);
     return ares;
 }
 
-astarte_result_t astarte_device_caching_property_get_device_string(astarte_device_caching_t *handle,
+astarte_result_t astarte_storage_property_get_device_string(astarte_storage_data_t *handle,
     introspection_t *introspection, char *output, size_t *output_size)
 {
     astarte_result_t ares = ASTARTE_RESULT_OK;
-    astarte_device_caching_property_iter_t iter = { 0 };
+    astarte_storage_property_iter_t iter = { 0 };
     size_t string_size = 0U;
     char *interface_name = NULL;
     char *path = NULL;
 
-    ares = astarte_device_caching_property_iterator_new(handle, &iter);
+    ares = astarte_storage_property_iterator_new(handle, &iter);
     if ((ares != ASTARTE_RESULT_OK) && (ares != ASTARTE_RESULT_NOT_FOUND)) {
         ASTARTE_LOG_ERR("Properties iterator init failed: %s", astarte_result_to_name(ares));
         goto error;
@@ -376,7 +376,7 @@ astarte_result_t astarte_device_caching_property_get_device_string(astarte_devic
     while (ares != ASTARTE_RESULT_NOT_FOUND) {
         size_t interface_name_size = 0U;
         size_t path_size = 0U;
-        ares = astarte_device_caching_property_iterator_get(
+        ares = astarte_storage_property_iterator_get(
             &iter, NULL, &interface_name_size, NULL, &path_size);
         if (ares != ASTARTE_RESULT_OK) {
             ASTARTE_LOG_ERR("Properties iterator get error: %s", astarte_result_to_name(ares));
@@ -390,7 +390,7 @@ astarte_result_t astarte_device_caching_property_get_device_string(astarte_devic
             goto error;
         }
 
-        ares = astarte_device_caching_property_iterator_get(
+        ares = astarte_storage_property_iterator_get(
             &iter, interface_name, &interface_name_size, path, &path_size);
         if (ares != ASTARTE_RESULT_OK) {
             ASTARTE_LOG_ERR("Properties iterator get error: %s", astarte_result_to_name(ares));
@@ -410,7 +410,7 @@ astarte_result_t astarte_device_caching_property_get_device_string(astarte_devic
         free(path);
         path = NULL;
 
-        ares = astarte_device_caching_property_iterator_next(&iter);
+        ares = astarte_storage_property_iterator_next(&iter);
         if ((ares != ASTARTE_RESULT_OK) && (ares != ASTARTE_RESULT_NOT_FOUND)) {
             ASTARTE_LOG_ERR("Iterator next error: %s", astarte_result_to_name(ares));
             goto error;
@@ -475,7 +475,7 @@ static astarte_result_t parse_property_bson(
 
 // Function is still readable for now
 // NOLINTNEXTLINE(readability-function-size)
-static astarte_result_t append_property_to_string(astarte_device_caching_t *handle,
+static astarte_result_t append_property_to_string(astarte_storage_data_t *handle,
     introspection_t *introspection, char *interface_name, char *path, size_t *str_size,
     char *str_buff, size_t str_buff_size)
 {
@@ -484,7 +484,7 @@ static astarte_result_t append_property_to_string(astarte_device_caching_t *hand
     const astarte_interface_t *interface = introspection_get(introspection, interface_name);
     if (!interface) {
         ASTARTE_LOG_DBG("Purge property from unknown interface: '%s%s'", interface_name, path);
-        ares = astarte_device_caching_property_delete(handle, interface_name, path);
+        ares = astarte_storage_property_delete(handle, interface_name, path);
         if ((ares != ASTARTE_RESULT_OK) && (ares != ASTARTE_RESULT_NOT_FOUND)) {
             ASTARTE_LOG_COND_ERR(ares != ASTARTE_RESULT_OK,
                 "Failed deleting the cached property: %s", astarte_result_to_name(ares));

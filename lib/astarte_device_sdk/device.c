@@ -6,7 +6,9 @@
 #include "astarte_device_sdk/device.h"
 
 #ifdef CONFIG_ASTARTE_DEVICE_SDK_PERMANENT_STORAGE
-#include "device_caching.h"
+#include "storage/core.h"
+#include "storage/prop.h"
+#include "storage/sync.h"
 #endif
 #include "device_connection.h"
 #include "device_private.h"
@@ -120,7 +122,7 @@ astarte_result_t astarte_device_new(astarte_device_config_t *cfg, astarte_device
     handle->cbk_user_data = cfg->cbk_user_data;
 
 #ifdef CONFIG_ASTARTE_DEVICE_SDK_PERMANENT_STORAGE
-    ares = astarte_device_caching_init(&handle->caching);
+    ares = astarte_storage_init(&handle->caching);
     if (ares != ASTARTE_RESULT_OK) {
         ASTARTE_LOG_ERR("Caching initialization failure %s.", astarte_result_to_name(ares));
         goto failure;
@@ -131,8 +133,8 @@ astarte_result_t astarte_device_new(astarte_device_config_t *cfg, astarte_device
     handle->synchronization_completed = false;
 #ifdef CONFIG_ASTARTE_DEVICE_SDK_PERMANENT_STORAGE
     ASTARTE_LOG_DBG("Getting stored synchronization");
-    ares = astarte_device_caching_synchronization_get(
-        &handle->caching, &handle->synchronization_completed);
+    ares
+        = astarte_storage_synchronization_get(&handle->caching, &handle->synchronization_completed);
     if ((ares != ASTARTE_RESULT_OK) && (ares != ASTARTE_RESULT_NOT_FOUND)) {
         ASTARTE_LOG_ERR("Synchronization state getter failure %s.", astarte_result_to_name(ares));
         goto failure;
@@ -201,7 +203,7 @@ failure:
 
     if (handle) {
 #ifdef CONFIG_ASTARTE_DEVICE_SDK_PERMANENT_STORAGE
-        astarte_device_caching_destroy(&handle->caching);
+        astarte_storage_destroy(&handle->caching);
 #endif
         introspection_free(handle->introspection);
     }
@@ -233,7 +235,7 @@ astarte_result_t astarte_device_destroy(astarte_device_handle_t device)
     }
 
 #ifdef CONFIG_ASTARTE_DEVICE_SDK_PERMANENT_STORAGE
-    astarte_device_caching_destroy(&device->caching);
+    astarte_storage_destroy(&device->caching);
 #endif
 
     introspection_free(device->introspection);
@@ -361,8 +363,7 @@ astarte_result_t astarte_device_get_property(astarte_device_handle_t device,
     astarte_result_t ares = ASTARTE_RESULT_OK;
     astarte_data_t data = { 0 };
     uint32_t out_major = 0U;
-    ares = astarte_device_caching_property_load(
-        &device->caching, interface_name, path, &out_major, &data);
+    ares = astarte_storage_property_load(&device->caching, interface_name, path, &out_major, &data);
     if (ares != ASTARTE_RESULT_OK) {
         if (ares != ASTARTE_RESULT_NOT_FOUND) {
             ASTARTE_LOG_ERR("Failed getting property: %s.", astarte_result_to_name(ares));
@@ -377,7 +378,7 @@ astarte_result_t astarte_device_get_property(astarte_device_handle_t device,
         .user_data = user_data };
     loader_cbk(event);
 
-    astarte_device_caching_property_destroy_loaded(data);
+    astarte_storage_property_destroy_loaded(data);
     return ares;
 }
 #endif

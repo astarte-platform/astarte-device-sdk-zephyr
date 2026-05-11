@@ -220,7 +220,7 @@ module-str = Log level for Astarte device SDK device
 module-help = Sets log level for Astarte device SDK device.
 source "subsys/logging/Kconfig.template.log_config"
 
-module = ASTARTE_DEVICE_SDK_DEVICE_CACHING
+module = ASTARTE_DEVICE_SDK_DEVICE_STORAGE
 module-str = Log level for Astarte device SDK device caching
 module-help = Sets log level for Astarte device SDK device caching.
 source "subsys/logging/Kconfig.template.log_config"
