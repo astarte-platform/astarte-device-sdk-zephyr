@@ -21,23 +21,11 @@
 ASTARTE_LOG_MODULE_REGISTER(astarte_crypto, CONFIG_ASTARTE_DEVICE_SDK_CRYPTO_LOG_LEVEL);
 
 /************************************************
- *       Checks over configuration values       *
- ***********************************************/
-
-/************************************************
  *        Defines, constants and typedef        *
  ***********************************************/
 
 #define PSA_KEY_BITS 256
 #define CSR_SUBJECT_NAME "CN=temporary"
-
-/************************************************
- *       Callbacks declaration/definition       *
- ***********************************************/
-
-/************************************************
- *         Static functions declaration         *
- ***********************************************/
 
 /************************************************
  *         Global functions definitions         *
@@ -168,7 +156,3 @@ exit:
 
     return ares;
 }
-
-/************************************************
- *         Static functions definitions         *
- ***********************************************/

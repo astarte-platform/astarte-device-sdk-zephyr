@@ -20,6 +20,10 @@
 ASTARTE_LOG_MODULE_REGISTER(
     astarte_introspection, CONFIG_ASTARTE_DEVICE_SDK_INTROSPECTION_LOG_LEVEL);
 
+/************************************************
+ *         Static functions declaration         *
+ ***********************************************/
+
 /**
  * @brief Function used to find a `introspection_node_t` from an interface_name
  *
@@ -76,6 +80,10 @@ static astarte_result_t check_interface_update(introspection_t *introspection,
  */
 static astarte_result_t append_introspection_node(
     introspection_t *introspection, const astarte_interface_t *interface);
+
+/************************************************
+ *         Global functions definitions         *
+ ***********************************************/
 
 astarte_result_t introspection_init(introspection_t *introspection)
 {
@@ -253,6 +261,10 @@ static inline void node_free(introspection_node_t *alloc_node)
     sys_dlist_remove(&alloc_node->node);
     free((void *) alloc_node);
 }
+
+/************************************************
+ *         Static functions definitions         *
+ ***********************************************/
 
 static introspection_node_t *find_node_by_name(
     introspection_t *introspection, const char *interface_name)

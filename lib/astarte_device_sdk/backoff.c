@@ -9,6 +9,10 @@
 
 #include <errno.h>
 
+/************************************************
+ *         Global functions definitions         *
+ ***********************************************/
+
 int backoff_init(struct backoff_context *backoff, uint32_t mul_coeff, uint32_t cutoff_coeff)
 {
     if (!backoff || mul_coeff == 0 || cutoff_coeff == 0 || cutoff_coeff < mul_coeff) {
