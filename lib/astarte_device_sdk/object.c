@@ -9,7 +9,7 @@
 
 #include <stdlib.h>
 
-#include "bson_types.h"
+#include "bson/types.h"
 #include "data_deserialize.h"
 #include "data_serialize.h"
 #include "interface_private.h"

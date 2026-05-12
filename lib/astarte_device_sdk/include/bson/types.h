@@ -8,7 +8,7 @@
 #define BSON_TYPES_H
 
 /**
- * @file bson_types.h
+ * @file bson/types.h
  * @brief Astarte BSON types definitions.
  */
 
