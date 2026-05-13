@@ -3,7 +3,7 @@
  *
  * SPDX-License-Identifier: Apache-2.0
  */
-#include "data_validation.h"
+#include "validation.h"
 
 #include "interface_private.h"
 #include "mapping_private.h"
@@ -15,7 +15,7 @@ ASTARTE_LOG_MODULE_REGISTER(data_validation, CONFIG_ASTARTE_DEVICE_SDK_DATA_VALI
  *         Global functions definitions         *
  ***********************************************/
 
-astarte_result_t data_validation_individual_datastream(const astarte_interface_t *interface,
+astarte_result_t astarte_validation_individual_datastream(const astarte_interface_t *interface,
     const char *path, astarte_data_t data, const int64_t *timestamp)
 {
     astarte_result_t ares = ASTARTE_RESULT_OK;
@@ -51,7 +51,7 @@ astarte_result_t data_validation_individual_datastream(const astarte_interface_t
     return ASTARTE_RESULT_OK;
 }
 
-astarte_result_t data_validation_aggregated_datastream(const astarte_interface_t *interface,
+astarte_result_t astarte_validation_aggregated_datastream(const astarte_interface_t *interface,
     const char *path, astarte_object_entry_t *entries, size_t entries_len, const int64_t *timestamp)
 {
     astarte_result_t ares = ASTARTE_RESULT_OK;
@@ -91,13 +91,13 @@ astarte_result_t data_validation_aggregated_datastream(const astarte_interface_t
     return ASTARTE_RESULT_OK;
 }
 
-astarte_result_t data_validation_set_property(
+astarte_result_t astarte_validation_set_property(
     const astarte_interface_t *interface, const char *path, astarte_data_t data)
 {
-    return data_validation_individual_datastream(interface, path, data, NULL);
+    return astarte_validation_individual_datastream(interface, path, data, NULL);
 }
 
-astarte_result_t data_validation_unset_property(
+astarte_result_t astarte_validation_unset_property(
     const astarte_interface_t *interface, const char *path)
 {
     astarte_result_t ares = ASTARTE_RESULT_OK;

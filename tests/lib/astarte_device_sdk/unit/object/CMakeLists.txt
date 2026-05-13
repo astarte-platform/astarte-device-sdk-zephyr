@@ -17,9 +17,9 @@ target_compile_options(testbinary PRIVATE -include zephyr/ztest.h)
 
 target_sources(testbinary PRIVATE
     ${ZEPHYR_BASE}/../astarte-device-sdk-zephyr/lib/astarte_device_sdk/interface.c
-    ${ZEPHYR_BASE}/../astarte-device-sdk-zephyr/lib/astarte_device_sdk/data.c
-    ${ZEPHYR_BASE}/../astarte-device-sdk-zephyr/lib/astarte_device_sdk/data_serialize.c
-    ${ZEPHYR_BASE}/../astarte-device-sdk-zephyr/lib/astarte_device_sdk/data_deserialize.c
+    ${ZEPHYR_BASE}/../astarte-device-sdk-zephyr/lib/astarte_device_sdk/data/core.c
+    ${ZEPHYR_BASE}/../astarte-device-sdk-zephyr/lib/astarte_device_sdk/data/serialize.c
+    ${ZEPHYR_BASE}/../astarte-device-sdk-zephyr/lib/astarte_device_sdk/data/deserialize.c
     ${ZEPHYR_BASE}/../astarte-device-sdk-zephyr/lib/astarte_device_sdk/mapping.c
     ${ZEPHYR_BASE}/../astarte-device-sdk-zephyr/lib/astarte_device_sdk/bson/deserializer.c
     ${ZEPHYR_BASE}/../astarte-device-sdk-zephyr/lib/astarte_device_sdk/bson/serializer.c

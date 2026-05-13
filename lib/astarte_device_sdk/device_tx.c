@@ -6,11 +6,11 @@
 #include "device_tx.h"
 
 #include "bson/serializer.h"
-#include "data_validation.h"
+#include "validation.h"
 #ifdef CONFIG_ASTARTE_DEVICE_SDK_PERMANENT_STORAGE
 #include "storage/prop.h"
 #endif
-#include "data_serialize.h"
+#include "data/serialize.h"
 #include "mqtt/core.h"
 #include "mqtt/pubsub.h"
 #include "object_private.h"
@@ -70,7 +70,7 @@ astarte_result_t astarte_device_tx_stream_individual(astarte_device_handle_t dev
         goto exit;
     }
 
-    ares = data_validation_individual_datastream(interface, path, data, timestamp);
+    ares = astarte_validation_individual_datastream(interface, path, data, timestamp);
     if (ares != ASTARTE_RESULT_OK) {
         ASTARTE_LOG_ERR("Device individual data validation failed.");
         goto exit;
@@ -88,7 +88,7 @@ astarte_result_t astarte_device_tx_stream_individual(astarte_device_handle_t dev
         ASTARTE_LOG_ERR("Could not initialize the bson serializer");
         goto exit;
     }
-    ares = data_serialize(&bson, "v", data);
+    ares = astarte_data_serialize(&bson, "v", data);
     if (ares != ASTARTE_RESULT_OK) {
         goto exit;
     }
@@ -144,7 +144,8 @@ astarte_result_t astarte_device_tx_stream_aggregated(astarte_device_handle_t dev
         return ASTARTE_RESULT_INCOMPLETE_AGGREGATION_OBJECT;
     }
 
-    ares = data_validation_aggregated_datastream(interface, path, entries, entries_len, timestamp);
+    ares = astarte_validation_aggregated_datastream(
+        interface, path, entries, entries_len, timestamp);
     if (ares != ASTARTE_RESULT_OK) {
         ASTARTE_LOG_ERR("Device aggregated data validation failed.");
         return ares;
@@ -189,7 +190,7 @@ astarte_result_t astarte_device_tx_set_property(astarte_device_handle_t device,
         return ASTARTE_RESULT_INTERFACE_NOT_FOUND;
     }
 
-    astarte_result_t ares = data_validation_set_property(interface, path, data);
+    astarte_result_t ares = astarte_validation_set_property(interface, path, data);
     if (ares != ASTARTE_RESULT_OK) {
         ASTARTE_LOG_ERR("Property data validation failed.");
         return ares;
@@ -216,7 +217,7 @@ astarte_result_t astarte_device_tx_unset_property(
         return ASTARTE_RESULT_INTERFACE_NOT_FOUND;
     }
 
-    astarte_result_t ares = data_validation_unset_property(interface, path);
+    astarte_result_t ares = astarte_validation_unset_property(interface, path);
     if (ares != ASTARTE_RESULT_OK) {
         ASTARTE_LOG_ERR("Device property unset failed.");
         return ares;

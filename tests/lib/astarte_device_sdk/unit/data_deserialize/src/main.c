@@ -21,8 +21,8 @@
 #include <zephyr/ztest.h>
 
 #include "astarte_device_sdk/data.h"
-#include "data_deserialize.h"
-#include "lib/astarte_device_sdk/data_deserialize.c"
+#include "data/deserialize.h"
+#include "lib/astarte_device_sdk/data/deserialize.c"
 
 #include "bson/deserializer.h"
 
@@ -154,7 +154,8 @@ ZTEST(
     astarte_bson_deserializer_element_lookup(full_document, "v", &v_elem);
 
     astarte_data_t data = { 0 };
-    astarte_result_t res = data_deserialize(v_elem, ASTARTE_MAPPING_TYPE_DATETIMEARRAY, &data);
+    astarte_result_t res
+        = astarte_data_deserialize(v_elem, ASTARTE_MAPPING_TYPE_DATETIMEARRAY, &data);
     zassert_equal(
         res, ASTARTE_RESULT_BSON_DESERIALIZER_TYPES_ERROR, "%s", astarte_result_to_name(res));
 }
@@ -167,12 +168,12 @@ ZTEST(astarte_device_sdk_astarte_data_deserialize, test_deserialize_astarte_data
     astarte_bson_deserializer_element_lookup(full_document, "v", &v_elem);
 
     astarte_data_t data = { 0 };
-    astarte_result_t res = data_deserialize(v_elem, ASTARTE_MAPPING_TYPE_BINARYBLOB, &data);
+    astarte_result_t res = astarte_data_deserialize(v_elem, ASTARTE_MAPPING_TYPE_BINARYBLOB, &data);
     zassert_equal(res, ASTARTE_RESULT_OK, "%s", astarte_result_to_name(res));
     zassert_equal(data.tag, ASTARTE_MAPPING_TYPE_BINARYBLOB);
     zassert_equal(data.data.binaryblob.len, 5);
     zassert_mem_equal(data.data.binaryblob.buf, test_data_binaryblob, data.data.binaryblob.len);
-    data_destroy_deserialized(data);
+    astarte_data_destroy_deserialized(data);
 }
 
 ZTEST(astarte_device_sdk_astarte_data_deserialize, test_deserialize_astarte_data_from_boolean)
@@ -183,11 +184,11 @@ ZTEST(astarte_device_sdk_astarte_data_deserialize, test_deserialize_astarte_data
     astarte_bson_deserializer_element_lookup(full_document, "v", &v_elem);
 
     astarte_data_t data = { 0 };
-    astarte_result_t res = data_deserialize(v_elem, ASTARTE_MAPPING_TYPE_BOOLEAN, &data);
+    astarte_result_t res = astarte_data_deserialize(v_elem, ASTARTE_MAPPING_TYPE_BOOLEAN, &data);
     zassert_equal(res, ASTARTE_RESULT_OK, "%s", astarte_result_to_name(res));
     zassert_equal(data.tag, ASTARTE_MAPPING_TYPE_BOOLEAN);
     zassert_equal(data.data.boolean, test_data_boolean);
-    data_destroy_deserialized(data);
+    astarte_data_destroy_deserialized(data);
 }
 
 ZTEST(astarte_device_sdk_astarte_data_deserialize, test_deserialize_astarte_data_from_datetime)
@@ -198,11 +199,11 @@ ZTEST(astarte_device_sdk_astarte_data_deserialize, test_deserialize_astarte_data
     astarte_bson_deserializer_element_lookup(full_document, "v", &v_elem);
 
     astarte_data_t data = { 0 };
-    astarte_result_t res = data_deserialize(v_elem, ASTARTE_MAPPING_TYPE_DATETIME, &data);
+    astarte_result_t res = astarte_data_deserialize(v_elem, ASTARTE_MAPPING_TYPE_DATETIME, &data);
     zassert_equal(res, ASTARTE_RESULT_OK, "%s", astarte_result_to_name(res));
     zassert_equal(data.tag, ASTARTE_MAPPING_TYPE_DATETIME);
     zassert_equal(data.data.datetime, test_data_datetime);
-    data_destroy_deserialized(data);
+    astarte_data_destroy_deserialized(data);
 }
 
 ZTEST(astarte_device_sdk_astarte_data_deserialize, test_deserialize_astarte_data_from_double)
@@ -213,11 +214,11 @@ ZTEST(astarte_device_sdk_astarte_data_deserialize, test_deserialize_astarte_data
     astarte_bson_deserializer_element_lookup(full_document, "v", &v_elem);
 
     astarte_data_t data = { 0 };
-    astarte_result_t res = data_deserialize(v_elem, ASTARTE_MAPPING_TYPE_DOUBLE, &data);
+    astarte_result_t res = astarte_data_deserialize(v_elem, ASTARTE_MAPPING_TYPE_DOUBLE, &data);
     zassert_equal(res, ASTARTE_RESULT_OK, "%s", astarte_result_to_name(res));
     zassert_equal(data.tag, ASTARTE_MAPPING_TYPE_DOUBLE);
     zassert_equal(data.data.dbl, test_data_double);
-    data_destroy_deserialized(data);
+    astarte_data_destroy_deserialized(data);
 }
 
 ZTEST(astarte_device_sdk_astarte_data_deserialize, test_deserialize_astarte_data_from_integer)
@@ -228,11 +229,11 @@ ZTEST(astarte_device_sdk_astarte_data_deserialize, test_deserialize_astarte_data
     astarte_bson_deserializer_element_lookup(full_document, "v", &v_elem);
 
     astarte_data_t data = { 0 };
-    astarte_result_t res = data_deserialize(v_elem, ASTARTE_MAPPING_TYPE_INTEGER, &data);
+    astarte_result_t res = astarte_data_deserialize(v_elem, ASTARTE_MAPPING_TYPE_INTEGER, &data);
     zassert_equal(res, ASTARTE_RESULT_OK, "%s", astarte_result_to_name(res));
     zassert_equal(data.tag, ASTARTE_MAPPING_TYPE_INTEGER);
     zassert_equal(data.data.integer, test_data_integer);
-    data_destroy_deserialized(data);
+    astarte_data_destroy_deserialized(data);
 }
 
 ZTEST(astarte_device_sdk_astarte_data_deserialize, test_deserialize_astarte_data_from_longinteger)
@@ -243,11 +244,12 @@ ZTEST(astarte_device_sdk_astarte_data_deserialize, test_deserialize_astarte_data
     astarte_bson_deserializer_element_lookup(full_document, "v", &v_elem);
 
     astarte_data_t data = { 0 };
-    astarte_result_t res = data_deserialize(v_elem, ASTARTE_MAPPING_TYPE_LONGINTEGER, &data);
+    astarte_result_t res
+        = astarte_data_deserialize(v_elem, ASTARTE_MAPPING_TYPE_LONGINTEGER, &data);
     zassert_equal(res, ASTARTE_RESULT_OK, "%s", astarte_result_to_name(res));
     zassert_equal(data.tag, ASTARTE_MAPPING_TYPE_LONGINTEGER);
     zassert_equal(data.data.longinteger, test_data_longinteger);
-    data_destroy_deserialized(data);
+    astarte_data_destroy_deserialized(data);
 }
 
 ZTEST(astarte_device_sdk_astarte_data_deserialize, test_deserialize_astarte_data_from_string)
@@ -258,11 +260,11 @@ ZTEST(astarte_device_sdk_astarte_data_deserialize, test_deserialize_astarte_data
     astarte_bson_deserializer_element_lookup(full_document, "v", &v_elem);
 
     astarte_data_t data = { 0 };
-    astarte_result_t res = data_deserialize(v_elem, ASTARTE_MAPPING_TYPE_STRING, &data);
+    astarte_result_t res = astarte_data_deserialize(v_elem, ASTARTE_MAPPING_TYPE_STRING, &data);
     zassert_equal(res, ASTARTE_RESULT_OK, "%s", astarte_result_to_name(res));
     zassert_equal(data.tag, ASTARTE_MAPPING_TYPE_STRING);
     zassert_mem_equal(data.data.string, test_data_string, strlen(test_data_string) + 1);
-    data_destroy_deserialized(data);
+    astarte_data_destroy_deserialized(data);
 }
 
 ZTEST(astarte_device_sdk_astarte_data_deserialize, test_deserialize_astarte_data_from_binblob_array)
@@ -273,7 +275,8 @@ ZTEST(astarte_device_sdk_astarte_data_deserialize, test_deserialize_astarte_data
     astarte_bson_deserializer_element_lookup(full_document, "v", &v_elem);
 
     astarte_data_t data = { 0 };
-    astarte_result_t res = data_deserialize(v_elem, ASTARTE_MAPPING_TYPE_BINARYBLOBARRAY, &data);
+    astarte_result_t res
+        = astarte_data_deserialize(v_elem, ASTARTE_MAPPING_TYPE_BINARYBLOBARRAY, &data);
     zassert_equal(res, ASTARTE_RESULT_OK, "%s", astarte_result_to_name(res));
     zassert_equal(data.tag, ASTARTE_MAPPING_TYPE_BINARYBLOBARRAY);
     zassert_equal(data.data.binaryblob_array.count, ARRAY_SIZE(test_data_binaryblob_array));
@@ -282,7 +285,7 @@ ZTEST(astarte_device_sdk_astarte_data_deserialize, test_deserialize_astarte_data
         zassert_mem_equal(data.data.binaryblob_array.blobs[i], test_data_binaryblob_array[i],
             test_data_binaryblob_sizes[i]);
     }
-    data_destroy_deserialized(data);
+    astarte_data_destroy_deserialized(data);
 }
 
 ZTEST(astarte_device_sdk_astarte_data_deserialize, test_deserialize_astarte_data_from_boolean_array)
@@ -293,13 +296,14 @@ ZTEST(astarte_device_sdk_astarte_data_deserialize, test_deserialize_astarte_data
     astarte_bson_deserializer_element_lookup(full_document, "v", &v_elem);
 
     astarte_data_t data = { 0 };
-    astarte_result_t res = data_deserialize(v_elem, ASTARTE_MAPPING_TYPE_BOOLEANARRAY, &data);
+    astarte_result_t res
+        = astarte_data_deserialize(v_elem, ASTARTE_MAPPING_TYPE_BOOLEANARRAY, &data);
     zassert_equal(res, ASTARTE_RESULT_OK, "%s", astarte_result_to_name(res));
     zassert_equal(data.tag, ASTARTE_MAPPING_TYPE_BOOLEANARRAY);
     zassert_equal(data.data.boolean_array.len, ARRAY_SIZE(test_data_boolean_array));
     zassert_mem_equal(
         data.data.boolean_array.buf, test_data_boolean_array, ARRAY_SIZE(test_data_boolean_array));
-    data_destroy_deserialized(data);
+    astarte_data_destroy_deserialized(data);
 }
 
 ZTEST(astarte_device_sdk_astarte_data_deserialize, test_deserialize_astarte_data_from_double_array)
@@ -310,7 +314,8 @@ ZTEST(astarte_device_sdk_astarte_data_deserialize, test_deserialize_astarte_data
     astarte_bson_deserializer_element_lookup(full_document, "v", &v_elem);
 
     astarte_data_t data = { 0 };
-    astarte_result_t res = data_deserialize(v_elem, ASTARTE_MAPPING_TYPE_DOUBLEARRAY, &data);
+    astarte_result_t res
+        = astarte_data_deserialize(v_elem, ASTARTE_MAPPING_TYPE_DOUBLEARRAY, &data);
     zassert_equal(res, ASTARTE_RESULT_OK, "%d", res);
     zassert_equal(res, ASTARTE_RESULT_OK, "%s", astarte_result_to_name(res));
     zassert_equal(data.tag, ASTARTE_MAPPING_TYPE_DOUBLEARRAY);
@@ -318,7 +323,7 @@ ZTEST(astarte_device_sdk_astarte_data_deserialize, test_deserialize_astarte_data
     for (size_t i = 0; i < ARRAY_SIZE(test_data_double_array); i++) {
         zassert_within(data.data.double_array.buf[i], test_data_double_array[i], 0.01);
     }
-    data_destroy_deserialized(data);
+    astarte_data_destroy_deserialized(data);
 }
 
 ZTEST(
@@ -330,14 +335,15 @@ ZTEST(
     astarte_bson_deserializer_element_lookup(full_document, "v", &v_elem);
 
     astarte_data_t data = { 0 };
-    astarte_result_t res = data_deserialize(v_elem, ASTARTE_MAPPING_TYPE_DATETIMEARRAY, &data);
+    astarte_result_t res
+        = astarte_data_deserialize(v_elem, ASTARTE_MAPPING_TYPE_DATETIMEARRAY, &data);
     zassert_equal(res, ASTARTE_RESULT_OK, "%s", astarte_result_to_name(res));
     zassert_equal(data.tag, ASTARTE_MAPPING_TYPE_DATETIMEARRAY);
     zassert_equal(data.data.datetime_array.len, ARRAY_SIZE(test_data_datetime_array));
     for (size_t i = 0; i < ARRAY_SIZE(test_data_datetime_array); i++) {
         zassert_equal(data.data.datetime_array.buf[i], test_data_datetime_array[i]);
     }
-    data_destroy_deserialized(data);
+    astarte_data_destroy_deserialized(data);
 }
 
 ZTEST(astarte_device_sdk_astarte_data_deserialize, test_deserialize_astarte_data_from_integer_array)
@@ -348,14 +354,15 @@ ZTEST(astarte_device_sdk_astarte_data_deserialize, test_deserialize_astarte_data
     astarte_bson_deserializer_element_lookup(full_document, "v", &v_elem);
 
     astarte_data_t data = { 0 };
-    astarte_result_t res = data_deserialize(v_elem, ASTARTE_MAPPING_TYPE_INTEGERARRAY, &data);
+    astarte_result_t res
+        = astarte_data_deserialize(v_elem, ASTARTE_MAPPING_TYPE_INTEGERARRAY, &data);
     zassert_equal(res, ASTARTE_RESULT_OK, "%s", astarte_result_to_name(res));
     zassert_equal(data.tag, ASTARTE_MAPPING_TYPE_INTEGERARRAY);
     zassert_equal(data.data.integer_array.len, ARRAY_SIZE(test_data_integer_array));
     for (size_t i = 0; i < ARRAY_SIZE(test_data_integer_array); i++) {
         zassert_equal(data.data.integer_array.buf[i], test_data_integer_array[i]);
     }
-    data_destroy_deserialized(data);
+    astarte_data_destroy_deserialized(data);
 }
 
 ZTEST(astarte_device_sdk_astarte_data_deserialize,
@@ -367,14 +374,15 @@ ZTEST(astarte_device_sdk_astarte_data_deserialize,
     astarte_bson_deserializer_element_lookup(full_document, "v", &v_elem);
 
     astarte_data_t data = { 0 };
-    astarte_result_t res = data_deserialize(v_elem, ASTARTE_MAPPING_TYPE_LONGINTEGERARRAY, &data);
+    astarte_result_t res
+        = astarte_data_deserialize(v_elem, ASTARTE_MAPPING_TYPE_LONGINTEGERARRAY, &data);
     zassert_equal(res, ASTARTE_RESULT_OK, "%s", astarte_result_to_name(res));
     zassert_equal(data.tag, ASTARTE_MAPPING_TYPE_LONGINTEGERARRAY);
     zassert_equal(data.data.longinteger_array.len, ARRAY_SIZE(test_data_longinteger_array));
     for (size_t i = 0; i < ARRAY_SIZE(test_data_longinteger_array); i++) {
         zassert_equal(data.data.longinteger_array.buf[i], test_data_longinteger_array[i]);
     }
-    data_destroy_deserialized(data);
+    astarte_data_destroy_deserialized(data);
 }
 
 ZTEST(astarte_device_sdk_astarte_data_deserialize, test_deserialize_astarte_data_from_string_array)
@@ -385,14 +393,15 @@ ZTEST(astarte_device_sdk_astarte_data_deserialize, test_deserialize_astarte_data
     astarte_bson_deserializer_element_lookup(full_document, "v", &v_elem);
 
     astarte_data_t data = { 0 };
-    astarte_result_t res = data_deserialize(v_elem, ASTARTE_MAPPING_TYPE_STRINGARRAY, &data);
+    astarte_result_t res
+        = astarte_data_deserialize(v_elem, ASTARTE_MAPPING_TYPE_STRINGARRAY, &data);
     zassert_equal(res, ASTARTE_RESULT_OK, "%s", astarte_result_to_name(res));
     zassert_equal(data.tag, ASTARTE_MAPPING_TYPE_STRINGARRAY);
     zassert_equal(data.data.string_array.len, ARRAY_SIZE(test_data_string_array));
     for (size_t i = 0; i < ARRAY_SIZE(test_data_string_array); i++) {
         zassert_equal(strcmp(data.data.string_array.buf[i], test_data_string_array[i]), 0);
     }
-    data_destroy_deserialized(data);
+    astarte_data_destroy_deserialized(data);
 }
 
 ZTEST(astarte_device_sdk_astarte_data_deserialize, test_deserialize_astarte_data_from_empty_array)
@@ -403,7 +412,8 @@ ZTEST(astarte_device_sdk_astarte_data_deserialize, test_deserialize_astarte_data
     astarte_bson_deserializer_element_lookup(full_document, "v", &v_elem);
 
     astarte_data_t data = { 0 };
-    astarte_result_t res = data_deserialize(v_elem, ASTARTE_MAPPING_TYPE_DOUBLEARRAY, &data);
+    astarte_result_t res
+        = astarte_data_deserialize(v_elem, ASTARTE_MAPPING_TYPE_DOUBLEARRAY, &data);
     zassert_equal(res, ASTARTE_RESULT_OK, "%s", astarte_result_to_name(res));
     zassert_equal(data.tag, ASTARTE_MAPPING_TYPE_DOUBLEARRAY);
     zassert_equal(data.data.double_array.len, 0);
@@ -418,7 +428,8 @@ ZTEST(astarte_device_sdk_astarte_data_deserialize,
     astarte_bson_deserializer_element_lookup(full_document, "v", &v_elem);
 
     astarte_data_t data = { 0 };
-    astarte_result_t res = data_deserialize(v_elem, ASTARTE_MAPPING_TYPE_STRINGARRAY, &data);
+    astarte_result_t res
+        = astarte_data_deserialize(v_elem, ASTARTE_MAPPING_TYPE_STRINGARRAY, &data);
     zassert_equal(
         res, ASTARTE_RESULT_BSON_DESERIALIZER_TYPES_ERROR, "%s", astarte_result_to_name(res));
 }
@@ -432,7 +443,8 @@ ZTEST(astarte_device_sdk_astarte_data_deserialize,
     astarte_bson_deserializer_element_lookup(full_document, "v", &v_elem);
 
     astarte_data_t data = { 0 };
-    astarte_result_t res = data_deserialize(v_elem, ASTARTE_MAPPING_TYPE_STRINGARRAY, &data);
+    astarte_result_t res
+        = astarte_data_deserialize(v_elem, ASTARTE_MAPPING_TYPE_STRINGARRAY, &data);
     zassert_equal(
         res, ASTARTE_RESULT_BSON_DESERIALIZER_TYPES_ERROR, "%s", astarte_result_to_name(res));
 }

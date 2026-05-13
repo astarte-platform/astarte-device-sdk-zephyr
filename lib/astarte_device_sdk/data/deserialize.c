@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "data_deserialize.h"
+#include "data/deserialize.h"
 
 #include <stdlib.h>
 #include <string.h>
@@ -15,7 +15,8 @@
 #include "mapping_private.h"
 
 #include "log.h"
-ASTARTE_LOG_MODULE_REGISTER(data_deserialize, CONFIG_ASTARTE_DEVICE_SDK_DATA_DESERIALIZE_LOG_LEVEL);
+ASTARTE_LOG_MODULE_REGISTER(
+    astarte_data_deserialize, CONFIG_ASTARTE_DEVICE_SDK_DATA_DESERIALIZE_LOG_LEVEL);
 
 // NOLINENUMBERLINT
 
@@ -171,7 +172,7 @@ static bool check_if_bson_type_is_mapping_type(
  *         Global functions definitions         *
  ***********************************************/
 
-astarte_result_t data_deserialize(
+astarte_result_t astarte_data_deserialize(
     astarte_bson_element_t bson_elem, astarte_mapping_type_t type, astarte_data_t *data)
 {
     astarte_result_t ares = ASTARTE_RESULT_OK;
@@ -208,7 +209,7 @@ astarte_result_t data_deserialize(
     return ares;
 }
 
-void data_destroy_deserialized(astarte_data_t data)
+void astarte_data_destroy_deserialized(astarte_data_t data)
 {
     if (!data.is_owned) {
         return;

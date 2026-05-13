@@ -10,8 +10,8 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "data_deserialize.h"
-#include "data_serialize.h"
+#include "data/deserialize.h"
+#include "data/serialize.h"
 
 #include "log.h"
 ASTARTE_LOG_MODULE_DECLARE(device_storage, CONFIG_ASTARTE_DEVICE_SDK_DEVICE_STORAGE_LOG_LEVEL);
@@ -98,7 +98,7 @@ astarte_result_t astarte_storage_property_store(astarte_storage_data_t *handle,
     if (ares != ASTARTE_RESULT_OK) {
         goto exit;
     }
-    ares = data_serialize(&bson, "data", data);
+    ares = astarte_data_serialize(&bson, "data", data);
     if (ares != ASTARTE_RESULT_OK) {
         goto exit;
     }
@@ -197,7 +197,7 @@ exit:
 
 void astarte_storage_property_destroy_loaded(astarte_data_t data)
 {
-    data_destroy_deserialized(data);
+    astarte_data_destroy_deserialized(data);
 }
 
 astarte_result_t astarte_storage_property_delete(
@@ -464,7 +464,7 @@ static astarte_result_t parse_property_bson(
             ASTARTE_LOG_ERR("Cannot parse BSON element for data.");
             return ares;
         }
-        ares = data_deserialize(data_elem, type, data);
+        ares = astarte_data_deserialize(data_elem, type, data);
         if (ares != ASTARTE_RESULT_OK) {
             ASTARTE_LOG_ERR("Failed in deserializing BSON file.");
             return ares;
