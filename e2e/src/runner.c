@@ -25,7 +25,6 @@
 #include <astarte_device_sdk/object.h>
 #include <astarte_device_sdk/pairing.h>
 #include <astarte_device_sdk/result.h>
-#include <astarte_device_sdk/util.h>
 
 #include "device_handler.h"
 #include "shell_handlers.h"

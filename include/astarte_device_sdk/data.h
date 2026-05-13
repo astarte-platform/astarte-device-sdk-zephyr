@@ -22,10 +22,13 @@
 #include "astarte_device_sdk/astarte.h"
 #include "astarte_device_sdk/mapping.h"
 #include "astarte_device_sdk/result.h"
-#include "astarte_device_sdk/util.h"
 
 /** @private Astarte binary blob type. Do not inspect its content directly. */
-ASTARTE_UTIL_DEFINE_ARRAY(astarte_data_binaryblob_t, void);
+typedef struct
+{
+    const void *buf;
+    size_t len;
+} astarte_data_binaryblob_t;
 
 /** @private Astarte binary blob array type. Do not inspect its content directly. */
 typedef struct
@@ -39,15 +42,39 @@ typedef struct
 } astarte_data_binaryblobarray_t;
 
 /** @private Astarte bool array type. Do not inspect its content directly. */
-ASTARTE_UTIL_DEFINE_ARRAY(astarte_data_booleanarray_t, bool);
+typedef struct
+{
+    const bool *buf;
+    size_t len;
+} astarte_data_booleanarray_t;
+
 /** @private Astarte double array type. Do not inspect its content directly. */
-ASTARTE_UTIL_DEFINE_ARRAY(astarte_data_doublearray_t, double);
+typedef struct
+{
+    const double *buf;
+    size_t len;
+} astarte_data_doublearray_t;
+
 /** @private Astarte integer array type. Do not inspect its content directly. */
-ASTARTE_UTIL_DEFINE_ARRAY(astarte_data_integerarray_t, int32_t);
+typedef struct
+{
+    const int32_t *buf;
+    size_t len;
+} astarte_data_integerarray_t;
+
 /** @private Astarte long integer array type. Do not inspect its content directly. */
-ASTARTE_UTIL_DEFINE_ARRAY(astarte_data_longintegerarray_t, int64_t);
+typedef struct
+{
+    const int64_t *buf;
+    size_t len;
+} astarte_data_longintegerarray_t;
+
 /** @private Astarte string array type. Do not inspect its content directly. */
-ASTARTE_UTIL_DEFINE_ARRAY(astarte_data_stringarray_t, char *);
+typedef struct
+{
+    const char **buf;
+    size_t len;
+} astarte_data_stringarray_t;
 
 /** @private Union grouping all the Astarte data types. Do not inspect its content directly. */
 typedef union
