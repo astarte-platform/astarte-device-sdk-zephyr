@@ -16,6 +16,10 @@
 
 ASTARTE_LOG_MODULE_REGISTER(astarte_interface, CONFIG_ASTARTE_DEVICE_SDK_INTROSPECTION_LOG_LEVEL);
 
+/************************************************
+ *         Global functions definitions         *
+ ***********************************************/
+
 astarte_result_t astarte_interface_validate(const astarte_interface_t *interface)
 {
     if (!interface) {

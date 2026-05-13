@@ -23,8 +23,8 @@
 #include "lib/astarte_device_sdk/object.c"
 #include "object_private.h"
 
-#include "bson_deserializer.h"
-#include "bson_serializer.h"
+#include "bson/deserializer.h"
+#include "bson/serializer.h"
 
 ZTEST_SUITE(astarte_device_sdk_object, NULL, NULL, NULL, NULL, NULL);
 

@@ -15,8 +15,8 @@
 
 #include <zephyr/ztest.h>
 
-#include "bson_deserializer.h"
-#include "lib/astarte_device_sdk/bson_deserializer.c"
+#include "bson/deserializer.h"
+#include "lib/astarte_device_sdk/bson/deserializer.c"
 
 static const uint8_t empty_bson_document[] = { 0x05, 0x00, 0x00, 0x00, 0x00 };
 

@@ -4,12 +4,12 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "bson_deserializer.h"
+#include "bson/deserializer.h"
 
 #include <string.h>
 #include <zephyr/sys/byteorder.h>
 
-#include "bson_types.h"
+#include "bson/types.h"
 #include "log.h"
 
 ASTARTE_LOG_MODULE_REGISTER(bson_deserializer, CONFIG_ASTARTE_DEVICE_SDK_BSON_LOG_LEVEL);

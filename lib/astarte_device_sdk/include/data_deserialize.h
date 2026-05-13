@@ -13,7 +13,7 @@
  */
 #include "astarte_device_sdk/data.h"
 
-#include "bson_deserializer.h"
+#include "bson/deserializer.h"
 
 #ifdef __cplusplus
 extern "C" {

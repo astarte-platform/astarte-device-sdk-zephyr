@@ -24,7 +24,7 @@
 #include "data_deserialize.h"
 #include "lib/astarte_device_sdk/data_deserialize.c"
 
-#include "bson_deserializer.h"
+#include "bson/deserializer.h"
 
 ZTEST_SUITE(astarte_device_sdk_astarte_data_deserialize, NULL, NULL, NULL, NULL, NULL);
 

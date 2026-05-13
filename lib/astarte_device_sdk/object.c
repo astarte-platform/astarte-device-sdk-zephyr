@@ -9,7 +9,7 @@
 
 #include <stdlib.h>
 
-#include "bson_types.h"
+#include "bson/types.h"
 #include "data_deserialize.h"
 #include "data_serialize.h"
 #include "interface_private.h"
@@ -19,7 +19,7 @@
 ASTARTE_LOG_MODULE_REGISTER(astarte_object, CONFIG_ASTARTE_DEVICE_SDK_OBJECT_LOG_LEVEL);
 
 /************************************************
- *     Global public functions definitions      *
+ *         Global functions definitions         *
  ***********************************************/
 
 astarte_object_entry_t astarte_object_entry_new(const char *path, astarte_data_t data)
@@ -41,10 +41,6 @@ astarte_result_t astarte_object_entry_to_path_and_data(
     *data = object_entry.data;
     return ASTARTE_RESULT_OK;
 }
-
-/************************************************
- *     Global private functions definitions     *
- ***********************************************/
 
 astarte_result_t astarte_object_entries_serialize(
     astarte_bson_serializer_t *bson, astarte_object_entry_t *entries, size_t entries_length)

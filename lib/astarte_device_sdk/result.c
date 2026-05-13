@@ -6,6 +6,10 @@
 
 #include "astarte_device_sdk/result.h"
 
+/************************************************
+ *        Defines, constants and typedef        *
+ ***********************************************/
+
 // clang-format off
 #define RES_TBL_IT(res)                                                                            \
     {                                                                                              \
@@ -63,6 +67,10 @@ static const astarte_res_msg_t astarte_res_msg_table[] = {
 };
 
 static const char astarte_unknown_msg[] = "UNKNOWN RESULT CODE";
+
+/************************************************
+ *         Global functions definitions         *
+ ***********************************************/
 
 const char *astarte_result_to_name(astarte_result_t code)
 {

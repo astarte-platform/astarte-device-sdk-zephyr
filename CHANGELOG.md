@@ -115,7 +115,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - The transmission of data to Astarte has been moved outside of the reception callbacks and into a separate thread.
 
 ### Removed
-- BSON serializer utilities from `bson_serializer.h`.
+- BSON serializer utilities from `bson/serializer.h`.
 
 ## [0.5.0-alpha] - 2024-03-08
 ### Added

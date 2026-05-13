@@ -6,7 +6,7 @@
 
 #include "data_serialize.h"
 
-#include "bson_serializer.h"
+#include "bson/serializer.h"
 
 #include "log.h"
 ASTARTE_LOG_MODULE_REGISTER(data_serialize, CONFIG_ASTARTE_DEVICE_SDK_DATA_SERIALIZE_LOG_LEVEL);

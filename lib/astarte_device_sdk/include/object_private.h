@@ -16,8 +16,8 @@
 
 #include "astarte_device_sdk/astarte.h"
 #include "astarte_device_sdk/interface.h"
-#include "bson_deserializer.h"
-#include "bson_serializer.h"
+#include "bson/deserializer.h"
+#include "bson/serializer.h"
 
 #ifdef __cplusplus
 extern "C" {
