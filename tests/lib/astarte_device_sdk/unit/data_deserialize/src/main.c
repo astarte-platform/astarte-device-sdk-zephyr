@@ -22,7 +22,6 @@
 
 #include "astarte_device_sdk/data.h"
 #include "data/deserialize.h"
-#include "lib/astarte_device_sdk/data/deserialize.c"
 
 #include "bson/deserializer.h"
 

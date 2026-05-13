@@ -9,8 +9,7 @@
 #include "bson/serializer.h"
 
 #include "log.h"
-ASTARTE_LOG_MODULE_REGISTER(
-    astarte_data_serialize, CONFIG_ASTARTE_DEVICE_SDK_DATA_SERIALIZE_LOG_LEVEL);
+ASTARTE_LOG_MODULE_REGISTER(data_serialize, CONFIG_ASTARTE_DEVICE_SDK_DATA_LOG_LEVEL);
 
 /************************************************
  *         Global functions definitions         *

@@ -8,7 +8,7 @@
 #define DATA_DESERIALIZE_H
 
 /**
- * @file data/astarte_data_deserialize.h
+ * @file data/deserialize.h
  * @brief Deserialization functions for Astarte data types
  */
 #include "astarte_device_sdk/data.h"

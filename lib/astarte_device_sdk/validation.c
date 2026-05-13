@@ -9,7 +9,7 @@
 #include "mapping_private.h"
 
 #include "log.h"
-ASTARTE_LOG_MODULE_REGISTER(data_validation, CONFIG_ASTARTE_DEVICE_SDK_DATA_VALIDATION_LOG_LEVEL);
+ASTARTE_LOG_MODULE_REGISTER(data_validation, CONFIG_ASTARTE_DEVICE_SDK_VALIDATION_LOG_LEVEL);
 
 /************************************************
  *         Global functions definitions         *

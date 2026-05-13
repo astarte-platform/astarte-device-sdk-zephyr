@@ -20,6 +20,8 @@ target_sources(testbinary PRIVATE
     ${ZEPHYR_BASE}/../astarte-device-sdk-zephyr/lib/astarte_device_sdk/data/core.c
     ${ZEPHYR_BASE}/../astarte-device-sdk-zephyr/lib/astarte_device_sdk/data/serialize.c
     ${ZEPHYR_BASE}/../astarte-device-sdk-zephyr/lib/astarte_device_sdk/data/deserialize.c
+    ${ZEPHYR_BASE}/../astarte-device-sdk-zephyr/lib/astarte_device_sdk/data/deserialize_array.c
+    ${ZEPHYR_BASE}/../astarte-device-sdk-zephyr/lib/astarte_device_sdk/data/deserialize_scalar.c
     ${ZEPHYR_BASE}/../astarte-device-sdk-zephyr/lib/astarte_device_sdk/mapping.c
     ${ZEPHYR_BASE}/../astarte-device-sdk-zephyr/lib/astarte_device_sdk/bson/deserializer.c
     ${ZEPHYR_BASE}/../astarte-device-sdk-zephyr/lib/astarte_device_sdk/bson/serializer.c
