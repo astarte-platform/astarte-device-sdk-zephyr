@@ -88,4 +88,8 @@ astarte_result_t astarte_storage_key_value_entry_read_key(
 astarte_result_t astarte_storage_key_value_entry_check_namespace(
     struct nvs_fs *nvs_fs, uint16_t idx, const char *namespace, bool *matches);
 
+astarte_result_t astarte_storage_key_value_entry_delete(struct nvs_fs *nvs_fs, uint16_t idx);
+astarte_result_t astarte_storage_key_value_entry_get_next_id(
+    struct nvs_fs *nvs_fs, uint16_t idx, uint16_t *next_id);
+
 #endif // STORAGE_KEY_VALUE_PAIR_H

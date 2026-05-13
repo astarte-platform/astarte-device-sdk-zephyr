@@ -22,7 +22,13 @@ ASTARTE_LOG_MODULE_DECLARE(astarte_kv_storage, CONFIG_ASTARTE_DEVICE_SDK_KV_STOR
 
 #define ENTRY_HEADER_NAMESPACE_LEN_BYTES 2
 #define ENTRY_HEADER_KEY_LEN_BYTES 2
-#define ENTRY_HEADER_LENGTHS_BYTES (ENTRY_HEADER_NAMESPACE_LEN_BYTES + ENTRY_HEADER_KEY_LEN_BYTES)
+#define ENTRY_HEADER_NEXT_ID_BYTES 2
+#define ENTRY_HEADER_PREV_ID_BYTES 2
+#define ENTRY_HEADER_LENGTHS_BYTES                                                                 \
+    (ENTRY_HEADER_NAMESPACE_LEN_BYTES + ENTRY_HEADER_KEY_LEN_BYTES + ENTRY_HEADER_NEXT_ID_BYTES    \
+        + ENTRY_HEADER_PREV_ID_BYTES)
+
+#define HEAD_AND_TAIL_ID_POSITION 0xFFFE
 
 /************************************************
  *         Static functions declaration         *
@@ -42,6 +48,13 @@ static uint16_t generate_hash(const char *namespace, const char *key);
 static astarte_result_t check_entry_match(
     struct nvs_fs *nvs_fs, uint16_t curr_id, const char *namespace, const char *key);
 
+static void read_head_and_tail_ids(struct nvs_fs *nvs_fs, uint16_t *head_id, uint16_t *tail_id);
+static void write_head_and_tail_ids(struct nvs_fs *nvs_fs, uint16_t head_id, uint16_t tail_id);
+static astarte_result_t update_entry_next_id(
+    struct nvs_fs *nvs_fs, uint16_t idx, uint16_t new_next);
+static astarte_result_t update_entry_prev_id(
+    struct nvs_fs *nvs_fs, uint16_t idx, uint16_t new_prev);
+
 /************************************************
  *         Global functions definitions         *
  ***********************************************/
@@ -56,7 +69,7 @@ astarte_result_t astarte_storage_key_value_entry_find_or_alloc(
     size_t key_len = strlen(key);
 
     do {
-        // Read the first 4 bytes to get the namespace and key lengths
+        // Read lengths including new linkage IDs
         uint16_t lengths[ENTRY_HEADER_LENGTHS_BYTES / sizeof(uint16_t)] = { 0 };
         ssize_t ret = nvs_read(nvs_fs, curr_id, lengths, ENTRY_HEADER_LENGTHS_BYTES);
 
@@ -113,6 +126,35 @@ astarte_result_t astarte_storage_key_value_entry_write(struct nvs_fs *nvs_fs, ui
     uint16_t key_len = strlen(key);
     size_t payload_size = ENTRY_HEADER_LENGTHS_BYTES + nsp_len + key_len + value_size;
 
+    // Find the next and previous IDs if the entry already exists to maintain list integrity.
+    // Otherwise, these will be set to link the new entry at the end of the list.
+    uint16_t next_id = 0;
+    uint16_t prev_id = 0;
+
+    uint16_t lengths[ENTRY_HEADER_LENGTHS_BYTES / sizeof(uint16_t)] = { 0 };
+    ssize_t ret = nvs_read(nvs_fs, idx, lengths, sizeof(lengths));
+    if (ret == -ENOENT) {
+        uint16_t head_id = 0;
+        uint16_t tail_id = 0;
+        read_head_and_tail_ids(nvs_fs, &head_id, &tail_id);
+
+        prev_id = tail_id;
+        next_id = 0;
+
+        if (tail_id != 0) {
+            update_entry_next_id(nvs_fs, tail_id, idx);
+        } else {
+            head_id = idx;
+        }
+        tail_id = idx;
+        write_head_and_tail_ids(nvs_fs, head_id, tail_id);
+    } else if (ret >= 0) {
+        next_id = lengths[2];
+        prev_id = lengths[3];
+    } else {
+        return ASTARTE_RESULT_NVS_ERROR;
+    }
+
     payload = k_calloc(payload_size, sizeof(uint8_t));
     if (!payload) {
         ASTARTE_LOG_ERR("Out of memory %s: %d", __FILE__, __LINE__);
@@ -122,6 +164,12 @@ astarte_result_t astarte_storage_key_value_entry_write(struct nvs_fs *nvs_fs, ui
 
     memcpy(payload, &nsp_len, ENTRY_HEADER_NAMESPACE_LEN_BYTES);
     memcpy(payload + ENTRY_HEADER_NAMESPACE_LEN_BYTES, &key_len, ENTRY_HEADER_KEY_LEN_BYTES);
+    memcpy(payload + ENTRY_HEADER_NAMESPACE_LEN_BYTES + ENTRY_HEADER_KEY_LEN_BYTES, &next_id,
+        ENTRY_HEADER_NEXT_ID_BYTES);
+    memcpy(payload + ENTRY_HEADER_NAMESPACE_LEN_BYTES + ENTRY_HEADER_KEY_LEN_BYTES
+            + ENTRY_HEADER_NEXT_ID_BYTES,
+        &prev_id, ENTRY_HEADER_PREV_ID_BYTES);
+
     // NOLINTNEXTLINE(bugprone-not-null-terminated-result)
     memcpy(payload + ENTRY_HEADER_LENGTHS_BYTES, namespace, nsp_len);
     // NOLINTNEXTLINE(bugprone-not-null-terminated-result)
@@ -131,8 +179,7 @@ astarte_result_t astarte_storage_key_value_entry_write(struct nvs_fs *nvs_fs, ui
         memcpy(payload + ENTRY_HEADER_LENGTHS_BYTES + nsp_len + key_len, value, value_size);
     }
 
-    // Atomic NVS write mapping guarantees safety on sudden power cycles
-    ssize_t ret = nvs_write(nvs_fs, idx, payload, payload_size);
+    ret = nvs_write(nvs_fs, idx, payload, payload_size);
     if (ret < 0) {
         ASTARTE_LOG_ERR("Error writing to NVS at ID %d, error: %d", idx, ret);
         ares = ASTARTE_RESULT_NVS_ERROR;
@@ -313,9 +360,125 @@ exit:
     return ares;
 }
 
+astarte_result_t astarte_storage_key_value_entry_delete(struct nvs_fs *nvs_fs, uint16_t idx)
+{
+    uint16_t lengths[ENTRY_HEADER_LENGTHS_BYTES / sizeof(uint16_t)] = { 0 };
+    ssize_t ret = nvs_read(nvs_fs, idx, lengths, sizeof(lengths));
+    if (ret < 0) {
+        return ASTARTE_RESULT_NVS_ERROR;
+    }
+
+    uint16_t next_id = lengths[2];
+    uint16_t prev_id = lengths[3];
+
+    uint16_t head_id = 0;
+    uint16_t tail_id = 0;
+    read_head_and_tail_ids(nvs_fs, &head_id, &tail_id);
+
+    if (prev_id != 0) {
+        update_entry_next_id(nvs_fs, prev_id, next_id);
+    } else {
+        head_id = next_id;
+    }
+
+    if (next_id != 0) {
+        update_entry_prev_id(nvs_fs, next_id, prev_id);
+    } else {
+        tail_id = prev_id;
+    }
+
+    write_head_and_tail_ids(nvs_fs, head_id, tail_id);
+
+    ret = nvs_delete(nvs_fs, idx);
+    if (ret < 0 && ret != -ENOENT) {
+        return ASTARTE_RESULT_NVS_ERROR;
+    }
+
+    return ASTARTE_RESULT_OK;
+}
+
+astarte_result_t astarte_storage_key_value_entry_get_next_id(
+    struct nvs_fs *nvs_fs, uint16_t idx, uint16_t *next_id)
+{
+    if (idx == 0) {
+        uint16_t head_id = 0;
+        uint16_t tail_id = 0;
+        read_head_and_tail_ids(nvs_fs, &head_id, &tail_id);
+        *next_id = head_id;
+        return ASTARTE_RESULT_OK;
+    }
+
+    uint16_t lengths[ENTRY_HEADER_LENGTHS_BYTES / sizeof(uint16_t)] = { 0 };
+    ssize_t ret = nvs_read(nvs_fs, idx, lengths, sizeof(lengths));
+    if (ret < 0) {
+        return ASTARTE_RESULT_NVS_ERROR;
+    }
+    *next_id = lengths[2];
+    return ASTARTE_RESULT_OK;
+}
+
 /************************************************
  *         Static functions definitions         *
  ***********************************************/
+
+static void read_head_and_tail_ids(struct nvs_fs *nvs_fs, uint16_t *head_id, uint16_t *tail_id)
+{
+    uint16_t ids[2] = { 0 };
+    ssize_t ret = nvs_read(nvs_fs, HEAD_AND_TAIL_ID_POSITION, ids, sizeof(ids));
+    if (ret < 0) {
+        *head_id = 0;
+        *tail_id = 0;
+    } else {
+        *head_id = ids[0];
+        *tail_id = ids[1];
+    }
+}
+
+static void write_head_and_tail_ids(struct nvs_fs *nvs_fs, uint16_t head_id, uint16_t tail_id)
+{
+    uint16_t ids[2] = { head_id, tail_id };
+    nvs_write(nvs_fs, HEAD_AND_TAIL_ID_POSITION, ids, sizeof(ids));
+}
+
+static astarte_result_t update_entry_next_id(struct nvs_fs *nvs_fs, uint16_t idx, uint16_t new_next)
+{
+    ssize_t total_size = nvs_read(nvs_fs, idx, NULL, 0);
+    if (total_size <= 0) {
+        return ASTARTE_RESULT_NVS_ERROR;
+    }
+
+    uint8_t *buf = k_calloc(total_size, 1);
+    if (!buf) {
+        return ASTARTE_RESULT_OUT_OF_MEMORY;
+    }
+
+    nvs_read(nvs_fs, idx, buf, total_size);
+    ((uint16_t *) buf)[2] = new_next;
+    nvs_write(nvs_fs, idx, buf, total_size);
+
+    k_free(buf);
+    return ASTARTE_RESULT_OK;
+}
+
+static astarte_result_t update_entry_prev_id(struct nvs_fs *nvs_fs, uint16_t idx, uint16_t new_prev)
+{
+    ssize_t total_size = nvs_read(nvs_fs, idx, NULL, 0);
+    if (total_size <= 0) {
+        return ASTARTE_RESULT_NVS_ERROR;
+    }
+
+    uint8_t *buf = k_calloc(total_size, 1);
+    if (!buf) {
+        return ASTARTE_RESULT_OUT_OF_MEMORY;
+    }
+
+    nvs_read(nvs_fs, idx, buf, total_size);
+    ((uint16_t *) buf)[3] = new_prev;
+    nvs_write(nvs_fs, idx, buf, total_size);
+
+    k_free(buf);
+    return ASTARTE_RESULT_OK;
+}
 
 static uint16_t generate_hash(const char *namespace, const char *key)
 {
@@ -323,8 +486,8 @@ static uint16_t generate_hash(const char *namespace, const char *key)
     crc = crc16_ccitt(crc, (const uint8_t *) namespace, strlen(namespace));
     crc = crc16_ccitt(crc, (const uint8_t *) key, strlen(key));
 
-    // Fallbacks to avoid invalid Zephyr NVS IDs
-    if (crc == UINT16_MAX || crc == 0) {
+    // Fallbacks to avoid invalid Zephyr NVS IDs or our reserved list ptrs block (0xFFFE)
+    if (crc == UINT16_MAX || crc == 0 || crc == HEAD_AND_TAIL_ID_POSITION) {
         crc = 1;
     }
     return crc;

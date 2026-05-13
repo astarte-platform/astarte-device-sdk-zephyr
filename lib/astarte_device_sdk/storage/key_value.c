@@ -182,10 +182,9 @@ astarte_result_t astarte_storage_key_value_delete(
         goto exit;
     }
 
-    ssize_t ret = nvs_delete(kv_storage->nvs_fs, entry_id);
-    if (ret < 0 && ret != -ENOENT) {
-        ares = ASTARTE_RESULT_NVS_ERROR;
-        ASTARTE_LOG_ERR("NVS Delete Error: %d.", (int) ret);
+    ares = astarte_storage_key_value_entry_delete(kv_storage->nvs_fs, entry_id);
+    if (ares != ASTARTE_RESULT_OK) {
+        ASTARTE_LOG_ERR("NVS Delete Error: %s.", astarte_result_to_name(ares));
     }
 
 exit:
@@ -199,7 +198,7 @@ exit:
 astarte_result_t astarte_storage_key_value_iterator_init(
     astarte_storage_key_value_t *kv_storage, astarte_storage_key_value_iter_t *iter)
 {
-    // ID 0 is a reserved starting point for the iterator
+    // ID 0 is a reserved starting point for the linked list iterator
     iter->kv_storage = kv_storage;
     iter->current_id = 0;
     return astarte_storage_key_value_iterator_next(iter);
@@ -214,18 +213,29 @@ astarte_result_t astarte_storage_key_value_iterator_next(astarte_storage_key_val
     ASTARTE_LOG_COND_ERR(mutex_rc != 0, "System mutex lock failed with %d", mutex_rc);
     __ASSERT_NO_MSG(mutex_rc == 0);
 
-    for (uint32_t idx = iter->current_id + 1; idx < UINT16_MAX; idx++) {
+    uint16_t curr_id = iter->current_id;
+
+    while (true) {
+        uint16_t next_id = 0;
+        ares = astarte_storage_key_value_entry_get_next_id(
+            iter->kv_storage->nvs_fs, curr_id, &next_id);
+
+        if (ares != ASTARTE_RESULT_OK || next_id == 0) {
+            ASTARTE_LOG_DBG("Iterator reached the end.");
+            ares = ASTARTE_RESULT_NOT_FOUND;
+            break;
+        }
+
         ares = astarte_storage_key_value_entry_check_namespace(
-            iter->kv_storage->nvs_fs, (uint16_t) idx, iter->kv_storage->namespace, &matches);
+            iter->kv_storage->nvs_fs, next_id, iter->kv_storage->namespace, &matches);
 
         if (ares == ASTARTE_RESULT_OK && matches) {
-            iter->current_id = (uint16_t) idx;
+            iter->current_id = next_id;
             goto exit;
         }
-    }
 
-    ASTARTE_LOG_DBG("Iterator reached the end.");
-    ares = ASTARTE_RESULT_NOT_FOUND;
+        curr_id = next_id;
+    }
 
 exit:
     mutex_rc = sys_mutex_unlock(&astarte_storage_key_value_mutex);

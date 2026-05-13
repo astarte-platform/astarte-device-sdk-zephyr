@@ -472,11 +472,11 @@ ZTEST_F(astarte_device_sdk_storage_key_value,
     value_size = 0U;
     ret = astarte_storage_key_value_iterator_get(&iter, NULL, &value_size);
     zassert_equal(ret, ASTARTE_RESULT_OK, "Res:%s", astarte_result_to_name(ret));
-    zassert_equal(value_size, ARRAY_SIZE(key4), "Incorrect value size:%s", value_size);
-    ret = astarte_storage_key_value_iterator_get(&iter, res_key4, &value_size);
+    zassert_equal(value_size, ARRAY_SIZE(key1), "Incorrect value size:%s", value_size);
+    ret = astarte_storage_key_value_iterator_get(&iter, res_key1, &value_size);
     zassert_equal(ret, ASTARTE_RESULT_OK, "Res:%s", astarte_result_to_name(ret));
-    zassert_equal(value_size, ARRAY_SIZE(key4), "Incorrect value size:%s", value_size);
-    zassert_mem_equal(res_key4, key4, ARRAY_SIZE(key4), "Mismatched values.");
+    zassert_equal(value_size, ARRAY_SIZE(key1), "Incorrect value size:%s", value_size);
+    zassert_mem_equal(res_key1, key1, ARRAY_SIZE(key1), "Mismatched values.");
 
     ret = astarte_storage_key_value_iterator_next(&iter);
     zassert_equal(ret, ASTARTE_RESULT_OK, "Res:%s", astarte_result_to_name(ret));
@@ -496,11 +496,11 @@ ZTEST_F(astarte_device_sdk_storage_key_value,
     value_size = 0U;
     ret = astarte_storage_key_value_iterator_get(&iter, NULL, &value_size);
     zassert_equal(ret, ASTARTE_RESULT_OK, "Res:%s", astarte_result_to_name(ret));
-    zassert_equal(value_size, ARRAY_SIZE(key1), "Incorrect value size:%s", value_size);
-    ret = astarte_storage_key_value_iterator_get(&iter, res_key1, &value_size);
+    zassert_equal(value_size, ARRAY_SIZE(key4), "Incorrect value size:%s", value_size);
+    ret = astarte_storage_key_value_iterator_get(&iter, res_key4, &value_size);
     zassert_equal(ret, ASTARTE_RESULT_OK, "Res:%s", astarte_result_to_name(ret));
-    zassert_equal(value_size, ARRAY_SIZE(key1), "Incorrect value size:%s", value_size);
-    zassert_mem_equal(res_key1, key1, ARRAY_SIZE(key1), "Mismatched values.");
+    zassert_equal(value_size, ARRAY_SIZE(key4), "Incorrect value size:%s", value_size);
+    zassert_mem_equal(res_key4, key4, ARRAY_SIZE(key4), "Mismatched values.");
 
     ret = astarte_storage_key_value_iterator_next(&iter);
     zassert_equal(ret, ASTARTE_RESULT_NOT_FOUND, "Res:%s", astarte_result_to_name(ret));
