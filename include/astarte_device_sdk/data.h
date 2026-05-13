@@ -135,53 +135,53 @@ extern "C" {
 /**
  * @brief Initialize an astarte data from the input binaryblob.
  *
- * @param[in] binaryblob Input type that will be inserted in the #astarte_data_t.
+ * @param[in] buf Input type that will be inserted in the #astarte_data_t.
  * @param[in] len The length of the input array.
  * @return The astarte data that wraps the binaryblob input.
  */
-astarte_data_t astarte_data_from_binaryblob(const void *binaryblob, size_t len);
+astarte_data_t astarte_data_from_binaryblob(const void *buf, size_t len);
 /**
  * @brief Initialize an astarte data from the input boolean.
  *
- * @param[in] boolean Input type that will be inserted in the #astarte_data_t.
+ * @param[in] val Input type that will be inserted in the #astarte_data_t.
  * @return The astarte data that wraps the boolean input.
  */
-astarte_data_t astarte_data_from_boolean(bool boolean);
+astarte_data_t astarte_data_from_boolean(bool val);
 /**
  * @brief Initialize an astarte data from the input datetime.
  *
- * @param[in] datetime Input type that will be inserted in the #astarte_data_t.
+ * @param[in] val Input type that will be inserted in the #astarte_data_t.
  * @return The astarte data that wraps the datetime input.
  */
-astarte_data_t astarte_data_from_datetime(int64_t datetime);
+astarte_data_t astarte_data_from_datetime(int64_t val);
 /**
  * @brief Initialize an astarte data from the input double.
  *
- * @param[in] dbl Input type that will be inserted in the #astarte_data_t.
+ * @param[in] val Input type that will be inserted in the #astarte_data_t.
  * @return The astarte data that wraps the double input.
  */
-astarte_data_t astarte_data_from_double(double dbl);
+astarte_data_t astarte_data_from_double(double val);
 /**
  * @brief Initialize an astarte data from the input integer.
  *
- * @param[in] integer Input type that will be inserted in the #astarte_data_t.
+ * @param[in] val Input type that will be inserted in the #astarte_data_t.
  * @return The astarte data that wraps the integer input.
  */
-astarte_data_t astarte_data_from_integer(int32_t integer);
+astarte_data_t astarte_data_from_integer(int32_t val);
 /**
  * @brief Initialize an astarte data from the input longinteger.
  *
- * @param[in] longinteger Input type that will be inserted in the #astarte_data_t.
+ * @param[in] val Input type that will be inserted in the #astarte_data_t.
  * @return The astarte data that wraps the longinteger input.
  */
-astarte_data_t astarte_data_from_longinteger(int64_t longinteger);
+astarte_data_t astarte_data_from_longinteger(int64_t val);
 /**
  * @brief Initialize an astarte data from the input string.
  *
- * @param[in] string Input type that will be inserted in the #astarte_data_t.
+ * @param[in] val Input type that will be inserted in the #astarte_data_t.
  * @return The astarte data that wraps the string input.
  */
-astarte_data_t astarte_data_from_string(const char *string);
+astarte_data_t astarte_data_from_string(const char *val);
 
 /**
  * @brief Initialize an astarte data from the input binaryblob array.
@@ -197,51 +197,51 @@ astarte_data_t astarte_data_from_binaryblob_array(const void **blobs, size_t *si
 /**
  * @brief Initialize an astarte data from the input boolean array.
  *
- * @param[in] boolean_array Input type that will be inserted in the #astarte_data_t.
+ * @param[in] buf Input type that will be inserted in the #astarte_data_t.
  * @param[in] len The length of the input array.
  * @return The astarte data that wraps the boolean array input.
  */
-astarte_data_t astarte_data_from_boolean_array(const bool *boolean_array, size_t len);
+astarte_data_t astarte_data_from_boolean_array(const bool *buf, size_t len);
 /**
  * @brief Initialize an astarte data from the input datetime array.
  *
- * @param[in] datetime_array Input type that will be inserted in the #astarte_data_t.
+ * @param[in] buf Input type that will be inserted in the #astarte_data_t.
  * @param[in] len The length of the input array.
  * @return The astarte data that wraps the datetime array input.
  */
-astarte_data_t astarte_data_from_datetime_array(const int64_t *datetime_array, size_t len);
+astarte_data_t astarte_data_from_datetime_array(const int64_t *buf, size_t len);
 /**
  * @brief Initialize an astarte data from the input double array.
  *
- * @param[in] double_array Input type that will be inserted in the #astarte_data_t.
+ * @param[in] buf Input type that will be inserted in the #astarte_data_t.
  * @param[in] len The length of the input array.
  * @return The astarte data that wraps the double array input.
  */
-astarte_data_t astarte_data_from_double_array(const double *double_array, size_t len);
+astarte_data_t astarte_data_from_double_array(const double *buf, size_t len);
 /**
  * @brief Initialize an astarte data from the input integer array.
  *
- * @param[in] integer_array Input type that will be inserted in the #astarte_data_t.
+ * @param[in] buf Input type that will be inserted in the #astarte_data_t.
  * @param[in] len The length of the input array.
  * @return The astarte data that wraps the integer array input.
  */
-astarte_data_t astarte_data_from_integer_array(const int32_t *integer_array, size_t len);
+astarte_data_t astarte_data_from_integer_array(const int32_t *buf, size_t len);
 /**
  * @brief Initialize an astarte data from the input longinteger array.
  *
- * @param[in] longinteger_array Input type that will be inserted in the #astarte_data_t.
+ * @param[in] buf Input type that will be inserted in the #astarte_data_t.
  * @param[in] len The length of the input array.
  * @return The astarte data that wraps the longinteger array input.
  */
-astarte_data_t astarte_data_from_longinteger_array(const int64_t *longinteger_array, size_t len);
+astarte_data_t astarte_data_from_longinteger_array(const int64_t *buf, size_t len);
 /**
  * @brief Initialize an astarte data from the input string array.
  *
- * @param[in] string_array Input type that will be inserted in the #astarte_data_t.
+ * @param[in] buf Input type that will be inserted in the #astarte_data_t.
  * @param[in] len The length of the input array.
  * @return The astarte data that wraps the string array input.
  */
-astarte_data_t astarte_data_from_string_array(const char **string_array, size_t len);
+astarte_data_t astarte_data_from_string_array(const char **buf, size_t len);
 
 /**
  * @brief Get the type of Astarte data.
@@ -255,60 +255,59 @@ astarte_mapping_type_t astarte_data_get_type(astarte_data_t data);
  * @brief Convert Astarte data (of the binary blob type) to an array of binary blobs.
  *
  * @param[in] data Astarte data to use for the extraction.
- * @param[out] binaryblob Array extracted.
+ * @param[out] buf Array extracted.
  * @param[out] len Size of extracted array.
  * @return ASTARTE_RESULT_OK if the conversion was successful, an error otherwise.
  */
-astarte_result_t astarte_data_to_binaryblob(
-    astarte_data_t data, const void **binaryblob, size_t *len);
+astarte_result_t astarte_data_to_binaryblob(astarte_data_t data, const void **buf, size_t *len);
 /**
  * @brief Convert Astarte data (of the boolean type) to a bool.
  *
  * @param[in] data Astarte data to use for the extraction.
- * @param[out] boolean Extracted data.
+ * @param[out] val Extracted data.
  * @return ASTARTE_RESULT_OK if the conversion was successful, an error otherwise.
  */
-astarte_result_t astarte_data_to_boolean(astarte_data_t data, bool *boolean);
+astarte_result_t astarte_data_to_boolean(astarte_data_t data, bool *val);
 /**
  * @brief Convert Astarte data (of the datetime type) to an int64_t.
  *
  * @param[in] data Astarte data to use for the extraction.
- * @param[out] datetime Extracted data.
+ * @param[out] val Extracted data.
  * @return ASTARTE_RESULT_OK if the conversion was successful, an error otherwise.
  */
-astarte_result_t astarte_data_to_datetime(astarte_data_t data, int64_t *datetime);
+astarte_result_t astarte_data_to_datetime(astarte_data_t data, int64_t *val);
 /**
  * @brief Convert Astarte data (of double type) to a double.
  *
  * @param[in] data Astarte data to use for the extraction.
- * @param[out] dbl Double where to store the extracted data.
+ * @param[out] val Double where to store the extracted data.
  * @return ASTARTE_RESULT_OK if the conversion was successful, an error otherwise.
  */
-astarte_result_t astarte_data_to_double(astarte_data_t data, double *dbl);
+astarte_result_t astarte_data_to_double(astarte_data_t data, double *val);
 /**
  * @brief Convert Astarte data (of the integer type) to an int32_t.
  *
  * @param[in] data Astarte data to use for the extraction.
- * @param[out] integer Extracted data.
+ * @param[out] val Extracted data.
  * @return ASTARTE_RESULT_OK if the conversion was successful, an error otherwise.
  */
-astarte_result_t astarte_data_to_integer(astarte_data_t data, int32_t *integer);
+astarte_result_t astarte_data_to_integer(astarte_data_t data, int32_t *val);
 /**
  * @brief Convert Astarte data (of the long integer type) to an int64_t.
  *
  * @param[in] data Astarte data to use for the extraction.
- * @param[out] longinteger Extracted data.
+ * @param[out] val Extracted data.
  * @return ASTARTE_RESULT_OK if the conversion was successful, an error otherwise.
  */
-astarte_result_t astarte_data_to_longinteger(astarte_data_t data, int64_t *longinteger);
+astarte_result_t astarte_data_to_longinteger(astarte_data_t data, int64_t *val);
 /**
  * @brief Convert Astarte data (of the string type) to a const char *.
  *
  * @param[in] data Astarte data to use for the extraction.
- * @param[out] string Extracted data.
+ * @param[out] val Extracted data.
  * @return ASTARTE_RESULT_OK if the conversion was successful, an error otherwise.
  */
-astarte_result_t astarte_data_to_string(astarte_data_t data, const char **string);
+astarte_result_t astarte_data_to_string(astarte_data_t data, const char **val);
 
 /**
  * @brief Convert Astarte data (of binaryblob array type) to an array of binaryblob arrays.
@@ -325,62 +324,59 @@ astarte_result_t astarte_data_to_binaryblob_array(
  * @brief Convert Astarte data (of boolean array type) to a bool array.
  *
  * @param[in] data Astarte data to use for the extraction.
- * @param[out] boolean_array Array extracted.
+ * @param[out] buf Array extracted.
  * @param[out] len Size of extracted array.
  * @return ASTARTE_RESULT_OK if the conversion was successful, an error otherwise.
  */
-astarte_result_t astarte_data_to_boolean_array(
-    astarte_data_t data, const bool **boolean_array, size_t *len);
+astarte_result_t astarte_data_to_boolean_array(astarte_data_t data, const bool **buf, size_t *len);
 /**
  * @brief Convert Astarte data (of datetime array type) to an int64_t array.
  *
  * @param[in] data Astarte data to use for the extraction.
- * @param[out] datetime_array Array extracted.
+ * @param[out] buf Array extracted.
  * @param[out] len Size of extracted array.
  * @return ASTARTE_RESULT_OK if the conversion was successful, an error otherwise.
  */
 astarte_result_t astarte_data_to_datetime_array(
-    astarte_data_t data, const int64_t **datetime_array, size_t *len);
+    astarte_data_t data, const int64_t **buf, size_t *len);
 /**
  * @brief Convert Astarte data (of double array type) to a double array.
  *
  * @param[in] data Astarte data to use for the extraction.
- * @param[out] double_array Array extracted.
+ * @param[out] buf Array extracted.
  * @param[out] len Size of extracted array.
  * @return ASTARTE_RESULT_OK if the conversion was successful, an error otherwise.
  */
-astarte_result_t astarte_data_to_double_array(
-    astarte_data_t data, const double **double_array, size_t *len);
+astarte_result_t astarte_data_to_double_array(astarte_data_t data, const double **buf, size_t *len);
 /**
  * @brief Convert Astarte data (of integer array type) to an int32_t array.
  *
  * @param[in] data Astarte data to use for the extraction.
- * @param[out] integer_array Array extracted.
+ * @param[out] buf Array extracted.
  * @param[out] len Size of extracted array.
  * @return ASTARTE_RESULT_OK if the conversion was successful, an error otherwise.
  */
 astarte_result_t astarte_data_to_integer_array(
-    astarte_data_t data, const int32_t **integer_array, size_t *len);
+    astarte_data_t data, const int32_t **buf, size_t *len);
 /**
  * @brief Convert Astarte data (of longinteger array type) to an int64_t array.
  *
  * @param[in] data Astarte data to use for the extraction.
- * @param[out] longinteger_array Array extracted.
+ * @param[out] buf Array extracted.
  * @param[out] len Size of extracted array.
  * @return ASTARTE_RESULT_OK if the conversion was successful, an error otherwise.
  */
 astarte_result_t astarte_data_to_longinteger_array(
-    astarte_data_t data, const int64_t **longinteger_array, size_t *len);
+    astarte_data_t data, const int64_t **buf, size_t *len);
 /**
  * @brief Convert Astarte data (of string type) to a const char* array.
  *
  * @param[in] data Astarte data to use for the extraction.
- * @param[out] string_array Array extracted.
+ * @param[out] buf Array extracted.
  * @param[out] len Size of extracted array.
  * @return ASTARTE_RESULT_OK if the conversion was successful, an error otherwise.
  */
-astarte_result_t astarte_data_to_string_array(
-    astarte_data_t data, const char ***string_array, size_t *len);
+astarte_result_t astarte_data_to_string_array(astarte_data_t data, const char ***buf, size_t *len);
 
 #ifdef __cplusplus
 }
