@@ -576,60 +576,79 @@ ZTEST_F(astarte_device_sdk_storage_key_value,
     ret = astarte_storage_key_value_insert(&kv_astarte_storage_2, key5, value5, ARRAY_SIZE(value5));
     zassert_equal(ret, ASTARTE_RESULT_OK, "Res:%s", astarte_result_to_name(ret));
 
-    // Iterate over first storage
+    // Iterate over first storage dynamically
     astarte_storage_key_value_iter_t iter_1 = { 0 };
     ret = astarte_storage_key_value_iterator_init(&kv_astarte_storage_1, &iter_1);
     zassert_equal(ret, ASTARTE_RESULT_OK, "Res:%s", astarte_result_to_name(ret));
 
-    value_size = ARRAY_SIZE(res_key4);
-    ret = astarte_storage_key_value_iterator_get(&iter_1, res_key4, &value_size);
-    zassert_equal(ret, ASTARTE_RESULT_OK, "Res:%s", astarte_result_to_name(ret));
-    zassert_equal(value_size, ARRAY_SIZE(key4), "Incorrect value size:%s", value_size);
-    zassert_mem_equal(res_key4, key4, ARRAY_SIZE(key4), "Mismatched values", res_key4);
+    bool found_key1 = false;
+    bool found_key4 = false;
 
-    ret = astarte_storage_key_value_iterator_next(&iter_1);
-    zassert_equal(ret, ASTARTE_RESULT_OK, "Res:%s", astarte_result_to_name(ret));
+    while (ret == ASTARTE_RESULT_OK) {
+        value_size = 0;
+        ret = astarte_storage_key_value_iterator_get(&iter_1, NULL, &value_size);
+        zassert_equal(ret, ASTARTE_RESULT_OK, "Res:%s", astarte_result_to_name(ret));
 
-    value_size = ARRAY_SIZE(res_key1);
-    ret = astarte_storage_key_value_iterator_get(&iter_1, res_key1, &value_size);
-    zassert_equal(ret, ASTARTE_RESULT_OK, "Res:%s", astarte_result_to_name(ret));
-    zassert_equal(value_size, ARRAY_SIZE(key1), "Incorrect value size:%s", value_size);
-    zassert_mem_equal(res_key1, key1, ARRAY_SIZE(key1), "Mismatched values", res_key1);
+        char *dynamic_key = calloc(value_size, sizeof(char));
+        zassert_not_null(dynamic_key, "Failed to allocate memory for key");
 
-    ret = astarte_storage_key_value_iterator_next(&iter_1);
+        ret = astarte_storage_key_value_iterator_get(&iter_1, dynamic_key, &value_size);
+        zassert_equal(ret, ASTARTE_RESULT_OK, "Res:%s", astarte_result_to_name(ret));
+
+        if (strcmp(dynamic_key, key1) == 0) {
+            found_key1 = true;
+        } else if (strcmp(dynamic_key, key4) == 0) {
+            found_key4 = true;
+        } else {
+            zassert_unreachable("Unexpected key found during iteration: %s", dynamic_key);
+        }
+
+        free(dynamic_key);
+        ret = astarte_storage_key_value_iterator_next(&iter_1);
+    }
+
     zassert_equal(ret, ASTARTE_RESULT_NOT_FOUND, "Res:%s", astarte_result_to_name(ret));
+    zassert_true(found_key1, "key1 was not found during iteration");
+    zassert_true(found_key4, "key4 was not found during iteration");
 
-    // Iterate over second storage
+    // Iterate over second storage dynamically
     astarte_storage_key_value_iter_t iter_2 = { 0 };
     ret = astarte_storage_key_value_iterator_init(&kv_astarte_storage_2, &iter_2);
     zassert_equal(ret, ASTARTE_RESULT_OK, "Res:%s", astarte_result_to_name(ret));
 
-    value_size = ARRAY_SIZE(res_key5);
-    ret = astarte_storage_key_value_iterator_get(&iter_2, res_key5, &value_size);
-    zassert_equal(ret, ASTARTE_RESULT_OK, "Res:%s", astarte_result_to_name(ret));
-    zassert_equal(value_size, ARRAY_SIZE(key5), "Incorrect value size:%s", value_size);
-    zassert_mem_equal(res_key5, key5, ARRAY_SIZE(key5), "Mismatched values", res_key5);
+    bool found_key2 = false;
+    bool found_key3 = false;
+    bool found_key5 = false;
 
-    ret = astarte_storage_key_value_iterator_next(&iter_2);
-    zassert_equal(ret, ASTARTE_RESULT_OK, "Res:%s", astarte_result_to_name(ret));
+    while (ret == ASTARTE_RESULT_OK) {
+        value_size = 0;
+        ret = astarte_storage_key_value_iterator_get(&iter_2, NULL, &value_size);
+        zassert_equal(ret, ASTARTE_RESULT_OK, "Res:%s", astarte_result_to_name(ret));
 
-    value_size = ARRAY_SIZE(res_key3);
-    ret = astarte_storage_key_value_iterator_get(&iter_2, res_key3, &value_size);
-    zassert_equal(ret, ASTARTE_RESULT_OK, "Res:%s", astarte_result_to_name(ret));
-    zassert_equal(value_size, ARRAY_SIZE(key3), "Incorrect value size:%s", value_size);
-    zassert_mem_equal(res_key3, key3, ARRAY_SIZE(key3), "Mismatched values", res_key3);
+        char *dynamic_key = calloc(value_size, sizeof(char));
+        zassert_not_null(dynamic_key, "Failed to allocate memory for key");
 
-    ret = astarte_storage_key_value_iterator_next(&iter_2);
-    zassert_equal(ret, ASTARTE_RESULT_OK, "Res:%s", astarte_result_to_name(ret));
+        ret = astarte_storage_key_value_iterator_get(&iter_2, dynamic_key, &value_size);
+        zassert_equal(ret, ASTARTE_RESULT_OK, "Res:%s", astarte_result_to_name(ret));
 
-    value_size = ARRAY_SIZE(res_key2);
-    ret = astarte_storage_key_value_iterator_get(&iter_2, res_key2, &value_size);
-    zassert_equal(ret, ASTARTE_RESULT_OK, "Res:%s", astarte_result_to_name(ret));
-    zassert_equal(value_size, ARRAY_SIZE(key2), "Incorrect value size:%s", value_size);
-    zassert_mem_equal(res_key2, key2, ARRAY_SIZE(key2), "Mismatched values", res_key2);
+        if (strcmp(dynamic_key, key2) == 0) {
+            found_key2 = true;
+        } else if (strcmp(dynamic_key, key3) == 0) {
+            found_key3 = true;
+        } else if (strcmp(dynamic_key, key5) == 0) {
+            found_key5 = true;
+        } else {
+            zassert_unreachable("Unexpected key found during iteration: %s", dynamic_key);
+        }
 
-    ret = astarte_storage_key_value_iterator_next(&iter_2);
+        free(dynamic_key);
+        ret = astarte_storage_key_value_iterator_next(&iter_2);
+    }
+
     zassert_equal(ret, ASTARTE_RESULT_NOT_FOUND, "Res:%s", astarte_result_to_name(ret));
+    zassert_true(found_key2, "key2 was not found during iteration");
+    zassert_true(found_key3, "key3 was not found during iteration");
+    zassert_true(found_key5, "key5 was not found during iteration");
 
     astarte_storage_key_value_destroy(&kv_astarte_storage_1);
     astarte_storage_key_value_destroy(&kv_astarte_storage_2);

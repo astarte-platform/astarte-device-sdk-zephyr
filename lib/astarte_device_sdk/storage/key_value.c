@@ -35,30 +35,12 @@ ASTARTE_LOG_MODULE_REGISTER(astarte_kv_storage, CONFIG_ASTARTE_DEVICE_SDK_KV_STO
 static SYS_MUTEX_DEFINE(astarte_storage_key_value_mutex);
 
 /************************************************
- *         Static functions declaration         *
- ***********************************************/
-
-/**
- * @brief Find the NVS base ID for the a key-value pair.
- *
- * @param[inout] nvs_fs NVS file system to use.
- * @param[in] stored_pairs Number of total stored key-value pairs.
- * @param[in] namespace Namespace for the key-value pair.
- * @param[in] key Key to use for the search.
- * @param[out] base_id Found base ID for the key-value pair.
- * @return ASTARTE_RESULT_OK if found, ASTARTE_RESULT_NOT_FOUND if not, or error code.
- */
-static astarte_result_t find_pair_base_id(struct nvs_fs *nvs_fs, uint16_t stored_pairs,
-    const char *namespace, const char *key, uint16_t *base_id);
-
-/************************************************
  *         Global functions definitions         *
  ***********************************************/
 
 astarte_result_t astarte_storage_key_value_open(
     astarte_storage_key_value_cfg_t config, struct nvs_fs *nvs_fs)
 {
-    astarte_result_t ares = ASTARTE_RESULT_OK;
     struct flash_pages_info fp_info = { 0 };
 
     if (!device_is_ready(config.flash_device)) {
@@ -72,7 +54,6 @@ astarte_result_t astarte_storage_key_value_open(
         return ASTARTE_RESULT_INTERNAL_ERROR;
     }
 
-    // TODO check if this down casting is legal
     uint16_t flash_sector_count = (uint16_t) (config.flash_partition_size / fp_info.size);
 
     memset(nvs_fs, 0, sizeof(struct nvs_fs));
@@ -87,13 +68,6 @@ astarte_result_t astarte_storage_key_value_open(
         return ASTARTE_RESULT_NVS_ERROR;
     }
 
-    ASTARTE_LOG_DBG("Checking for interrupted delete operations...");
-    ares = astarte_storage_key_value_pair_remove_duplicates(nvs_fs);
-    if (ares != ASTARTE_RESULT_OK) {
-        ASTARTE_LOG_WRN("Recovery check failed: %s. Storage might contain duplicates.",
-            astarte_result_to_name(ares));
-    }
-
     return ASTARTE_RESULT_OK;
 }
 
@@ -102,9 +76,8 @@ astarte_result_t astarte_storage_key_value_new(
 {
     astarte_result_t ares = ASTARTE_RESULT_OK;
     char *namespace_cpy = NULL;
-    size_t namespace_cpy_size = 0U;
+    size_t namespace_cpy_size = strlen(namespace) + 1;
 
-    namespace_cpy_size = strlen(namespace) + 1;
     namespace_cpy = calloc(namespace_cpy_size, sizeof(char));
     if (!namespace_cpy) {
         ASTARTE_LOG_ERR("Out of memory %s: %d", __FILE__, __LINE__);
@@ -121,62 +94,36 @@ astarte_result_t astarte_storage_key_value_new(
 error:
     free(namespace_cpy);
     kv_storage->namespace = NULL;
-
     return ares;
 }
 
 void astarte_storage_key_value_destroy(astarte_storage_key_value_t *kv_storage)
 {
     free(kv_storage->namespace);
+    kv_storage->namespace = NULL;
 }
 
 astarte_result_t astarte_storage_key_value_insert(
     astarte_storage_key_value_t *kv_storage, const char *key, const void *value, size_t value_size)
 {
     astarte_result_t ares = ASTARTE_RESULT_OK;
-    uint16_t stored_pairs = 0;
-    uint16_t base_id = 0U;
-    bool append_at_end = false;
+    uint16_t entry_id = 0;
 
     int mutex_rc = sys_mutex_lock(&astarte_storage_key_value_mutex, K_FOREVER);
     ASTARTE_LOG_COND_ERR(mutex_rc != 0, "System mutex lock failed with %d", mutex_rc);
     __ASSERT_NO_MSG(mutex_rc == 0);
 
-    ares = astarte_storage_key_value_pair_get_pairs_number(kv_storage->nvs_fs, &stored_pairs);
+    ares = astarte_storage_key_value_pair_find_or_alloc(
+        kv_storage->nvs_fs, kv_storage->namespace, key, &entry_id, true);
     if (ares != ASTARTE_RESULT_OK) {
-        ASTARTE_LOG_ERR("Get total stored pairs failed %s.", astarte_result_to_name(ares));
+        ASTARTE_LOG_ERR("Key finding/allocation failed %s.", astarte_result_to_name(ares));
         goto exit;
     }
 
-    // Check if key is already present in storage
-    ares
-        = find_pair_base_id(kv_storage->nvs_fs, stored_pairs, kv_storage->namespace, key, &base_id);
-    if (ares == ASTARTE_RESULT_NOT_FOUND) {
-        append_at_end = true;
-        // Check capacity and safely allocate the new ID
-        ares = astarte_storage_key_value_pair_get_new_base_id(stored_pairs, &base_id);
-        if (ares != ASTARTE_RESULT_OK) {
-            goto exit;
-        }
-    } else if (ares != ASTARTE_RESULT_OK) {
-        ASTARTE_LOG_ERR("Check for old values failed %s.", astarte_result_to_name(ares));
-        goto exit;
-    }
-
-    ares = astarte_storage_key_value_pair_write_pair(
-        kv_storage->nvs_fs, base_id, kv_storage->namespace, key, value, value_size);
+    ares = astarte_storage_key_value_pair_write(
+        kv_storage->nvs_fs, entry_id, kv_storage->namespace, key, value, value_size);
     if (ares != ASTARTE_RESULT_OK) {
         ASTARTE_LOG_ERR("Insert failed %s.", astarte_result_to_name(ares));
-        goto exit;
-    }
-
-    if (append_at_end) {
-        stored_pairs++;
-        ares = astarte_storage_key_value_pair_set_pairs_number(kv_storage->nvs_fs, stored_pairs);
-        if (ares != ASTARTE_RESULT_OK) {
-            ASTARTE_LOG_ERR("Update total stored pairs failed %s.", astarte_result_to_name(ares));
-            goto exit;
-        }
     }
 
 exit:
@@ -191,27 +138,21 @@ astarte_result_t astarte_storage_key_value_find(
     astarte_storage_key_value_t *kv_storage, const char *key, void *value, size_t *value_size)
 {
     astarte_result_t ares = ASTARTE_RESULT_OK;
-    uint16_t stored_pairs = 0;
-    uint16_t base_id = 0U;
+    uint16_t entry_id = 0;
 
     int mutex_rc = sys_mutex_lock(&astarte_storage_key_value_mutex, K_FOREVER);
     ASTARTE_LOG_COND_ERR(mutex_rc != 0, "System mutex lock failed with %d", mutex_rc);
     __ASSERT_NO_MSG(mutex_rc == 0);
 
-    ares = astarte_storage_key_value_pair_get_pairs_number(kv_storage->nvs_fs, &stored_pairs);
+    ares = astarte_storage_key_value_pair_find_or_alloc(
+        kv_storage->nvs_fs, kv_storage->namespace, key, &entry_id, false);
     if (ares != ASTARTE_RESULT_OK) {
-        ASTARTE_LOG_ERR("Get total stored pairs failed %s.", astarte_result_to_name(ares));
+        // No error logs as this could be a not found case, which is not necessarily an error
         goto exit;
     }
 
-    ares
-        = find_pair_base_id(kv_storage->nvs_fs, stored_pairs, kv_storage->namespace, key, &base_id);
-    if (ares != ASTARTE_RESULT_OK) {
-        goto exit;
-    }
-
-    ares
-        = astarte_storage_key_value_pair_read_value(kv_storage->nvs_fs, base_id, value, value_size);
+    ares = astarte_storage_key_value_pair_read_value(
+        kv_storage->nvs_fs, entry_id, value, value_size);
     if (ares != ASTARTE_RESULT_OK) {
         ASTARTE_LOG_ERR("Get value of key-value storage failed %s.", astarte_result_to_name(ares));
     }
@@ -228,43 +169,23 @@ astarte_result_t astarte_storage_key_value_delete(
     astarte_storage_key_value_t *kv_storage, const char *key)
 {
     astarte_result_t ares = ASTARTE_RESULT_OK;
-    uint16_t stored_pairs = 0U;
-    uint16_t base_id = 0U;
+    uint16_t entry_id = 0;
 
     int mutex_rc = sys_mutex_lock(&astarte_storage_key_value_mutex, K_FOREVER);
     ASTARTE_LOG_COND_ERR(mutex_rc != 0, "System mutex lock failed with %d", mutex_rc);
     __ASSERT_NO_MSG(mutex_rc == 0);
 
-    ares = astarte_storage_key_value_pair_get_pairs_number(kv_storage->nvs_fs, &stored_pairs);
+    ares = astarte_storage_key_value_pair_find_or_alloc(
+        kv_storage->nvs_fs, kv_storage->namespace, key, &entry_id, false);
     if (ares != ASTARTE_RESULT_OK) {
-        ASTARTE_LOG_ERR("Get total stored pairs failed %s.", astarte_result_to_name(ares));
+        // No error logs as this could be a not found case, which is not necessarily an error
         goto exit;
     }
 
-    ares
-        = find_pair_base_id(kv_storage->nvs_fs, stored_pairs, kv_storage->namespace, key, &base_id);
-    if (ares != ASTARTE_RESULT_OK) {
-        goto exit;
-    }
-
-    // Determine the ID of the last element in the array
-    uint16_t last_base_id = astarte_storage_key_value_pair_get_pair_base_id(stored_pairs - 1);
-
-    // If the item to delete is NOT the last one, swap the last one into this slot
-    if (base_id != last_base_id) {
-        ares = astarte_storage_key_value_pair_relocate_pair(
-            kv_storage->nvs_fs, base_id, last_base_id);
-        if (ares != ASTARTE_RESULT_OK) {
-            ASTARTE_LOG_ERR("Relocation (swap) failed %s.", astarte_result_to_name(ares));
-            goto exit;
-        }
-    }
-
-    stored_pairs--;
-    ares = astarte_storage_key_value_pair_set_pairs_number(kv_storage->nvs_fs, stored_pairs);
-    if (ares != ASTARTE_RESULT_OK) {
-        ASTARTE_LOG_ERR("Update total stored pairs failed %s.", astarte_result_to_name(ares));
-        goto exit;
+    ssize_t ret = nvs_delete(kv_storage->nvs_fs, entry_id);
+    if (ret < 0 && ret != -ENOENT) {
+        ares = ASTARTE_RESULT_NVS_ERROR;
+        ASTARTE_LOG_ERR("NVS Delete Error: %d.", (int) ret);
     }
 
 exit:
@@ -278,110 +199,32 @@ exit:
 astarte_result_t astarte_storage_key_value_iterator_init(
     astarte_storage_key_value_t *kv_storage, astarte_storage_key_value_iter_t *iter)
 {
-    astarte_result_t ares = ASTARTE_RESULT_OK;
-    uint16_t stored_pairs = 0;
-    char *namespace = NULL;
-    size_t namespace_size = 0;
-
-    int mutex_rc = sys_mutex_lock(&astarte_storage_key_value_mutex, K_FOREVER);
-    ASTARTE_LOG_COND_ERR(mutex_rc != 0, "System mutex lock failed with %d", mutex_rc);
-    __ASSERT_NO_MSG(mutex_rc == 0);
-
-    ares = astarte_storage_key_value_pair_get_pairs_number(kv_storage->nvs_fs, &stored_pairs);
-    if (ares != ASTARTE_RESULT_OK) {
-        goto exit;
-    }
-
-    // Pre allocate space for the namespace
-    namespace_size = strlen(kv_storage->namespace) + 1;
-    namespace = calloc(namespace_size, sizeof(char));
-    if (!namespace) {
-        ares = ASTARTE_RESULT_OUT_OF_MEMORY;
-        goto exit;
-    }
-
-    // Iterate backwards to find the first match
-    for (int32_t pair_number = stored_pairs - 1; pair_number >= 0; pair_number--) {
-        uint16_t base_id = astarte_storage_key_value_pair_get_pair_base_id(pair_number);
-        size_t size = 0;
-
-        ares = astarte_storage_key_value_pair_read_namespace(
-            kv_storage->nvs_fs, base_id, NULL, &size);
-        if (ares != ASTARTE_RESULT_OK) {
-            goto exit;
-        }
-
-        if (size == namespace_size) {
-            ares = astarte_storage_key_value_pair_read_namespace(
-                kv_storage->nvs_fs, base_id, namespace, &size);
-            if (ares != ASTARTE_RESULT_OK) {
-                goto exit;
-            }
-
-            if (strcmp(kv_storage->namespace, namespace) == 0) {
-                iter->kv_storage = kv_storage;
-                iter->current_pair = pair_number;
-                ares = ASTARTE_RESULT_OK;
-                goto exit;
-            }
-        }
-    }
-
-    ares = ASTARTE_RESULT_NOT_FOUND;
-
-exit:
-    mutex_rc = sys_mutex_unlock(&astarte_storage_key_value_mutex);
-    ASTARTE_LOG_COND_ERR(mutex_rc != 0, "System mutex unlock failed with %d", mutex_rc);
-    __ASSERT_NO_MSG(mutex_rc == 0);
-
-    free(namespace);
-    return ares;
+    // ID 0 is a reserved starting point for the iterator
+    iter->kv_storage = kv_storage;
+    iter->current_id = 0;
+    return astarte_storage_key_value_iterator_next(iter);
 }
 
 astarte_result_t astarte_storage_key_value_iterator_next(astarte_storage_key_value_iter_t *iter)
 {
-    astarte_result_t ares = ASTARTE_RESULT_OK;
-    char *namespace = NULL;
-    size_t namespace_size = 0;
+    astarte_result_t ares = ASTARTE_RESULT_NOT_FOUND;
+    bool matches = false;
 
     int mutex_rc = sys_mutex_lock(&astarte_storage_key_value_mutex, K_FOREVER);
     ASTARTE_LOG_COND_ERR(mutex_rc != 0, "System mutex lock failed with %d", mutex_rc);
     __ASSERT_NO_MSG(mutex_rc == 0);
 
-    // Pre allocate space for the namespace
-    namespace_size = strlen(iter->kv_storage->namespace) + 1;
-    namespace = calloc(namespace_size, sizeof(char));
-    if (!namespace) {
-        ares = ASTARTE_RESULT_OUT_OF_MEMORY;
-        goto exit;
-    }
+    for (uint32_t idx = iter->current_id + 1; idx < UINT16_MAX; idx++) {
+        ares = astarte_storage_key_value_pair_check_namespace(
+            iter->kv_storage->nvs_fs, (uint16_t) idx, iter->kv_storage->namespace, &matches);
 
-    // Go backwards from current_pair -1 looking for pairs in the same namespace
-    for (int32_t pair_number = iter->current_pair - 1; pair_number >= 0; pair_number--) {
-        uint16_t base_id = astarte_storage_key_value_pair_get_pair_base_id(pair_number);
-        size_t size = 0;
-
-        ares = astarte_storage_key_value_pair_read_namespace(
-            iter->kv_storage->nvs_fs, base_id, NULL, &size);
-        if (ares != ASTARTE_RESULT_OK) {
+        if (ares == ASTARTE_RESULT_OK && matches) {
+            iter->current_id = (uint16_t) idx;
             goto exit;
         }
-
-        if (size == namespace_size) {
-            ares = astarte_storage_key_value_pair_read_namespace(
-                iter->kv_storage->nvs_fs, base_id, namespace, &size);
-            if (ares != ASTARTE_RESULT_OK) {
-                goto exit;
-            }
-
-            if (strcmp(iter->kv_storage->namespace, namespace) == 0) {
-                iter->current_pair = pair_number;
-                ares = ASTARTE_RESULT_OK;
-                goto exit;
-            }
-        }
     }
 
+    ASTARTE_LOG_DBG("Iterator reached the end.");
     ares = ASTARTE_RESULT_NOT_FOUND;
 
 exit:
@@ -389,7 +232,6 @@ exit:
     ASTARTE_LOG_COND_ERR(mutex_rc != 0, "System mutex unlock failed with %d", mutex_rc);
     __ASSERT_NO_MSG(mutex_rc == 0);
 
-    free(namespace);
     return ares;
 }
 
@@ -402,100 +244,12 @@ astarte_result_t astarte_storage_key_value_iterator_get(
     ASTARTE_LOG_COND_ERR(mutex_rc != 0, "System mutex lock failed with %d", mutex_rc);
     __ASSERT_NO_MSG(mutex_rc == 0);
 
-    uint16_t base_id = astarte_storage_key_value_pair_get_pair_base_id(iter->current_pair);
-    ares
-        = astarte_storage_key_value_pair_read_key(iter->kv_storage->nvs_fs, base_id, key, key_size);
+    ares = astarte_storage_key_value_pair_read_key(
+        iter->kv_storage->nvs_fs, iter->current_id, (char *) key, key_size);
 
     mutex_rc = sys_mutex_unlock(&astarte_storage_key_value_mutex);
     ASTARTE_LOG_COND_ERR(mutex_rc != 0, "System mutex unlock failed with %d", mutex_rc);
     __ASSERT_NO_MSG(mutex_rc == 0);
-
-    return ares;
-}
-
-/************************************************
- *         Static functions definitions         *
- ***********************************************/
-
-// This function is still understandable
-// NOLINTNEXTLINE(readability-function-cognitive-complexity)
-static astarte_result_t find_pair_base_id(struct nvs_fs *nvs_fs, uint16_t stored_pairs,
-    const char *namespace, const char *key, uint16_t *base_id)
-{
-    astarte_result_t ares = ASTARTE_RESULT_OK;
-    char *tmp_namespace = NULL;
-    char *tmp_key = NULL;
-    bool found = false;
-    uint16_t pair_number = 0U;
-
-    size_t nsp_len = strlen(namespace) + 1;
-    size_t key_len = strlen(key) + 1;
-
-    // Pre allocate space for the key and namespace
-    tmp_namespace = calloc(nsp_len, sizeof(char));
-    tmp_key = calloc(key_len, sizeof(char));
-    if (!tmp_namespace || !tmp_key) {
-        ares = ASTARTE_RESULT_OUT_OF_MEMORY;
-        goto exit;
-    }
-
-    for (; pair_number < stored_pairs; pair_number++) {
-        uint16_t curr_base_id = astarte_storage_key_value_pair_get_pair_base_id(pair_number);
-        size_t size = 0;
-
-        ares = astarte_storage_key_value_pair_read_namespace(nvs_fs, curr_base_id, NULL, &size);
-        if (ares != ASTARTE_RESULT_OK) {
-            goto exit;
-        }
-
-        // If size doesn't match, skip to the next pair
-        if (size != nsp_len) {
-            continue;
-        }
-
-        ares = astarte_storage_key_value_pair_read_namespace(
-            nvs_fs, curr_base_id, tmp_namespace, &size);
-        if (ares != ASTARTE_RESULT_OK) {
-            goto exit;
-        }
-
-        // If namespace string doesn't match, skip to the next pair
-        if (strcmp(tmp_namespace, namespace) != 0) {
-            continue;
-        }
-
-        ares = astarte_storage_key_value_pair_read_key(nvs_fs, curr_base_id, NULL, &size);
-        if (ares != ASTARTE_RESULT_OK) {
-            goto exit;
-        }
-
-        // If key size doesn't match, skip to the next pair
-        if (size != key_len) {
-            continue;
-        }
-
-        ares = astarte_storage_key_value_pair_read_key(nvs_fs, curr_base_id, tmp_key, &size);
-        if (ares != ASTARTE_RESULT_OK) {
-            goto exit;
-        }
-
-        // If the key matches, we found our pair
-        if (strcmp(tmp_key, key) == 0) {
-            found = true;
-            break;
-        }
-    }
-
-    if (!found) {
-        ares = ASTARTE_RESULT_NOT_FOUND;
-        goto exit;
-    }
-
-    *base_id = astarte_storage_key_value_pair_get_pair_base_id(pair_number);
-
-exit:
-    free(tmp_namespace);
-    free(tmp_key);
 
     return ares;
 }

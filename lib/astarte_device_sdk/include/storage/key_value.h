@@ -12,38 +12,19 @@
  * @brief Key-value persistent storage implementation, with namespacing. Uses NVS as backend.
  *
  * @details
- * Each namespaced key-value pair is stored as three separate NVS entries:
- * 1. An entry containing the namespace
- * 2. An entry containing the key
- * 3. An entry containing the value
+ * Each namespaced key-value pair is stored as a single NVS entry to ensure atomic operations.
+ * The entry ID is generated via a CRC16 hash of the concatenated namespace and key strings,
+ * with linear probing used to handle collisions.
  *
- * The NVS storage is used in an array like manner, with the following organization:
- * <pre>
- * +---------+------------------------------+
- * | NVS ID  | NVS VALUE                    |
- * +=========+==============================+
- * | 0       | Total number of stored pairs |
- * +---------+------------------------------+
- * | 1       | Namespace for first pair     |
- * +---------+------------------------------+
- * | 2       | Key for first pair           |
- * +---------+------------------------------+
- * | 3       | Value for first pair         |
- * +---------+------------------------------+
- * | ...     | ...                          |
- * +---------+------------------------------+
- * | n*3 + 1 | Namespace for nth pair       |
- * +---------+------------------------------+
- * | n*3 + 2 | Key for nth pair             |
- * +---------+------------------------------+
- * | n*3 + 3 | Value for nth pair           |
- * +---------+------------------------------+
- * | ...     | ...                          |
- * +---------+------------------------------+
- * </pre>
+ * The payload of each NVS entry is structured as follows:
+ * - 2 bytes: Namespace string length (excluding null terminator)
+ * - 2 bytes: Key string length (excluding null terminator)
+ * - N bytes: Namespace string (no null terminator)
+ * - K bytes: Key string (no null terminator)
+ * - V bytes: Value data
  *
- * The first NVS entry will hold the total number of namespaced pairs, independently from their
- * namespace.
+ * This implementation avoids maintaining a central index to drastically reduce flash wear
+ * and relies on NVS's built-in atomic guarantees to ensure power-safe operations.
  *
  * This driver implements the following functionalities:
  * - Inserting a key-value pair.
@@ -88,8 +69,8 @@ typedef struct
 {
     /** @brief Reference to the storage instance used by the iterator. */
     astarte_storage_key_value_t *kv_storage;
-    /** @brief Current key-value pair pointed by the iterator. */
-    uint16_t current_pair;
+    /** @brief Current NVS ID pointed to by the iterator. */
+    uint16_t current_id;
 } astarte_storage_key_value_iter_t;
 
 #ifdef __cplusplus

@@ -12,6 +12,9 @@
  * @brief Helper functions for the key-value persistent storage implementation.
  */
 
+#include <stdbool.h>
+#include <stdint.h>
+
 #include "astarte_device_sdk/result.h"
 
 #include <zephyr/version.h>
@@ -23,104 +26,66 @@
 #endif
 
 /**
- * @brief Calculate the base NVS ID for a given pair index.
+ * @brief Finds an existing NVS ID via hash and probing, or allocates an available one.
  *
- * @param[in] pair_index The 0-based index of the pair (0 to stored_pairs - 1).
- * @return The NVS ID for the start of that pair's record.
+ * @param[inout] nvs_fs NVS file system.
+ * @param[in] namespace Target namespace string.
+ * @param[in] key Target key string.
+ * @param[out] idx Returns the matched or allocated ID.
+ * @param[in] allocate True if a new ID should be returned upon not finding the key.
+ * @return ASTARTE_RESULT_OK, ASTARTE_RESULT_NOT_FOUND, or error code.
  */
-uint16_t astarte_storage_key_value_pair_get_pair_base_id(uint16_t pair_index);
+astarte_result_t astarte_storage_key_value_pair_find_or_alloc(
+    struct nvs_fs *nvs_fs, const char *namespace, const char *key, uint16_t *idx, bool allocate);
+
 /**
- * @brief Calculate the base NVS ID for a new pair, safely checking for overflow.
+ * @brief Writes an atomic combined payload to the specified ID.
  *
- * @param[in] pair_index The 0-based index of the pair to insert (0 to stored_pairs - 1).
- * @param[out] base_id Upon success, contains the valid base NVS ID.
- * @return ASTARTE_RESULT_OK if successful, ASTARTE_RESULT_KV_STORAGE_FULL if IDs would overflow.
+ * @param[inout] nvs_fs NVS file system.
+ * @param[in] idx Base NVS ID.
+ * @param[in] namespace Target namespace string.
+ * @param[in] key Target key string.
+ * @param[in] value Target value block.
+ * @param[in] value_size Target value block size.
+ * @return ASTARTE_RESULT_OK or error code.
  */
-astarte_result_t astarte_storage_key_value_pair_get_new_base_id(
-    uint16_t pair_index, uint16_t *base_id);
+astarte_result_t astarte_storage_key_value_pair_write(struct nvs_fs *nvs_fs, uint16_t idx,
+    const char *namespace, const char *key, const void *value, size_t value_size);
+
 /**
- * @brief Get number of stored pairs.
+ * @brief Retrieves a previously stored value from a combined record payload.
  *
- * @param[inout] nvs_fs NVS file system from which to fetch the number.
- * @param[out] count Number of pairs stored in NVS.
- * @return ASTARTE_RESULT_OK if successful, otherwise an error code.
- */
-astarte_result_t astarte_storage_key_value_pair_get_pairs_number(
-    struct nvs_fs *nvs_fs, uint16_t *count);
-/**
- * @brief Update the number of stored pairs.
- *
- * @param[inout] nvs_fs NVS file system in which to store the entry.
- * @param[in] count Updated number of pairs stored in NVS.
- * @return ASTARTE_RESULT_OK if successful, otherwise an error code.
- */
-astarte_result_t astarte_storage_key_value_pair_set_pairs_number(
-    struct nvs_fs *nvs_fs, uint16_t count);
-/**
- * @brief Get the namespace for the NVS pair at the provided base ID.
- *
- * @param[inout] nvs_fs NVS file system from which to fetch the pair.
- * @param[in] base_id NVS base ID for the pair to read.
- * @param[out] namespace Buffer where to store the NVS namespace, can be NULL.
- * @param[inout] namespace_size When @p namespace is non NULL should be the size of @p namespace.
- * Upon success it will be set to the required size to store the namespace.
- * @return ASTARTE_RESULT_OK if successful, otherwise an error code.
- */
-astarte_result_t astarte_storage_key_value_pair_read_namespace(
-    struct nvs_fs *nvs_fs, uint16_t base_id, char *namespace, size_t *namespace_size);
-/**
- * @brief Get the key for the NVS pair at the provided base ID.
- *
- * @param[inout] nvs_fs NVS file system from which to fetch the pair.
- * @param[in] base_id NVS base ID for the pair to read.
- * @param[out] key Buffer where to store the NVS key, can be NULL.
- * @param[inout] key_size When @p key is non NULL should be the size of @p key.
- * Upon success it will be set to the required size to store the key.
- * @return ASTARTE_RESULT_OK if successful, otherwise an error code.
- */
-astarte_result_t astarte_storage_key_value_pair_read_key(
-    struct nvs_fs *nvs_fs, uint16_t base_id, char *key, size_t *key_size);
-/**
- * @brief Get the value for the NVS pair at the provided base ID.
- *
- * @param[inout] nvs_fs NVS file system from which to fetch the pair.
- * @param[in] base_id NVS base ID for the pair to read.
- * @param[out] value Buffer where to store the NVS value, can be NULL.
- * @param[inout] value_size When @p value is non NULL should be the size of @p value.
- * Upon success it will be set to the required size to store the value.
- * @return ASTARTE_RESULT_OK if successful, otherwise an error code.
+ * @param[inout] nvs_fs NVS file system.
+ * @param[in] idx Valid NVS ID.
+ * @param[out] value Preallocated memory to store the retrieved data. Can be NULL to query size.
+ * @param[inout] value_size Pass size of value block, returns data stored.
+ * @return ASTARTE_RESULT_OK or error code.
  */
 astarte_result_t astarte_storage_key_value_pair_read_value(
-    struct nvs_fs *nvs_fs, uint16_t base_id, void *value, size_t *value_size);
+    struct nvs_fs *nvs_fs, uint16_t idx, void *value, size_t *value_size);
+
 /**
- * @brief Write a key-value pair using an NVS base ID.
+ * @brief Retrieves a previously stored key string from a combined record payload.
  *
- * @param[inout] nvs_fs NVS file system to use.
- * @param[in] base_id Base NVS ID where to store the key-value pair.
- * @param[in] namespace Namespace for the key-value pair.
- * @param[in] key Key for the key-value pair.
- * @param[in] value Value for the key-value pair.
- * @param[in] value_size Size of the value array for the key-value pair.
- * @return ASTARTE_RESULT_OK if successful, otherwise an error code.
+ * @param[inout] nvs_fs NVS file system.
+ * @param[in] idx Valid NVS ID.
+ * @param[out] key Preallocated memory to store the retrieved string. Can be NULL to query size.
+ * @param[inout] key_size Pass size of key block, returns length stored (+1 for null terminator).
+ * @return ASTARTE_RESULT_OK or error code.
  */
-astarte_result_t astarte_storage_key_value_pair_write_pair(struct nvs_fs *nvs_fs, uint16_t base_id,
-    const char *namespace, const char *key, const void *value, size_t value_size);
+astarte_result_t astarte_storage_key_value_pair_read_key(
+    struct nvs_fs *nvs_fs, uint16_t idx, char *key, size_t *key_size);
+
 /**
- * @brief Relocate a single key-value pair.
+ * @brief Evaluates whether a certain NVS ID belongs to a given namespace.
  *
- * @param[inout] nvs_fs NVS file system to use.
- * @param[in] dst_base_id Destination NVS base ID where the pair should be relocated.
- * @param[in] src_base_id Source NVS base ID where the pair should be relocated.
- * @return ASTARTE_RESULT_OK if successful, otherwise an error code.
+ * @param[inout] nvs_fs NVS file system.
+ * @param[in] idx Valid NVS ID to evaluate.
+ * @param[in] namespace Namespace to match against.
+ * @param[out] matches Evaluated to true if it matches, else false.
+ * @return ASTARTE_RESULT_OK or error code.
  */
-astarte_result_t astarte_storage_key_value_pair_relocate_pair(
-    struct nvs_fs *nvs_fs, uint16_t dst_base_id, uint16_t src_base_id);
-/**
- * @brief Scans storage for duplicate keys caused by interrupted delete operations.
- *
- * @param[in,out] nvs_fs NVS file system to use.
- * @return ASTARTE_RESULT_OK if successful, otherwise an error code.
- */
-astarte_result_t astarte_storage_key_value_pair_remove_duplicates(struct nvs_fs *nvs_fs);
+astarte_result_t astarte_storage_key_value_pair_check_namespace(
+    struct nvs_fs *nvs_fs, uint16_t idx, const char *namespace, bool *matches);
 
 #endif // STORAGE_KEY_VALUE_PAIR_H
