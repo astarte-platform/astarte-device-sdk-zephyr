@@ -5,7 +5,7 @@
  */
 
 #include "storage/key_value.h"
-#include "storage/key_value_pair.h"
+#include "storage/key_value_entry.h"
 
 #include <stdlib.h>
 #include <string.h>
@@ -113,14 +113,14 @@ astarte_result_t astarte_storage_key_value_insert(
     ASTARTE_LOG_COND_ERR(mutex_rc != 0, "System mutex lock failed with %d", mutex_rc);
     __ASSERT_NO_MSG(mutex_rc == 0);
 
-    ares = astarte_storage_key_value_pair_find_or_alloc(
+    ares = astarte_storage_key_value_entry_find_or_alloc(
         kv_storage->nvs_fs, kv_storage->namespace, key, &entry_id, true);
     if (ares != ASTARTE_RESULT_OK) {
         ASTARTE_LOG_ERR("Key finding/allocation failed %s.", astarte_result_to_name(ares));
         goto exit;
     }
 
-    ares = astarte_storage_key_value_pair_write(
+    ares = astarte_storage_key_value_entry_write(
         kv_storage->nvs_fs, entry_id, kv_storage->namespace, key, value, value_size);
     if (ares != ASTARTE_RESULT_OK) {
         ASTARTE_LOG_ERR("Insert failed %s.", astarte_result_to_name(ares));
@@ -144,14 +144,14 @@ astarte_result_t astarte_storage_key_value_find(
     ASTARTE_LOG_COND_ERR(mutex_rc != 0, "System mutex lock failed with %d", mutex_rc);
     __ASSERT_NO_MSG(mutex_rc == 0);
 
-    ares = astarte_storage_key_value_pair_find_or_alloc(
+    ares = astarte_storage_key_value_entry_find_or_alloc(
         kv_storage->nvs_fs, kv_storage->namespace, key, &entry_id, false);
     if (ares != ASTARTE_RESULT_OK) {
         // No error logs as this could be a not found case, which is not necessarily an error
         goto exit;
     }
 
-    ares = astarte_storage_key_value_pair_read_value(
+    ares = astarte_storage_key_value_entry_read_value(
         kv_storage->nvs_fs, entry_id, value, value_size);
     if (ares != ASTARTE_RESULT_OK) {
         ASTARTE_LOG_ERR("Get value of key-value storage failed %s.", astarte_result_to_name(ares));
@@ -175,7 +175,7 @@ astarte_result_t astarte_storage_key_value_delete(
     ASTARTE_LOG_COND_ERR(mutex_rc != 0, "System mutex lock failed with %d", mutex_rc);
     __ASSERT_NO_MSG(mutex_rc == 0);
 
-    ares = astarte_storage_key_value_pair_find_or_alloc(
+    ares = astarte_storage_key_value_entry_find_or_alloc(
         kv_storage->nvs_fs, kv_storage->namespace, key, &entry_id, false);
     if (ares != ASTARTE_RESULT_OK) {
         // No error logs as this could be a not found case, which is not necessarily an error
@@ -215,7 +215,7 @@ astarte_result_t astarte_storage_key_value_iterator_next(astarte_storage_key_val
     __ASSERT_NO_MSG(mutex_rc == 0);
 
     for (uint32_t idx = iter->current_id + 1; idx < UINT16_MAX; idx++) {
-        ares = astarte_storage_key_value_pair_check_namespace(
+        ares = astarte_storage_key_value_entry_check_namespace(
             iter->kv_storage->nvs_fs, (uint16_t) idx, iter->kv_storage->namespace, &matches);
 
         if (ares == ASTARTE_RESULT_OK && matches) {
@@ -244,7 +244,7 @@ astarte_result_t astarte_storage_key_value_iterator_get(
     ASTARTE_LOG_COND_ERR(mutex_rc != 0, "System mutex lock failed with %d", mutex_rc);
     __ASSERT_NO_MSG(mutex_rc == 0);
 
-    ares = astarte_storage_key_value_pair_read_key(
+    ares = astarte_storage_key_value_entry_read_key(
         iter->kv_storage->nvs_fs, iter->current_id, (char *) key, key_size);
 
     mutex_rc = sys_mutex_unlock(&astarte_storage_key_value_mutex);

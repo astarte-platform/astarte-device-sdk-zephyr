@@ -8,7 +8,7 @@
 #define STORAGE_KEY_VALUE_PAIR_H
 
 /**
- * @file storage/key_value_pair.h
+ * @file storage/key_value_entry.h
  * @brief Helper functions for the key-value persistent storage implementation.
  */
 
@@ -35,7 +35,7 @@
  * @param[in] allocate True if a new ID should be returned upon not finding the key.
  * @return ASTARTE_RESULT_OK, ASTARTE_RESULT_NOT_FOUND, or error code.
  */
-astarte_result_t astarte_storage_key_value_pair_find_or_alloc(
+astarte_result_t astarte_storage_key_value_entry_find_or_alloc(
     struct nvs_fs *nvs_fs, const char *namespace, const char *key, uint16_t *idx, bool allocate);
 
 /**
@@ -49,7 +49,7 @@ astarte_result_t astarte_storage_key_value_pair_find_or_alloc(
  * @param[in] value_size Target value block size.
  * @return ASTARTE_RESULT_OK or error code.
  */
-astarte_result_t astarte_storage_key_value_pair_write(struct nvs_fs *nvs_fs, uint16_t idx,
+astarte_result_t astarte_storage_key_value_entry_write(struct nvs_fs *nvs_fs, uint16_t idx,
     const char *namespace, const char *key, const void *value, size_t value_size);
 
 /**
@@ -61,7 +61,7 @@ astarte_result_t astarte_storage_key_value_pair_write(struct nvs_fs *nvs_fs, uin
  * @param[inout] value_size Pass size of value block, returns data stored.
  * @return ASTARTE_RESULT_OK or error code.
  */
-astarte_result_t astarte_storage_key_value_pair_read_value(
+astarte_result_t astarte_storage_key_value_entry_read_value(
     struct nvs_fs *nvs_fs, uint16_t idx, void *value, size_t *value_size);
 
 /**
@@ -73,7 +73,7 @@ astarte_result_t astarte_storage_key_value_pair_read_value(
  * @param[inout] key_size Pass size of key block, returns length stored (+1 for null terminator).
  * @return ASTARTE_RESULT_OK or error code.
  */
-astarte_result_t astarte_storage_key_value_pair_read_key(
+astarte_result_t astarte_storage_key_value_entry_read_key(
     struct nvs_fs *nvs_fs, uint16_t idx, char *key, size_t *key_size);
 
 /**
@@ -85,7 +85,7 @@ astarte_result_t astarte_storage_key_value_pair_read_key(
  * @param[out] matches Evaluated to true if it matches, else false.
  * @return ASTARTE_RESULT_OK or error code.
  */
-astarte_result_t astarte_storage_key_value_pair_check_namespace(
+astarte_result_t astarte_storage_key_value_entry_check_namespace(
     struct nvs_fs *nvs_fs, uint16_t idx, const char *namespace, bool *matches);
 
 #endif // STORAGE_KEY_VALUE_PAIR_H

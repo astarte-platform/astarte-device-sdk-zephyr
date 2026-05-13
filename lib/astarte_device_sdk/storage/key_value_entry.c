@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "storage/key_value_pair.h"
+#include "storage/key_value_entry.h"
 
 #include <stdint.h>
 #include <stdlib.h>
@@ -46,7 +46,7 @@ static astarte_result_t check_entry_match(
  *         Global functions definitions         *
  ***********************************************/
 
-astarte_result_t astarte_storage_key_value_pair_find_or_alloc(
+astarte_result_t astarte_storage_key_value_entry_find_or_alloc(
     struct nvs_fs *nvs_fs, const char *namespace, const char *key, uint16_t *idx, bool allocate)
 {
     uint16_t start_id = generate_hash(namespace, key);
@@ -104,7 +104,7 @@ astarte_result_t astarte_storage_key_value_pair_find_or_alloc(
     return ASTARTE_RESULT_KV_STORAGE_FULL;
 }
 
-astarte_result_t astarte_storage_key_value_pair_write(struct nvs_fs *nvs_fs, uint16_t idx,
+astarte_result_t astarte_storage_key_value_entry_write(struct nvs_fs *nvs_fs, uint16_t idx,
     const char *namespace, const char *key, const void *value, size_t value_size)
 {
     astarte_result_t ares = ASTARTE_RESULT_OK;
@@ -144,7 +144,7 @@ exit:
     return ares;
 }
 
-astarte_result_t astarte_storage_key_value_pair_read_value(
+astarte_result_t astarte_storage_key_value_entry_read_value(
     struct nvs_fs *nvs_fs, uint16_t idx, void *value, size_t *value_size)
 {
     astarte_result_t ares = ASTARTE_RESULT_OK;
@@ -211,7 +211,7 @@ exit:
     return ares;
 }
 
-astarte_result_t astarte_storage_key_value_pair_read_key(
+astarte_result_t astarte_storage_key_value_entry_read_key(
     struct nvs_fs *nvs_fs, uint16_t idx, char *key, size_t *key_size)
 {
     astarte_result_t ares = ASTARTE_RESULT_OK;
@@ -263,7 +263,7 @@ exit:
     return ares;
 }
 
-astarte_result_t astarte_storage_key_value_pair_check_namespace(
+astarte_result_t astarte_storage_key_value_entry_check_namespace(
     struct nvs_fs *nvs_fs, uint16_t idx, const char *namespace, bool *matches)
 {
     astarte_result_t ares = ASTARTE_RESULT_OK;
