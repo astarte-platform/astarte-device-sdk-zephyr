@@ -73,6 +73,8 @@ typedef struct
     astarte_storage_key_value_t *kv_storage;
     /** @brief Current NVS ID pointed to by the iterator. */
     uint16_t current_id;
+    /** @brief Previous global NVS ID, cached to safely delete the current entry. */
+    uint16_t prev_id;
 } astarte_storage_key_value_iter_t;
 
 #ifdef __cplusplus
@@ -180,6 +182,18 @@ astarte_result_t astarte_storage_key_value_iterator_next(astarte_storage_key_val
  */
 astarte_result_t astarte_storage_key_value_iterator_get(
     astarte_storage_key_value_iter_t *iter, void *key, size_t *key_size);
+
+/**
+ * @brief Delete the key-value pair currently pointed to by the iterator.
+ *
+ * @details This function removes the current entry without breaking the iteration.
+ * The iterator state is automatically stepped backward so the next call to
+ * `astarte_storage_key_value_iterator_next` will advance to the subsequent valid entry.
+ *
+ * @param[inout] iter Iterator instance.
+ * @return ASTARTE_RESULT_OK if successful, otherwise an error code.
+ */
+astarte_result_t astarte_storage_key_value_iterator_delete(astarte_storage_key_value_iter_t *iter);
 
 #ifdef __cplusplus
 }

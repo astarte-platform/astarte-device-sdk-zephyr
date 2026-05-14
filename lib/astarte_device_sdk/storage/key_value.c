@@ -201,6 +201,7 @@ astarte_result_t astarte_storage_key_value_iterator_init(
     // ID 0 is a reserved starting point for the linked list iterator
     iter->kv_storage = kv_storage;
     iter->current_id = 0;
+    iter->prev_id = 0;
     return astarte_storage_key_value_iterator_next(iter);
 }
 
@@ -230,6 +231,8 @@ astarte_result_t astarte_storage_key_value_iterator_next(astarte_storage_key_val
             iter->kv_storage->nvs_fs, next_id, iter->kv_storage->namespace, &matches);
 
         if (ares == ASTARTE_RESULT_OK && matches) {
+            // Cache the previous entry ID for deletion operations
+            iter->prev_id = curr_id;
             iter->current_id = next_id;
             goto exit;
         }
@@ -256,6 +259,34 @@ astarte_result_t astarte_storage_key_value_iterator_get(
 
     ares = astarte_storage_key_value_entry_read_key(
         iter->kv_storage->nvs_fs, iter->current_id, (char *) key, key_size);
+
+    mutex_rc = sys_mutex_unlock(&astarte_storage_key_value_mutex);
+    ASTARTE_LOG_COND_ERR(mutex_rc != 0, "System mutex unlock failed with %d", mutex_rc);
+    __ASSERT_NO_MSG(mutex_rc == 0);
+
+    return ares;
+}
+
+astarte_result_t astarte_storage_key_value_iterator_delete(astarte_storage_key_value_iter_t *iter)
+{
+    astarte_result_t ares = ASTARTE_RESULT_OK;
+
+    if (!iter || iter->current_id == 0) {
+        return ASTARTE_RESULT_INVALID_PARAM;
+    }
+
+    int mutex_rc = sys_mutex_lock(&astarte_storage_key_value_mutex, K_FOREVER);
+    ASTARTE_LOG_COND_ERR(mutex_rc != 0, "System mutex lock failed with %d", mutex_rc);
+    __ASSERT_NO_MSG(mutex_rc == 0);
+
+    // Physically delete the current entry and heal the NVS global linked-list
+    ares = astarte_storage_key_value_entry_delete(iter->kv_storage->nvs_fs, iter->current_id);
+    if (ares == ASTARTE_RESULT_OK) {
+        // Step back using the cached previous ID
+        iter->current_id = iter->prev_id;
+    } else {
+        ASTARTE_LOG_ERR("Iterator delete error: %s.", astarte_result_to_name(ares));
+    }
 
     mutex_rc = sys_mutex_unlock(&astarte_storage_key_value_mutex);
     ASTARTE_LOG_COND_ERR(mutex_rc != 0, "System mutex unlock failed with %d", mutex_rc);

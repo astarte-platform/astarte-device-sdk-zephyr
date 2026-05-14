@@ -88,7 +88,7 @@ astarte_result_t astarte_storage_key_value_entry_read_key(
 astarte_result_t astarte_storage_key_value_entry_check_namespace(
     struct nvs_fs *nvs_fs, uint16_t idx, const char *namespace, bool *matches);
 
-    /**
+/**
  * @brief Deletes a specific key-value entry and repairs the linked list integrity.
  *
  * @param[inout] nvs_fs NVS file system.
