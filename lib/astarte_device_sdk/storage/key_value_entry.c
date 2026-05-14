@@ -31,6 +31,7 @@ ASTARTE_LOG_MODULE_DECLARE(astarte_kv_storage, CONFIG_ASTARTE_DEVICE_SDK_KV_STOR
     (HEADER_NAMESPACE_LEN_BYTES + HEADER_KEY_LEN_BYTES + HEADER_NEXT_ID_BYTES                      \
         + HEADER_PREV_ID_BYTES)
 
+#define STORAGE_VERSION_POSITION (UINT16_MAX)
 #define HEAD_AND_TAIL_ID_POSITION (UINT16_MAX - 1)
 
 /************************************************
@@ -99,6 +100,39 @@ static astarte_result_t update_entry_prev_id(
 /************************************************
  *         Global functions definitions         *
  ***********************************************/
+
+astarte_result_t astarte_storage_key_value_entry_read_version(
+    struct nvs_fs *nvs_fs, uint8_t version[static ASTARTE_STORAGE_KEY_VALUE_ENTRY_VERSON_LEN_BYTES])
+{
+    // Read exactly 3 bytes (Major, Minor, Patch)
+    ssize_t ret = nvs_read(nvs_fs, STORAGE_VERSION_POSITION, version,
+        ASTARTE_STORAGE_KEY_VALUE_ENTRY_VERSON_LEN_BYTES);
+
+    if (ret == -ENOENT) {
+        return ASTARTE_RESULT_NOT_FOUND;
+    }
+    if (ret < 0) {
+        ASTARTE_LOG_ERR("Error reading version from NVS, error: %d", (int) ret);
+        return ASTARTE_RESULT_NVS_ERROR;
+    }
+
+    return ASTARTE_RESULT_OK;
+}
+
+astarte_result_t astarte_storage_key_value_entry_write_version(
+    struct nvs_fs *nvs_fs, uint8_t version[static ASTARTE_STORAGE_KEY_VALUE_ENTRY_VERSON_LEN_BYTES])
+{
+    // Write exactly 3 bytes (Major, Minor, Patch)
+    ssize_t ret = nvs_write(nvs_fs, STORAGE_VERSION_POSITION, version,
+        ASTARTE_STORAGE_KEY_VALUE_ENTRY_VERSON_LEN_BYTES);
+
+    if (ret < 0) {
+        ASTARTE_LOG_ERR("Error writing version to NVS, error: %d", (int) ret);
+        return ASTARTE_RESULT_NVS_ERROR;
+    }
+
+    return ASTARTE_RESULT_OK;
+}
 
 astarte_result_t astarte_storage_key_value_entry_find_or_alloc(
     struct nvs_fs *nvs_fs, const char *namespace, const char *key, uint16_t *idx, bool allocate)

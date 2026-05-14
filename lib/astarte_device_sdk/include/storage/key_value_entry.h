@@ -25,6 +25,28 @@
 #include <zephyr/fs/nvs.h>
 #endif
 
+#define ASTARTE_STORAGE_KEY_VALUE_ENTRY_VERSON_LEN_BYTES 3
+
+/**
+ * @brief Retrieves the storage driver version from NVS.
+ *
+ * @param[inout] nvs_fs NVS file system.
+ * @param[out] version Pointer to store the retrieved version.
+ * @return ASTARTE_RESULT_OK, ASTARTE_RESULT_NOT_FOUND, or error code.
+ */
+astarte_result_t astarte_storage_key_value_entry_read_version(struct nvs_fs *nvs_fs,
+    uint8_t version[static ASTARTE_STORAGE_KEY_VALUE_ENTRY_VERSON_LEN_BYTES]);
+
+/**
+ * @brief Writes the storage driver version to NVS.
+ *
+ * @param[inout] nvs_fs NVS file system.
+ * @param[in] version Version to store.
+ * @return ASTARTE_RESULT_OK or error code.
+ */
+astarte_result_t astarte_storage_key_value_entry_write_version(struct nvs_fs *nvs_fs,
+    uint8_t version[static ASTARTE_STORAGE_KEY_VALUE_ENTRY_VERSON_LEN_BYTES]);
+
 /**
  * @brief Finds an existing NVS ID via hash and probing, or allocates an available one.
  *
