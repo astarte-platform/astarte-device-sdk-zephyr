@@ -63,7 +63,8 @@ static astarte_result_t check_entry_match(
  * @param[out] head_id New head ID to store.
  * @param[out] tail_id New tail ID to store.
  */
-static void read_head_and_tail_ids(struct nvs_fs *nvs_fs, uint16_t *head_id, uint16_t *tail_id);
+static astarte_result_t read_head_and_tail_ids(
+    struct nvs_fs *nvs_fs, uint16_t *head_id, uint16_t *tail_id);
 /**
  * @brief Writes the head and tail IDs of the global linked list.
  *
@@ -178,7 +179,10 @@ astarte_result_t astarte_storage_key_value_entry_write(struct nvs_fs *nvs_fs, ui
         // The entry does not exists, set prev and next to appropriate values
         uint16_t head_id = 0;
         uint16_t tail_id = 0;
-        read_head_and_tail_ids(nvs_fs, &head_id, &tail_id);
+        ares = read_head_and_tail_ids(nvs_fs, &head_id, &tail_id);
+        if (ares != ASTARTE_RESULT_OK) {
+            return ares;
+        }
 
         // The previous will always point to the old tail, the next to nothing
         prev_id = tail_id;
@@ -438,12 +442,15 @@ astarte_result_t astarte_storage_key_value_entry_delete(struct nvs_fs *nvs_fs, u
 
     uint16_t head_id = 0;
     uint16_t tail_id = 0;
-    read_head_and_tail_ids(nvs_fs, &head_id, &tail_id);
+    astarte_result_t rd_res = read_head_and_tail_ids(nvs_fs, &head_id, &tail_id);
+    if (rd_res != ASTARTE_RESULT_OK) {
+        return rd_res;
+    }
 
     // Update the previous entry next id to the next one of the entry to delete
     // Or if this entry is the head set the head to the next entry
     if (prev_id != 0) {
-        astarte_result_t upd_res =update_entry_next_id(nvs_fs, prev_id, next_id);
+        astarte_result_t upd_res = update_entry_next_id(nvs_fs, prev_id, next_id);
         if (upd_res != ASTARTE_RESULT_OK) {
             return upd_res;
         }
@@ -454,7 +461,7 @@ astarte_result_t astarte_storage_key_value_entry_delete(struct nvs_fs *nvs_fs, u
     // Update the next entry previous id to the previous one of the entry to delete
     // Or if this node is the tail set the tail to the previous entry
     if (next_id != 0) {
-        astarte_result_t upd_res =update_entry_prev_id(nvs_fs, next_id, prev_id);
+        astarte_result_t upd_res = update_entry_prev_id(nvs_fs, next_id, prev_id);
         if (upd_res != ASTARTE_RESULT_OK) {
             return upd_res;
         }
@@ -484,7 +491,10 @@ astarte_result_t astarte_storage_key_value_entry_get_next_id(
     if (idx == 0) {
         uint16_t head_id = 0;
         uint16_t tail_id = 0;
-        read_head_and_tail_ids(nvs_fs, &head_id, &tail_id);
+        astarte_result_t rd_res = read_head_and_tail_ids(nvs_fs, &head_id, &tail_id);
+        if (rd_res != ASTARTE_RESULT_OK) {
+            return rd_res;
+        }
         *next_id = head_id;
         return ASTARTE_RESULT_OK;
     }
@@ -502,19 +512,25 @@ astarte_result_t astarte_storage_key_value_entry_get_next_id(
  *         Static functions definitions         *
  ***********************************************/
 
-// TODO: It makes little sense for this call to always succeed even if nvs read fails for other
-// reasons other than "there is no head and tail entry"
-static void read_head_and_tail_ids(struct nvs_fs *nvs_fs, uint16_t *head_id, uint16_t *tail_id)
+static astarte_result_t read_head_and_tail_ids(
+    struct nvs_fs *nvs_fs, uint16_t *head_id, uint16_t *tail_id)
 {
     uint16_t ids[2] = { 0 };
     ssize_t ret = nvs_read(nvs_fs, HEAD_AND_TAIL_ID_POSITION, ids, sizeof(ids));
-    if (ret < 0) {
+
+    if (ret == -ENOENT) {
         *head_id = 0;
         *tail_id = 0;
-    } else {
-        *head_id = ids[0];
-        *tail_id = ids[1];
+        return ASTARTE_RESULT_OK;
     }
+    if (ret < 0) {
+        ASTARTE_LOG_ERR("Error reading head and tail IDs: %d", (int) ret);
+        return ASTARTE_RESULT_NVS_ERROR;
+    }
+
+    *head_id = ids[0];
+    *tail_id = ids[1];
+    return ASTARTE_RESULT_OK;
 }
 
 static astarte_result_t write_head_and_tail_ids(
