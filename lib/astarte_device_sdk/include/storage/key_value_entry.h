@@ -88,7 +88,23 @@ astarte_result_t astarte_storage_key_value_entry_read_key(
 astarte_result_t astarte_storage_key_value_entry_check_namespace(
     struct nvs_fs *nvs_fs, uint16_t idx, const char *namespace, bool *matches);
 
+    /**
+ * @brief Deletes a specific key-value entry and repairs the linked list integrity.
+ *
+ * @param[inout] nvs_fs NVS file system.
+ * @param[in] idx Valid NVS ID of the entry to delete.
+ * @return ASTARTE_RESULT_OK or error code.
+ */
 astarte_result_t astarte_storage_key_value_entry_delete(struct nvs_fs *nvs_fs, uint16_t idx);
+
+/**
+ * @brief Retrieves the next ID in the linked list of entries.
+ *
+ * @param[inout] nvs_fs NVS file system.
+ * @param[in] idx Valid NVS ID of the current entry, or 0 to retrieve the head ID.
+ * @param[out] next_id Pointer to store the retrieved next ID.
+ * @return ASTARTE_RESULT_OK or error code.
+ */
 astarte_result_t astarte_storage_key_value_entry_get_next_id(
     struct nvs_fs *nvs_fs, uint16_t idx, uint16_t *next_id);
 

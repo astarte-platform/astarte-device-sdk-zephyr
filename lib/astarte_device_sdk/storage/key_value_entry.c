@@ -16,6 +16,9 @@
 
 ASTARTE_LOG_MODULE_DECLARE(astarte_kv_storage, CONFIG_ASTARTE_DEVICE_SDK_KV_STORAGE_LOG_LEVEL);
 
+// TODO: This driver is weak to power losses in between writes. Consider introducing a tombstone
+// method to be more resilient over power losses.
+
 /************************************************
  *        Defines, constants and typedef        *
  ***********************************************/
@@ -28,7 +31,7 @@ ASTARTE_LOG_MODULE_DECLARE(astarte_kv_storage, CONFIG_ASTARTE_DEVICE_SDK_KV_STOR
     (HEADER_NAMESPACE_LEN_BYTES + HEADER_KEY_LEN_BYTES + HEADER_NEXT_ID_BYTES                      \
         + HEADER_PREV_ID_BYTES)
 
-#define HEAD_AND_TAIL_ID_POSITION 0xFFFE
+#define HEAD_AND_TAIL_ID_POSITION (UINT16_MAX - 1)
 
 /************************************************
  *         Static functions declaration         *
@@ -44,14 +47,49 @@ ASTARTE_LOG_MODULE_DECLARE(astarte_kv_storage, CONFIG_ASTARTE_DEVICE_SDK_KV_STOR
 static uint16_t generate_hash(const char *namespace, const char *key);
 /**
  * @brief Helper function to check if a specific NVS entry matches the target namespace and key.
+ *
+ * @param[inout] nvs_fs NVS file system.
+ * @param[in] curr_id The ID of the entry to match.
+ * @param[in] namespace Namespace to match.
+ * @param[in] key Key to match.
+ * @return ASTARTE_RESULT_OK or error code.
  */
 static astarte_result_t check_entry_match(
     struct nvs_fs *nvs_fs, uint16_t curr_id, const char *namespace, const char *key);
-
+/**
+ * @brief Reads the head and tail IDs of the global linked list.
+ *
+ * @param[inout] nvs_fs NVS file system.
+ * @param[out] head_id New head ID to store.
+ * @param[out] tail_id New tail ID to store.
+ */
 static void read_head_and_tail_ids(struct nvs_fs *nvs_fs, uint16_t *head_id, uint16_t *tail_id);
+/**
+ * @brief Writes the head and tail IDs of the global linked list.
+ *
+ * @param[inout] nvs_fs NVS file system.
+ * @param[in] head_id New head ID to store.
+ * @param[in] tail_id New tail ID to store.
+ */
 static void write_head_and_tail_ids(struct nvs_fs *nvs_fs, uint16_t head_id, uint16_t tail_id);
+/**
+ * @brief Updates the next ID pointer of a specific entry in the linked list.
+ *
+ * @param[inout] nvs_fs NVS file system.
+ * @param[in] idx NVS ID of the entry to update.
+ * @param[in] new_next New next ID to set.
+ * @return ASTARTE_RESULT_OK or error code.
+ */
 static astarte_result_t update_entry_next_id(
     struct nvs_fs *nvs_fs, uint16_t idx, uint16_t new_next);
+/**
+ * @brief Updates the previous ID pointer of a specific entry in the linked list.
+ *
+ * @param[inout] nvs_fs NVS file system.
+ * @param[in] idx NVS ID of the entry to update.
+ * @param[in] new_prev New previous ID to set.
+ * @return ASTARTE_RESULT_OK or error code.
+ */
 static astarte_result_t update_entry_prev_id(
     struct nvs_fs *nvs_fs, uint16_t idx, uint16_t new_prev);
 
@@ -109,7 +147,7 @@ astarte_result_t astarte_storage_key_value_entry_find_or_alloc(
 
         // Increase the ID to handle collisions
         curr_id++;
-        if (curr_id == UINT16_MAX) {
+        if (curr_id == HEAD_AND_TAIL_ID_POSITION) {
             curr_id = 1;
         }
     } while (curr_id != start_id);

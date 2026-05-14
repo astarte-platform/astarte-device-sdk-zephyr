@@ -19,6 +19,8 @@
  * The payload of each NVS entry is structured as follows:
  * - 2 bytes: Namespace string length (excluding null terminator)
  * - 2 bytes: Key string length (excluding null terminator)
+ * - 2 bytes: Next entry ID in the linked list (0 if tail)
+ * - 2 bytes: Previous entry ID in the linked list (0 if head)
  * - N bytes: Namespace string (no null terminator)
  * - K bytes: Key string (no null terminator)
  * - V bytes: Value data
@@ -168,7 +170,7 @@ astarte_result_t astarte_storage_key_value_iterator_init(
 astarte_result_t astarte_storage_key_value_iterator_next(astarte_storage_key_value_iter_t *iter);
 
 /**
- * @brief Get the key for the key-valie pair pointed to by the iterator.
+ * @brief Get the key for the key-value pair pointed to by the iterator.
  *
  * @param[in] iter Iterator instance.
  * @param[out] key Buffer where to store the key for the pair, can be set to NULL.
