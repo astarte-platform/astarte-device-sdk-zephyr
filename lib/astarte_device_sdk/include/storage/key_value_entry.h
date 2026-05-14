@@ -25,6 +25,7 @@
 #include <zephyr/fs/nvs.h>
 #endif
 
+/** @brief Number of bytes required to store a version. */
 #define ASTARTE_STORAGE_KEY_VALUE_ENTRY_VERSON_LEN_BYTES 3
 
 /**
