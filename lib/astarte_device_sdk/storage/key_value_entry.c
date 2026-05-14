@@ -242,7 +242,7 @@ astarte_result_t astarte_storage_key_value_entry_write(struct nvs_fs *nvs_fs, ui
         return ASTARTE_RESULT_NVS_ERROR;
     }
 
-    payload = k_calloc(payload_size, sizeof(uint8_t));
+    payload = calloc(payload_size, sizeof(uint8_t));
     if (!payload) {
         ASTARTE_LOG_ERR("Out of memory %s: %d", __FILE__, __LINE__);
         ares = ASTARTE_RESULT_OUT_OF_MEMORY;
@@ -283,7 +283,7 @@ astarte_result_t astarte_storage_key_value_entry_write(struct nvs_fs *nvs_fs, ui
     }
 
 exit:
-    k_free(payload);
+    free(payload);
     return ares;
 }
 
@@ -331,7 +331,7 @@ astarte_result_t astarte_storage_key_value_entry_read_value(
     }
 
     // Read the full entry
-    payload = k_calloc(payload_size, sizeof(uint8_t));
+    payload = calloc(payload_size, sizeof(uint8_t));
     if (!payload) {
         ASTARTE_LOG_ERR("Out of memory %s: %d", __FILE__, __LINE__);
         ares = ASTARTE_RESULT_OUT_OF_MEMORY;
@@ -351,7 +351,7 @@ astarte_result_t astarte_storage_key_value_entry_read_value(
     *value_size = read_value_size;
 
 exit:
-    k_free(payload);
+    free(payload);
     return ares;
 }
 
@@ -385,7 +385,7 @@ astarte_result_t astarte_storage_key_value_entry_read_key(
     }
 
     size_t header_size = FIXED_HEADER_BYTES + nsp_len + key_len;
-    header = k_calloc(header_size, sizeof(uint8_t));
+    header = calloc(header_size, sizeof(uint8_t));
     if (!header) {
         ASTARTE_LOG_ERR("Out of memory %s: %d", __FILE__, __LINE__);
         ares = ASTARTE_RESULT_OUT_OF_MEMORY;
@@ -404,7 +404,7 @@ astarte_result_t astarte_storage_key_value_entry_read_key(
     *key_size = key_len + 1;
 
 exit:
-    k_free(header);
+    free(header);
     return ares;
 }
 
@@ -433,7 +433,7 @@ astarte_result_t astarte_storage_key_value_entry_check_namespace(
     }
 
     size_t partial_header_size = FIXED_HEADER_BYTES + nsp_len;
-    partial_header = k_calloc(partial_header_size, sizeof(uint8_t));
+    partial_header = calloc(partial_header_size, sizeof(uint8_t));
     if (!partial_header) {
         ASTARTE_LOG_ERR("Out of memory %s: %d", __FILE__, __LINE__);
         ares = ASTARTE_RESULT_OUT_OF_MEMORY;
@@ -455,7 +455,7 @@ astarte_result_t astarte_storage_key_value_entry_check_namespace(
     }
 
 exit:
-    k_free(partial_header);
+    free(partial_header);
     return ares;
 }
 
@@ -589,7 +589,7 @@ static astarte_result_t update_entry_next_id(struct nvs_fs *nvs_fs, uint16_t idx
         goto exit;
     }
 
-    payload = k_calloc(payload_size, 1);
+    payload = calloc(payload_size, 1);
     if (!payload) {
         ares = ASTARTE_RESULT_OUT_OF_MEMORY;
         goto exit;
@@ -609,7 +609,7 @@ static astarte_result_t update_entry_next_id(struct nvs_fs *nvs_fs, uint16_t idx
     }
 
 exit:
-    k_free(payload);
+    free(payload);
     return ares;
 }
 
@@ -623,7 +623,7 @@ static astarte_result_t update_entry_prev_id(struct nvs_fs *nvs_fs, uint16_t idx
         goto exit;
     }
 
-    payload = k_calloc(payload_size, 1);
+    payload = calloc(payload_size, 1);
     if (!payload) {
         ares = ASTARTE_RESULT_OUT_OF_MEMORY;
         goto exit;
@@ -644,7 +644,7 @@ static astarte_result_t update_entry_prev_id(struct nvs_fs *nvs_fs, uint16_t idx
     }
 
 exit:
-    k_free(payload);
+    free(payload);
     return ares;
 }
 
@@ -671,7 +671,7 @@ static astarte_result_t check_entry_match(
     size_t key_len = strlen(key);
     size_t header_size = FIXED_HEADER_BYTES + nsp_len + key_len;
 
-    header = k_calloc(header_size, sizeof(uint8_t));
+    header = calloc(header_size, sizeof(uint8_t));
     if (!header) {
         ASTARTE_LOG_ERR("Out of memory %s: %d", __FILE__, __LINE__);
         ares = ASTARTE_RESULT_OUT_OF_MEMORY;
@@ -694,6 +694,6 @@ static astarte_result_t check_entry_match(
     }
 
 exit:
-    k_free(header);
+    free(header);
     return ares;
 }
