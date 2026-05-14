@@ -70,8 +70,10 @@ static void read_head_and_tail_ids(struct nvs_fs *nvs_fs, uint16_t *head_id, uin
  * @param[inout] nvs_fs NVS file system.
  * @param[in] head_id New head ID to store.
  * @param[in] tail_id New tail ID to store.
+ * @return ASTARTE_RESULT_OK or error code.
  */
-static void write_head_and_tail_ids(struct nvs_fs *nvs_fs, uint16_t head_id, uint16_t tail_id);
+static astarte_result_t write_head_and_tail_ids(
+    struct nvs_fs *nvs_fs, uint16_t head_id, uint16_t tail_id);
 /**
  * @brief Updates the next ID pointer of a specific entry in the linked list.
  *
@@ -191,7 +193,10 @@ astarte_result_t astarte_storage_key_value_entry_write(struct nvs_fs *nvs_fs, ui
             head_id = idx;
         }
         tail_id = idx;
-        write_head_and_tail_ids(nvs_fs, head_id, tail_id);
+        ares = write_head_and_tail_ids(nvs_fs, head_id, tail_id);
+        if (ares != ASTARTE_RESULT_OK) {
+            return ares;
+        }
     } else if (ret >= FIXED_HEADER_BYTES) {
         next_id = fixed_header[2];
         prev_id = fixed_header[3];
@@ -438,7 +443,10 @@ astarte_result_t astarte_storage_key_value_entry_delete(struct nvs_fs *nvs_fs, u
     // Update the previous entry next id to the next one of the entry to delete
     // Or if this entry is the head set the head to the next entry
     if (prev_id != 0) {
-        update_entry_next_id(nvs_fs, prev_id, next_id);
+        astarte_result_t upd_res =update_entry_next_id(nvs_fs, prev_id, next_id);
+        if (upd_res != ASTARTE_RESULT_OK) {
+            return upd_res;
+        }
     } else {
         head_id = next_id;
     }
@@ -446,13 +454,19 @@ astarte_result_t astarte_storage_key_value_entry_delete(struct nvs_fs *nvs_fs, u
     // Update the next entry previous id to the previous one of the entry to delete
     // Or if this node is the tail set the tail to the previous entry
     if (next_id != 0) {
-        update_entry_prev_id(nvs_fs, next_id, prev_id);
+        astarte_result_t upd_res =update_entry_prev_id(nvs_fs, next_id, prev_id);
+        if (upd_res != ASTARTE_RESULT_OK) {
+            return upd_res;
+        }
     } else {
         tail_id = prev_id;
     }
 
     // Update head and tail to the new values
-    write_head_and_tail_ids(nvs_fs, head_id, tail_id);
+    astarte_result_t wr_res = write_head_and_tail_ids(nvs_fs, head_id, tail_id);
+    if (wr_res != ASTARTE_RESULT_OK) {
+        return wr_res;
+    }
 
     // Delete the entry
     ret = nvs_delete(nvs_fs, idx);
@@ -488,6 +502,8 @@ astarte_result_t astarte_storage_key_value_entry_get_next_id(
  *         Static functions definitions         *
  ***********************************************/
 
+// TODO: It makes little sense for this call to always succeed even if nvs read fails for other
+// reasons other than "there is no head and tail entry"
 static void read_head_and_tail_ids(struct nvs_fs *nvs_fs, uint16_t *head_id, uint16_t *tail_id)
 {
     uint16_t ids[2] = { 0 };
@@ -501,55 +517,85 @@ static void read_head_and_tail_ids(struct nvs_fs *nvs_fs, uint16_t *head_id, uin
     }
 }
 
-static void write_head_and_tail_ids(struct nvs_fs *nvs_fs, uint16_t head_id, uint16_t tail_id)
+static astarte_result_t write_head_and_tail_ids(
+    struct nvs_fs *nvs_fs, uint16_t head_id, uint16_t tail_id)
 {
     uint16_t ids[2] = { head_id, tail_id };
-    // TODO: evaluate if this write is a success
-    nvs_write(nvs_fs, HEAD_AND_TAIL_ID_POSITION, ids, sizeof(ids));
+    ssize_t ret = nvs_write(nvs_fs, HEAD_AND_TAIL_ID_POSITION, ids, sizeof(ids));
+    if (ret < 0) {
+        ASTARTE_LOG_ERR("Error writing head and tail IDs to NVS, error: %d", (int) ret);
+        return ASTARTE_RESULT_NVS_ERROR;
+    }
+    return ASTARTE_RESULT_OK;
 }
 
 static astarte_result_t update_entry_next_id(struct nvs_fs *nvs_fs, uint16_t idx, uint16_t new_next)
 {
+    astarte_result_t ares = ASTARTE_RESULT_OK;
+    uint8_t *payload = NULL;
     ssize_t payload_size = nvs_read(nvs_fs, idx, NULL, 0);
     if (payload_size <= 0) {
-        return ASTARTE_RESULT_NVS_ERROR;
+        ares = ASTARTE_RESULT_NVS_ERROR;
+        goto exit;
     }
 
-    uint8_t *payload = k_calloc(payload_size, 1);
+    payload = k_calloc(payload_size, 1);
     if (!payload) {
-        return ASTARTE_RESULT_OUT_OF_MEMORY;
+        ares = ASTARTE_RESULT_OUT_OF_MEMORY;
+        goto exit;
     }
 
-    // TODO: evaluate if this read is a success
-    nvs_read(nvs_fs, idx, payload, payload_size);
-    ((uint16_t *) payload)[2] = new_next;
-    // TODO: evaluate if this write is a success
-    nvs_write(nvs_fs, idx, payload, payload_size);
+    ssize_t ret = nvs_read(nvs_fs, idx, payload, payload_size);
+    if (ret < 0) {
+        ares = ASTARTE_RESULT_NVS_ERROR;
+        goto exit;
+    }
 
+    ((uint16_t *) payload)[2] = new_next;
+
+    ret = nvs_write(nvs_fs, idx, payload, payload_size);
+    if (ret < 0) {
+        ares = ASTARTE_RESULT_NVS_ERROR;
+    }
+
+exit:
     k_free(payload);
-    return ASTARTE_RESULT_OK;
+    return ares;
 }
 
 static astarte_result_t update_entry_prev_id(struct nvs_fs *nvs_fs, uint16_t idx, uint16_t new_prev)
 {
+    astarte_result_t ares = ASTARTE_RESULT_OK;
+    uint8_t *payload = NULL;
     ssize_t payload_size = nvs_read(nvs_fs, idx, NULL, 0);
     if (payload_size <= 0) {
-        return ASTARTE_RESULT_NVS_ERROR;
+        ares = ASTARTE_RESULT_NVS_ERROR;
+        goto exit;
     }
 
-    uint8_t *payload = k_calloc(payload_size, 1);
+    payload = k_calloc(payload_size, 1);
     if (!payload) {
-        return ASTARTE_RESULT_OUT_OF_MEMORY;
+        ares = ASTARTE_RESULT_OUT_OF_MEMORY;
+        goto exit;
     }
 
-    // TODO: evaluate if this read is a success
-    nvs_read(nvs_fs, idx, payload, payload_size);
-    ((uint16_t *) payload)[3] = new_prev;
-    // TODO: evaluate if this write is a success
-    nvs_write(nvs_fs, idx, payload, payload_size);
+    ssize_t ret = nvs_read(nvs_fs, idx, payload, payload_size);
+    if (ret < 0) {
+        ares = ASTARTE_RESULT_NVS_ERROR;
+        goto exit;
+    }
 
+    ((uint16_t *) payload)[3] = new_prev;
+
+    ret = nvs_write(nvs_fs, idx, payload, payload_size);
+    if (ret < 0) {
+        ares = ASTARTE_RESULT_NVS_ERROR;
+        goto exit;
+    }
+
+exit:
     k_free(payload);
-    return ASTARTE_RESULT_OK;
+    return ares;
 }
 
 static uint16_t generate_hash(const char *namespace, const char *key)

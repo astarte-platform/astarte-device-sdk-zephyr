@@ -503,6 +503,7 @@ static void send_device_owned_property(astarte_device_handle_t device, const cha
         &device->introspection, interface_name);
     if ((!interface) || (interface->major_version != major)) {
         ASTARTE_LOG_DBG("Removing property from storage: '%s%s'", interface_name, path);
+        // TODO: this should be done using the iterator astarte_storage_property_iterator_delete
         ares = astarte_storage_property_delete(&device->caching, interface_name, path);
         if ((ares != ASTARTE_RESULT_OK) && (ares != ASTARTE_RESULT_NOT_FOUND)) {
             ASTARTE_LOG_COND_ERR(ares != ASTARTE_RESULT_OK,

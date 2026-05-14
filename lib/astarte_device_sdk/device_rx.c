@@ -321,6 +321,7 @@ static void purge_server_property(
         &device->introspection, interface_name);
     if (!interface) {
         ASTARTE_LOG_DBG("Purging property from unknown interface: '%s%s'", interface_name, path);
+        // TODO: this should be done using the iterator astarte_storage_property_iterator_delete
         ares = astarte_storage_property_delete(&device->caching, interface_name, path);
         if ((ares != ASTARTE_RESULT_OK) && (ares != ASTARTE_RESULT_NOT_FOUND)) {
             ASTARTE_LOG_COND_ERR(ares != ASTARTE_RESULT_OK,
@@ -358,6 +359,7 @@ static void purge_server_property(
     }
 
     ASTARTE_LOG_DBG("Purging property not in allow list: '%s%s'", interface_name, path);
+    // TODO: this should be done using the iterator: astarte_storage_property_iterator_delete
     ares = astarte_storage_property_delete(&device->caching, interface_name, path);
     if ((ares != ASTARTE_RESULT_OK) && (ares != ASTARTE_RESULT_NOT_FOUND)) {
         ASTARTE_LOG_COND_ERR(ares != ASTARTE_RESULT_OK, "Failed deleting the cached property: %s",
