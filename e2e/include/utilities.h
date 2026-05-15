@@ -15,7 +15,6 @@
 #include <astarte_device_sdk/data.h>
 #include <astarte_device_sdk/interface.h>
 #include <astarte_device_sdk/object.h>
-#include <astarte_device_sdk/util.h>
 
 #define CHECK_HALT(expr, ...)                                                                      \
     if (expr) {                                                                                    \

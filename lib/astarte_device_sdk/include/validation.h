@@ -4,11 +4,11 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef DATA_VALIDATION_H
-#define DATA_VALIDATION_H
+#ifndef VALIDATION_H
+#define VALIDATION_H
 
 /**
- * @file data_validation.h
+ * @file validation.h
  * @brief Utility functions used to validate data and timestamps in transmission and reception.
  */
 
@@ -32,7 +32,7 @@ extern "C" {
  * @param[in] timestamp Timestamp to validate, it might be NULL.
  * @return ASTARTE_RESULT_OK when validation is successful, an error otherwise.
  */
-astarte_result_t data_validation_individual_datastream(const astarte_interface_t *interface,
+astarte_result_t astarte_validation_individual_datastream(const astarte_interface_t *interface,
     const char *path, astarte_data_t data, const int64_t *timestamp);
 
 /**
@@ -45,7 +45,7 @@ astarte_result_t data_validation_individual_datastream(const astarte_interface_t
  * @param[in] timestamp Timestamp to validate, it might be NULL.
  * @return ASTARTE_RESULT_OK when validation is successful, an error otherwise.
  */
-astarte_result_t data_validation_aggregated_datastream(const astarte_interface_t *interface,
+astarte_result_t astarte_validation_aggregated_datastream(const astarte_interface_t *interface,
     const char *path, astarte_object_entry_t *entries, size_t entries_len,
     const int64_t *timestamp);
 
@@ -57,7 +57,7 @@ astarte_result_t data_validation_aggregated_datastream(const astarte_interface_t
  * @param[in] data Astarte data value to validate.
  * @return ASTARTE_RESULT_OK when validation is successful, an error otherwise.
  */
-astarte_result_t data_validation_set_property(
+astarte_result_t astarte_validation_set_property(
     const astarte_interface_t *interface, const char *path, astarte_data_t data);
 
 /**
@@ -67,11 +67,11 @@ astarte_result_t data_validation_set_property(
  * @param[in] path Path to validate.
  * @return ASTARTE_RESULT_OK when validation is successful, an error otherwise.
  */
-astarte_result_t data_validation_unset_property(
+astarte_result_t astarte_validation_unset_property(
     const astarte_interface_t *interface, const char *path);
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif // DATA_VALIDATION_H
+#endif // VALIDATION_H

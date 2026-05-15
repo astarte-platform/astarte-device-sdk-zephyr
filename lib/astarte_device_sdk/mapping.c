@@ -10,6 +10,7 @@
 #include <math.h>
 #include <string.h>
 
+#include "bson/types.h"
 #include "log.h"
 
 ASTARTE_LOG_MODULE_REGISTER(astarte_mapping, CONFIG_ASTARTE_DEVICE_SDK_MAPPING_LOG_LEVEL);
@@ -154,6 +155,58 @@ astarte_result_t astarte_mapping_check_data(const astarte_mapping_t *mapping, as
     }
 
     return ASTARTE_RESULT_OK;
+}
+
+bool astarte_mapping_bson_is_compatible(astarte_mapping_type_t mapping_type, uint8_t bson_type)
+{
+    uint8_t expected_bson_type = '\x00';
+    switch (mapping_type) {
+        case ASTARTE_MAPPING_TYPE_BINARYBLOB:
+            expected_bson_type = ASTARTE_BSON_TYPE_BINARY;
+            break;
+        case ASTARTE_MAPPING_TYPE_BOOLEAN:
+            expected_bson_type = ASTARTE_BSON_TYPE_BOOLEAN;
+            break;
+        case ASTARTE_MAPPING_TYPE_DATETIME:
+            expected_bson_type = ASTARTE_BSON_TYPE_DATETIME;
+            break;
+        case ASTARTE_MAPPING_TYPE_DOUBLE:
+            expected_bson_type = ASTARTE_BSON_TYPE_DOUBLE;
+            break;
+        case ASTARTE_MAPPING_TYPE_INTEGER:
+            expected_bson_type = ASTARTE_BSON_TYPE_INT32;
+            break;
+        case ASTARTE_MAPPING_TYPE_LONGINTEGER:
+            expected_bson_type = ASTARTE_BSON_TYPE_INT64;
+            break;
+        case ASTARTE_MAPPING_TYPE_STRING:
+            expected_bson_type = ASTARTE_BSON_TYPE_STRING;
+            break;
+        case ASTARTE_MAPPING_TYPE_BINARYBLOBARRAY:
+        case ASTARTE_MAPPING_TYPE_BOOLEANARRAY:
+        case ASTARTE_MAPPING_TYPE_DATETIMEARRAY:
+        case ASTARTE_MAPPING_TYPE_DOUBLEARRAY:
+        case ASTARTE_MAPPING_TYPE_INTEGERARRAY:
+        case ASTARTE_MAPPING_TYPE_LONGINTEGERARRAY:
+        case ASTARTE_MAPPING_TYPE_STRINGARRAY:
+            expected_bson_type = ASTARTE_BSON_TYPE_ARRAY;
+            break;
+        default:
+            ASTARTE_LOG_ERR("Invalid mapping type (%d).", mapping_type);
+            return false;
+    }
+
+    if ((expected_bson_type == ASTARTE_BSON_TYPE_INT64) && (bson_type == ASTARTE_BSON_TYPE_INT32)) {
+        return true;
+    }
+
+    if (bson_type != expected_bson_type) {
+        ASTARTE_LOG_ERR(
+            "Mapping type (%d) and BSON type (0x%x) do not match.", mapping_type, bson_type);
+        return false;
+    }
+
+    return true;
 }
 
 /************************************************

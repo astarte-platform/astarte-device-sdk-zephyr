@@ -8,7 +8,7 @@
 #define DATA_SERIALIZE_H
 
 /**
- * @file data_serialize.h
+ * @file data/serialize.h
  * @brief Serialization functions for  Astarte data types
  */
 #include "astarte_device_sdk/data.h"
@@ -27,7 +27,7 @@ extern "C" {
  * @param[in] data the #astarte_data_t to serialize to the bson.
  * @return ASTARTE_RESULT_OK if successful, otherwise an error code.
  */
-astarte_result_t data_serialize(
+astarte_result_t astarte_data_serialize(
     astarte_bson_serializer_t *bson, const char *key, astarte_data_t data);
 
 #ifdef __cplusplus

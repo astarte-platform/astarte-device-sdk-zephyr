@@ -15,7 +15,7 @@
 
 #include <astarte_device_sdk/device.h>
 #include <astarte_device_sdk/interface.h>
-#include <data_deserialize.h>
+#include <data/deserialize.h>
 #include <interface_private.h>
 #include <object_private.h>
 
@@ -205,7 +205,7 @@ static int cmd_send_individual(const struct shell *shell, size_t argc, char **ar
     return_code = 0;
 
 cleanup:
-    data_destroy_deserialized(data);
+    astarte_data_destroy_deserialized(data);
     free((void *) value.buf);
     free(path);
 
@@ -296,7 +296,7 @@ static int cmd_send_property_set(const struct shell *shell, size_t argc, char **
     return_code = 0;
 
 cleanup:
-    data_destroy_deserialized(data);
+    astarte_data_destroy_deserialized(data);
     free((void *) value.buf);
     free(path);
 
@@ -378,7 +378,7 @@ static int cmd_expect_individual(const struct shell *shell, size_t argc, char **
 error:
     free(path);
     free((void *) value.buf);
-    data_destroy_deserialized(data);
+    astarte_data_destroy_deserialized(data);
 
     return 1;
 }
@@ -473,7 +473,7 @@ static int cmd_expect_property_set(const struct shell *shell, size_t argc, char 
 error:
     free(path);
     free((void *) value.buf);
-    data_destroy_deserialized(data);
+    astarte_data_destroy_deserialized(data);
 
     return 1;
 }
@@ -640,7 +640,7 @@ static int parse_bson_to_alloc_astarte_invividual(
     CHECK_ASTARTE_OK_RET_1(astarte_bson_deserializer_element_lookup(full_document, "v", &v_elem),
         "Cannot retrieve BSON value from data");
 
-    CHECK_ASTARTE_OK_RET_1(data_deserialize(v_elem, mapping->type, out_data),
+    CHECK_ASTARTE_OK_RET_1(astarte_data_deserialize(v_elem, mapping->type, out_data),
         "Couldn't deserialize received binary data into object entries");
 
     return 0;

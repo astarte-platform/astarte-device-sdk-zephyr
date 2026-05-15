@@ -200,9 +200,9 @@ endmenu
 
 menu "Logging options"
 
-module = ASTARTE_DEVICE_SDK_PAIRING
-module-str = Log level for Astarte device SDK pairing utilities
-module-help = Sets log level for Astarte device SDK pairing utilities.
+module = ASTARTE_DEVICE_SDK_BSON
+module-str = Log level for Astarte device SDK BSON generation utilities
+module-help = Sets log level for Astarte device SDK BSON generation utilities.
 source "subsys/logging/Kconfig.template.log_config"
 
 module = ASTARTE_DEVICE_SDK_CRYPTO
@@ -210,9 +210,9 @@ module-str = Log level for Astarte device SDK certificate generation suite
 module-help = Sets log level for Astarte device SDK certificate generation suite.
 source "subsys/logging/Kconfig.template.log_config"
 
-module = ASTARTE_DEVICE_SDK_HTTP
-module-str = Log level for Astarte device SDK connectivity utilities
-module-help = Sets log level for Astarte device SDK connectivity utilities.
+module = ASTARTE_DEVICE_SDK_DATA
+module-str = Log level for Astarte device SDK data
+module-help = Sets log level for Astarte device SDK data.
 source "subsys/logging/Kconfig.template.log_config"
 
 module = ASTARTE_DEVICE_SDK_DEVICE
@@ -220,19 +220,34 @@ module-str = Log level for Astarte device SDK device
 module-help = Sets log level for Astarte device SDK device.
 source "subsys/logging/Kconfig.template.log_config"
 
+module = ASTARTE_DEVICE_SDK_DEVICE_CONNECTION
+module-str = Log level for Astarte device SDK device connection
+module-help = Sets log level for Astarte device SDK device connection.
+source "subsys/logging/Kconfig.template.log_config"
+
+module = ASTARTE_DEVICE_SDK_DEVICE_ID
+module-str = Log level for Astarte device SDK device ID
+module-help = Sets log level for Astarte device SDK device ID.
+source "subsys/logging/Kconfig.template.log_config"
+
+module = ASTARTE_DEVICE_SDK_DEVICE_RX
+module-str = Log level for Astarte device SDK device reception
+module-help = Sets log level for Astarte device SDK device reception.
+source "subsys/logging/Kconfig.template.log_config"
+
 module = ASTARTE_DEVICE_SDK_DEVICE_STORAGE
 module-str = Log level for Astarte device SDK device caching
 module-help = Sets log level for Astarte device SDK device caching.
 source "subsys/logging/Kconfig.template.log_config"
 
-module = ASTARTE_DEVICE_SDK_UUID
-module-str = Log level for Astarte device SDK UUID generation utilities
-module-help = Sets log level for Astarte device SDK UUID generation utilities.
+module = ASTARTE_DEVICE_SDK_DEVICE_TX
+module-str = Log level for Astarte device SDK device transmission
+module-help = Sets log level for Astarte device SDK device transmission.
 source "subsys/logging/Kconfig.template.log_config"
 
-module = ASTARTE_DEVICE_SDK_BSON
-module-str = Log level for Astarte device SDK BSON generation utilities
-module-help = Sets log level for Astarte device SDK BSON generation utilities.
+module = ASTARTE_DEVICE_SDK_HTTP
+module-str = Log level for Astarte device SDK connectivity utilities
+module-help = Sets log level for Astarte device SDK connectivity utilities.
 source "subsys/logging/Kconfig.template.log_config"
 
 module = ASTARTE_DEVICE_SDK_INTROSPECTION
@@ -240,29 +255,9 @@ module-str = Log level for Astarte device SDK introspection
 module-help = Sets log level for Astarte device SDK introspection.
 source "subsys/logging/Kconfig.template.log_config"
 
-module = ASTARTE_DEVICE_SDK_DATA
-module-str = Log level for Astarte device SDK data
-module-help = Sets log level for Astarte device SDK data.
-source "subsys/logging/Kconfig.template.log_config"
-
-module = ASTARTE_DEVICE_SDK_DATA_SERIALIZE
-module-str = Log level for Astarte device SDK data serialization
-module-help = Sets log level for Astarte device SDK data serialization.
-source "subsys/logging/Kconfig.template.log_config"
-
-module = ASTARTE_DEVICE_SDK_DATA_DESERIALIZE
-module-str = Log level for Astarte device SDK data deserialization
-module-help = Sets log level for Astarte device SDK data deserialization.
-source "subsys/logging/Kconfig.template.log_config"
-
-module = ASTARTE_DEVICE_SDK_DATA_VALIDATION
-module-str = Log level for Astarte device SDK data validation
-module-help = Sets log level for Astarte device SDK data validation.
-source "subsys/logging/Kconfig.template.log_config"
-
-module = ASTARTE_DEVICE_SDK_OBJECT
-module-str = Log level for Astarte device SDK object
-module-help = Sets log level for Astarte device SDK object.
+module = ASTARTE_DEVICE_SDK_KV_STORAGE
+module-str = Log level for Astarte device SDK key-value storage
+module-help = Sets log level for Astarte device SDK key-value storage.
 source "subsys/logging/Kconfig.template.log_config"
 
 module = ASTARTE_DEVICE_SDK_MAPPING
@@ -275,34 +270,29 @@ module-str = Log level for Astarte device SDK MQTT wrapper
 module-help = Sets log level for Astarte device SDK MQTT wrapper.
 source "subsys/logging/Kconfig.template.log_config"
 
+module = ASTARTE_DEVICE_SDK_OBJECT
+module-str = Log level for Astarte device SDK object
+module-help = Sets log level for Astarte device SDK object.
+source "subsys/logging/Kconfig.template.log_config"
+
+module = ASTARTE_DEVICE_SDK_PAIRING
+module-str = Log level for Astarte device SDK pairing utilities
+module-help = Sets log level for Astarte device SDK pairing utilities.
+source "subsys/logging/Kconfig.template.log_config"
+
 module = ASTARTE_DEVICE_SDK_TLS_CREDENTIALS
 module-str = Log level for Astarte device SDK tls credentials wrapper
 module-help = Sets log level for Astarte device SDK tls credentials wrapper.
 source "subsys/logging/Kconfig.template.log_config"
 
-module = ASTARTE_DEVICE_SDK_KV_STORAGE
-module-str = Log level for Astarte device SDK key-value storage
-module-help = Sets log level for Astarte device SDK key-value storage.
+module = ASTARTE_DEVICE_SDK_UUID
+module-str = Log level for Astarte device SDK UUID generation utilities
+module-help = Sets log level for Astarte device SDK UUID generation utilities.
 source "subsys/logging/Kconfig.template.log_config"
 
-module = ASTARTE_DEVICE_SDK_DEVICE_RX
-module-str = Log level for Astarte device SDK device reception
-module-help = Sets log level for Astarte device SDK device reception.
-source "subsys/logging/Kconfig.template.log_config"
-
-module = ASTARTE_DEVICE_SDK_DEVICE_TX
-module-str = Log level for Astarte device SDK device transmission
-module-help = Sets log level for Astarte device SDK device transmission.
-source "subsys/logging/Kconfig.template.log_config"
-
-module = ASTARTE_DEVICE_SDK_DEVICE_CONNECTION
-module-str = Log level for Astarte device SDK device connection
-module-help = Sets log level for Astarte device SDK device connection.
-source "subsys/logging/Kconfig.template.log_config"
-
-module = ASTARTE_DEVICE_SDK_DEVICE_ID
-module-str = Log level for Astarte device SDK device ID
-module-help = Sets log level for Astarte device SDK device ID.
+module = ASTARTE_DEVICE_SDK_VALIDATION
+module-str = Log level for Astarte device SDK data validation
+module-help = Sets log level for Astarte device SDK data validation.
 source "subsys/logging/Kconfig.template.log_config"
 
 endmenu

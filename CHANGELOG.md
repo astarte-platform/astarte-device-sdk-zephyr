@@ -25,6 +25,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ### Removed
 - Support for Zephyr versions older than 4.3.x, including 3.7.x (LTS3).
+- The public header `util.h` which contained the `ASTARTE_UTIL_DEFINE_ARRAY` macro.
 
 ### Fixed
 - Corrected the storage partition size for the `frdm_rw612` board sample.

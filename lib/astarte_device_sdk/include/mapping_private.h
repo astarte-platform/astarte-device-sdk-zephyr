@@ -50,6 +50,15 @@ astarte_result_t astarte_mapping_check_path(astarte_mapping_t mapping, const cha
  */
 astarte_result_t astarte_mapping_check_data(const astarte_mapping_t *mapping, astarte_data_t data);
 
+/**
+ * @brief Validate that a mapping type and a BSON type are compatible.
+ *
+ * @param[in] mapping_type Mapping type to evaluate
+ * @param[in] bson_type BSON type to evaluate.
+ * @return true if the BSON type and mapping type are compatible, false otherwise.
+ */
+bool astarte_mapping_bson_is_compatible(astarte_mapping_type_t mapping_type, uint8_t bson_type);
+
 #ifdef __cplusplus
 }
 #endif

@@ -4,18 +4,18 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "data_serialize.h"
+#include "data/serialize.h"
 
 #include "bson/serializer.h"
 
 #include "log.h"
-ASTARTE_LOG_MODULE_REGISTER(data_serialize, CONFIG_ASTARTE_DEVICE_SDK_DATA_SERIALIZE_LOG_LEVEL);
+ASTARTE_LOG_MODULE_REGISTER(data_serialize, CONFIG_ASTARTE_DEVICE_SDK_DATA_LOG_LEVEL);
 
 /************************************************
  *         Global functions definitions         *
  ***********************************************/
 
-astarte_result_t data_serialize(
+astarte_result_t astarte_data_serialize(
     astarte_bson_serializer_t *bson, const char *key, astarte_data_t data)
 {
     astarte_result_t ares = ASTARTE_RESULT_OK;

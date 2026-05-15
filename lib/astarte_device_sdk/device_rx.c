@@ -10,11 +10,11 @@
 #endif
 
 #include "bson/deserializer.h"
-#include "data_validation.h"
+#include "validation.h"
 #ifdef CONFIG_ASTARTE_DEVICE_SDK_PERMANENT_STORAGE
 #include "storage/prop.h"
 #endif
-#include "data_deserialize.h"
+#include "data/deserialize.h"
 #include "interface_private.h"
 #include "object_private.h"
 
@@ -412,7 +412,7 @@ static void on_data_message(astarte_device_handle_t device, const char *interfac
             return;
         }
         astarte_data_t data_deserialized = { 0 };
-        ares = data_deserialize(v_elem, mapping->type, &data_deserialized);
+        ares = astarte_data_deserialize(v_elem, mapping->type, &data_deserialized);
         if (ares != ASTARTE_RESULT_OK) {
             ASTARTE_LOG_ERR("Failed in parsing the received BSON file. Interface: %s, path: %s.",
                 interface_name, path);
@@ -424,7 +424,7 @@ static void on_data_message(astarte_device_handle_t device, const char *interfac
         } else {
             on_datastream_individual(device, base_event, data_deserialized);
         }
-        data_destroy_deserialized(data_deserialized);
+        astarte_data_destroy_deserialized(data_deserialized);
     } else {
         astarte_object_entry_t *entries = NULL;
         size_t entries_length = 0;
@@ -450,7 +450,7 @@ static void on_unset_property(astarte_device_handle_t device, astarte_device_dat
         return;
     }
 
-    astarte_result_t ares = data_validation_unset_property(interface, event.path);
+    astarte_result_t ares = astarte_validation_unset_property(interface, event.path);
     if (ares != ASTARTE_RESULT_OK) {
         ASTARTE_LOG_ERR("Server property unset is invalid: %s.", astarte_result_to_name(ares));
         return;
@@ -481,7 +481,7 @@ static void on_set_property(
         return;
     }
 
-    astarte_result_t ares = data_validation_set_property(interface, base_event.path, data);
+    astarte_result_t ares = astarte_validation_set_property(interface, base_event.path, data);
     if (ares != ASTARTE_RESULT_OK) {
         ASTARTE_LOG_ERR("Server property data validation failed.");
         return;
@@ -518,7 +518,7 @@ static void on_datastream_individual(
     }
 
     astarte_result_t ares
-        = data_validation_individual_datastream(interface, base_event.path, data, NULL);
+        = astarte_validation_individual_datastream(interface, base_event.path, data, NULL);
     // TODO: remove this exception when the following issue is resolved:
     // https://github.com/astarte-platform/astarte/issues/938
     if (ares == ASTARTE_RESULT_MAPPING_EXPLICIT_TIMESTAMP_REQUIRED) {
@@ -550,7 +550,7 @@ static void on_datastream_aggregated(astarte_device_handle_t device,
         return;
     }
 
-    astarte_result_t ares = data_validation_aggregated_datastream(
+    astarte_result_t ares = astarte_validation_aggregated_datastream(
         interface, base_event.path, entries, entries_len, NULL);
     // TODO: remove this exception when the following issue is resolved:
     // https://github.com/astarte-platform/astarte/issues/938

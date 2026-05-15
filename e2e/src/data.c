@@ -11,7 +11,7 @@
 #include <zephyr/sys/hash_map_api.h>
 #include <zephyr/sys/spsc_lockfree.h>
 
-#include <data_deserialize.h>
+#include <data/deserialize.h>
 #include <object_private.h>
 
 #include "device_handler.h"
@@ -254,7 +254,7 @@ int data_expected_individual(
     CHECK_RET_1(!astarte_data_are_equal(&expected->data, data), "Unexpected element received");
 
     free((char *) expected->path);
-    data_destroy_deserialized(expected->data);
+    astarte_data_destroy_deserialized(expected->data);
 
     (void *) spsc_consume(&map_value->messages);
     spsc_release(&map_value->messages);
@@ -322,7 +322,7 @@ int data_expected_set_property(
     CHECK_RET_1(!astarte_data_are_equal(&expected->data, data), "Unexpected element received");
 
     free((char *) expected->path);
-    data_destroy_deserialized(expected->data);
+    astarte_data_destroy_deserialized(expected->data);
 
     (void *) spsc_consume(&map_value->messages);
     spsc_release(&map_value->messages);
@@ -370,7 +370,7 @@ void free_map_entry_callback(uint64_t key, uint64_t value, void *cookie)
     for (message_t *message; (message = spsc_consume(&map_value->messages)) != NULL;) {
         free((char *) message->path);
         if ((message->type == INDIVIDUAL) || (message->type == SET_PROPERTY)) {
-            data_destroy_deserialized(message->data);
+            astarte_data_destroy_deserialized(message->data);
         } else if (message->type == OBJECT) {
             free((void *) message->raw_bson_data.buf);
             astarte_object_entries_destroy_deserialized(message->entries, message->entries_length);
