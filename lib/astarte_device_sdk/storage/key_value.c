@@ -67,6 +67,7 @@ astarte_result_t astarte_storage_key_value_open(
         ASTARTE_LOG_ERR("NVS mount error: %s (%d).", strerror(-nvs_rc), nvs_rc);
         return ASTARTE_RESULT_NVS_ERROR;
     }
+
     return ASTARTE_RESULT_OK;
 }
 

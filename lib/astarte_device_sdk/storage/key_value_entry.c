@@ -31,7 +31,6 @@ ASTARTE_LOG_MODULE_DECLARE(astarte_kv_storage, CONFIG_ASTARTE_DEVICE_SDK_KV_STOR
     (HEADER_NAMESPACE_LEN_BYTES + HEADER_KEY_LEN_BYTES + HEADER_NEXT_ID_BYTES                      \
         + HEADER_PREV_ID_BYTES)
 
-#define STORAGE_VERSION_POSITION (UINT16_MAX)
 #define HEAD_AND_TAIL_ID_POSITION (UINT16_MAX - 1)
 
 /************************************************

@@ -25,10 +25,6 @@ ASTARTE_LOG_MODULE_REGISTER(device_storage, CONFIG_ASTARTE_DEVICE_SDK_DEVICE_STO
  *        Defines, constants and typedef        *
  ***********************************************/
 
-#define STORAGE_VERSION_MAJOR 1
-#define STORAGE_VERSION_MINOR 0
-#define STORAGE_VERSION_PATCH 0
-
 #define NVS_PARTITION astarte_partition
 #if !FIXED_PARTITION_EXISTS(NVS_PARTITION)
 #error "Permanent storage is enabled but 'astarte_partition' flash partition is missing."
@@ -68,7 +64,6 @@ astarte_result_t astarte_storage_init(astarte_storage_data_t *handle)
         .flash_device = NVS_PARTITION_DEVICE,
         .flash_offset = NVS_PARTITION_OFFSET,
         .flash_partition_size = NVS_PARTITION_SIZE,
-        .version = { STORAGE_VERSION_MAJOR, STORAGE_VERSION_MINOR, STORAGE_VERSION_PATCH },
     };
 
     ares = astarte_storage_key_value_open(kv_astarte_storage_cfg, &handle->nvs_fs);
