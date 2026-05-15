@@ -55,11 +55,6 @@ typedef struct
     off_t flash_offset;
     /** @brief Full size of the partition */
     uint64_t flash_partition_size;
-    /**
-     * @brief Expected storage version, triggers a format if mismatched.
-     * @details [0] = Major, [1] = Minor, [2] = Patch
-     */
-    uint8_t version[3];
 } astarte_storage_key_value_cfg_t;
 
 /** @brief Data struct for an instance of the key-value storage driver. */

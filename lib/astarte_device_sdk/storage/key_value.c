@@ -67,41 +67,6 @@ astarte_result_t astarte_storage_key_value_open(
         ASTARTE_LOG_ERR("NVS mount error: %s (%d).", strerror(-nvs_rc), nvs_rc);
         return ASTARTE_RESULT_NVS_ERROR;
     }
-
-    // Array to hold the read version bytes
-    uint8_t stored_version[3] = { 0 };
-    astarte_result_t read_res
-        = astarte_storage_key_value_entry_read_version(nvs_fs, stored_version);
-
-    // Only trigger a mismatch if the major ([0]) or minor ([1]) versions differ
-    bool version_mismatch
-        = (stored_version[0] != config.version[0]) || (stored_version[1] != config.version[1]);
-
-    if (read_res == ASTARTE_RESULT_NOT_FOUND
-        || (read_res == ASTARTE_RESULT_OK && version_mismatch)) {
-        ASTARTE_LOG_WRN("Storage version mismatch or missing. Reformatting...");
-
-        int clear_rc = nvs_clear(nvs_fs);
-        if (clear_rc) {
-            ASTARTE_LOG_ERR("Failed to clear NVS partition: %d.", clear_rc);
-            return ASTARTE_RESULT_NVS_ERROR;
-        }
-
-        int mount_rc = nvs_mount(nvs_fs);
-        if (mount_rc) {
-            ASTARTE_LOG_ERR("Failed to re-mount NVS after clear: %d.", mount_rc);
-            return ASTARTE_RESULT_NVS_ERROR;
-        }
-
-        astarte_result_t write_res
-            = astarte_storage_key_value_entry_write_version(nvs_fs, config.version);
-        if (write_res != ASTARTE_RESULT_OK) {
-            return write_res;
-        }
-    } else if (read_res != ASTARTE_RESULT_OK) {
-        return read_res;
-    }
-
     return ASTARTE_RESULT_OK;
 }
 
