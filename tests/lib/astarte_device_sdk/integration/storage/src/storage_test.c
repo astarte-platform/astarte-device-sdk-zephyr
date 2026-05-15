@@ -30,6 +30,14 @@ struct astarte_device_sdk_storage_fixture
     astarte_storage_data_t caching_handle;
 };
 
+struct property
+{
+    const char *interface_name;
+    const char *path;
+    uint32_t major;
+    astarte_data_t data;
+};
+
 static void *astarte_storage_test_setup(void)
 {
     struct flash_pages_info fp_info;
@@ -72,7 +80,7 @@ static void astarte_storage_test_before(void *f)
     zassert_equal(nvs_mount(&nvs_fs), 0, "NVS mounting failed.");
     zassert_equal(nvs_clear(&nvs_fs), 0, "NVS clear failed.");
 
-    astarte_result_t ares = astarte_storage_init(&fixture->caching_handle);
+    astarte_result_t ares = astarte_storage_init(&fixture->caching_handle, 1, 0, 0);
     zassert_equal(ares, ASTARTE_RESULT_OK, "Init failed: %s", astarte_result_to_name(ares));
 }
 
@@ -159,6 +167,63 @@ ZTEST_SUITE(astarte_device_sdk_storage, NULL, astarte_storage_test_setup,
     astarte_storage_test_before, astarte_storage_test_after,
     astarte_storage_test_teardown); // NOLINT
 
+ZTEST_F(astarte_device_sdk_storage, test_device_astarte_storage_version_update)
+{
+    astarte_result_t ares = ASTARTE_RESULT_OK;
+    int32_t read_major = 0;
+    astarte_data_t read_data = { 0 };
+
+    struct property prop = {
+        .interface_name = "version.test.interface",
+        .path = "/test/path",
+        .major = 1,
+        .data = astarte_data_from_integer(42),
+    };
+
+    // 1. Store a property using the initial version (1.0.0 set in before handler)
+    ares = astarte_storage_property_store(
+        &fixture->caching_handle, prop.interface_name, prop.path, prop.major, prop.data);
+    zassert_equal(ares, ASTARTE_RESULT_OK, "Res:%s", astarte_result_to_name(ares));
+
+    // 2. Simulate Patch Update (1.0.1) - Partition should be kept intact
+    astarte_storage_destroy(&fixture->caching_handle);
+    ares = astarte_storage_init(&fixture->caching_handle, 1, 0, 1);
+    zassert_equal(ares, ASTARTE_RESULT_OK, "Res:%s", astarte_result_to_name(ares));
+
+    // Ensure property is still there
+    ares = astarte_storage_property_load(&fixture->caching_handle, prop.interface_name, prop.path,
+        (uint32_t *) &read_major, &read_data);
+    zassert_equal(ares, ASTARTE_RESULT_OK, "Res:%s", astarte_result_to_name(ares));
+    astarte_storage_property_destroy_loaded(read_data);
+
+    // 3. Simulate Minor Update (1.1.1) - Partition should be erased
+    astarte_storage_destroy(&fixture->caching_handle);
+    ares = astarte_storage_init(&fixture->caching_handle, 1, 1, 1);
+    zassert_equal(ares, ASTARTE_RESULT_OK, "Res:%s", astarte_result_to_name(ares));
+
+    // Ensure property is gone (NOT_FOUND)
+    read_data = (astarte_data_t){ 0 };
+    ares = astarte_storage_property_load(&fixture->caching_handle, prop.interface_name, prop.path,
+        (uint32_t *) &read_major, &read_data);
+    zassert_equal(ares, ASTARTE_RESULT_NOT_FOUND, "Res:%s", astarte_result_to_name(ares));
+
+    // 4. Store a property again to prepare for Major Update
+    ares = astarte_storage_property_store(
+        &fixture->caching_handle, prop.interface_name, prop.path, prop.major, prop.data);
+    zassert_equal(ares, ASTARTE_RESULT_OK, "Res:%s", astarte_result_to_name(ares));
+
+    // 5. Simulate Major Update (2.0.0) - Partition should be erased
+    astarte_storage_destroy(&fixture->caching_handle);
+    ares = astarte_storage_init(&fixture->caching_handle, 2, 0, 0);
+    zassert_equal(ares, ASTARTE_RESULT_OK, "Res:%s", astarte_result_to_name(ares));
+
+    // Ensure property is gone again
+    read_data = (astarte_data_t){ 0 };
+    ares = astarte_storage_property_load(&fixture->caching_handle, prop.interface_name, prop.path,
+        (uint32_t *) &read_major, &read_data);
+    zassert_equal(ares, ASTARTE_RESULT_NOT_FOUND, "Res:%s", astarte_result_to_name(ares));
+}
+
 ZTEST_F(astarte_device_sdk_storage, test_device_astarte_storage_synchronization) // NOLINT
 {
     bool sync = false;
@@ -235,14 +300,6 @@ ZTEST_F(astarte_device_sdk_storage, test_device_astarte_storage_store_introspect
         &fixture->caching_handle, intr_3_str, ARRAY_SIZE(intr_3_str));
     zassert_equal(ares, ASTARTE_RESULT_OK, "Res:%s", astarte_result_to_name(ares));
 }
-
-struct property
-{
-    const char *interface_name;
-    const char *path;
-    uint32_t major;
-    astarte_data_t data;
-};
 
 ZTEST_F(astarte_device_sdk_storage, test_device_astarte_storage_store_load_property) // NOLINT
 {
