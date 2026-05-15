@@ -12,38 +12,21 @@
  * @brief Key-value persistent storage implementation, with namespacing. Uses NVS as backend.
  *
  * @details
- * Each namespaced key-value pair is stored as three separate NVS entries:
- * 1. An entry containing the namespace
- * 2. An entry containing the key
- * 3. An entry containing the value
+ * Each namespaced key-value pair is stored as a single NVS entry to ensure atomic operations.
+ * The entry ID is generated via a CRC16 hash of the concatenated namespace and key strings,
+ * with linear probing used to handle collisions.
  *
- * The NVS storage is used in an array like manner, with the following organization:
- * <pre>
- * +---------+------------------------------+
- * | NVS ID  | NVS VALUE                    |
- * +=========+==============================+
- * | 0       | Total number of stored pairs |
- * +---------+------------------------------+
- * | 1       | Namespace for first pair     |
- * +---------+------------------------------+
- * | 2       | Key for first pair           |
- * +---------+------------------------------+
- * | 3       | Value for first pair         |
- * +---------+------------------------------+
- * | ...     | ...                          |
- * +---------+------------------------------+
- * | n*3 + 1 | Namespace for nth pair       |
- * +---------+------------------------------+
- * | n*3 + 2 | Key for nth pair             |
- * +---------+------------------------------+
- * | n*3 + 3 | Value for nth pair           |
- * +---------+------------------------------+
- * | ...     | ...                          |
- * +---------+------------------------------+
- * </pre>
+ * The payload of each NVS entry is structured as follows:
+ * - 2 bytes: Namespace string length (excluding null terminator)
+ * - 2 bytes: Key string length (excluding null terminator)
+ * - 2 bytes: Next entry ID in the linked list (0 if tail)
+ * - 2 bytes: Previous entry ID in the linked list (0 if head)
+ * - N bytes: Namespace string (no null terminator)
+ * - K bytes: Key string (no null terminator)
+ * - V bytes: Value data
  *
- * The first NVS entry will hold the total number of namespaced pairs, independently from their
- * namespace.
+ * This implementation avoids maintaining a central index to drastically reduce flash wear
+ * and relies on NVS's built-in atomic guarantees to ensure power-safe operations.
  *
  * This driver implements the following functionalities:
  * - Inserting a key-value pair.
@@ -88,8 +71,10 @@ typedef struct
 {
     /** @brief Reference to the storage instance used by the iterator. */
     astarte_storage_key_value_t *kv_storage;
-    /** @brief Current key-value pair pointed by the iterator. */
-    uint16_t current_pair;
+    /** @brief Current NVS ID pointed to by the iterator. */
+    uint16_t current_id;
+    /** @brief Previous global NVS ID, cached to safely delete the current entry. */
+    uint16_t prev_id;
 } astarte_storage_key_value_iter_t;
 
 #ifdef __cplusplus
@@ -187,7 +172,7 @@ astarte_result_t astarte_storage_key_value_iterator_init(
 astarte_result_t astarte_storage_key_value_iterator_next(astarte_storage_key_value_iter_t *iter);
 
 /**
- * @brief Get the key for the key-valie pair pointed to by the iterator.
+ * @brief Get the key for the key-value pair pointed to by the iterator.
  *
  * @param[in] iter Iterator instance.
  * @param[out] key Buffer where to store the key for the pair, can be set to NULL.
@@ -197,6 +182,18 @@ astarte_result_t astarte_storage_key_value_iterator_next(astarte_storage_key_val
  */
 astarte_result_t astarte_storage_key_value_iterator_get(
     astarte_storage_key_value_iter_t *iter, void *key, size_t *key_size);
+
+/**
+ * @brief Delete the key-value pair currently pointed to by the iterator.
+ *
+ * @details This function removes the current entry without breaking the iteration.
+ * The iterator state is automatically stepped backward so the next call to
+ * `astarte_storage_key_value_iterator_next` will advance to the subsequent valid entry.
+ *
+ * @param[inout] iter Iterator instance.
+ * @return ASTARTE_RESULT_OK if successful, otherwise an error code.
+ */
+astarte_result_t astarte_storage_key_value_iterator_delete(astarte_storage_key_value_iter_t *iter);
 
 #ifdef __cplusplus
 }

@@ -354,6 +354,25 @@ exit:
     return ares;
 }
 
+astarte_result_t astarte_storage_property_iterator_delete(astarte_storage_property_iter_t *iter)
+{
+    astarte_result_t ares = ASTARTE_RESULT_OK;
+
+    if (!iter) {
+        ASTARTE_LOG_ERR("Iterator is NULL.");
+        return ASTARTE_RESULT_INVALID_PARAM;
+    }
+
+    ASTARTE_LOG_DBG("Deleting current property from storage iterator.");
+
+    ares = astarte_storage_key_value_iterator_delete(&iter->kv_iter);
+    if (ares != ASTARTE_RESULT_OK) {
+        ASTARTE_LOG_ERR("Key-value storage iterator del error: %s.", astarte_result_to_name(ares));
+    }
+
+    return ares;
+}
+
 astarte_result_t astarte_storage_property_get_device_string(astarte_storage_data_t *handle,
     introspection_t *introspection, char *output, size_t *output_size)
 {

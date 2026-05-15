@@ -42,9 +42,13 @@ extern "C" {
 /**
  * @brief Initialize the device storage and open all required NVS namespaces.
  * @param[in,out] handle Pointer to the handle structure to initialize.
+ * @param[in] major Major version number.
+ * @param[in] minor Minor version number.
+ * @param[in] patch Patch version number.
  * @return ASTARTE_RESULT_OK if successful.
  */
-astarte_result_t astarte_storage_init(astarte_storage_data_t *handle);
+astarte_result_t astarte_storage_init(
+    astarte_storage_data_t *handle, uint8_t major, uint8_t minor, uint8_t patch);
 
 /**
  * @brief Close and clean up the device storage.

@@ -122,7 +122,8 @@ astarte_result_t astarte_device_new(astarte_device_config_t *cfg, astarte_device
     handle->cbk_user_data = cfg->cbk_user_data;
 
 #ifdef CONFIG_ASTARTE_DEVICE_SDK_PERMANENT_STORAGE
-    ares = astarte_storage_init(&handle->caching);
+    ares = astarte_storage_init(&handle->caching, ASTARTE_DEVICE_SDK_MAJOR,
+        ASTARTE_DEVICE_SDK_MINOR, ASTARTE_DEVICE_SDK_PATCH);
     if (ares != ASTARTE_RESULT_OK) {
         ASTARTE_LOG_ERR("Caching initialization failure %s.", astarte_result_to_name(ares));
         goto failure;
