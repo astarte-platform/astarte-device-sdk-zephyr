@@ -279,13 +279,78 @@ astarte_result_t astarte_storage_key_value_iterator_delete(astarte_storage_key_v
     ASTARTE_LOG_COND_ERR(mutex_rc != 0, "System mutex lock failed with %d", mutex_rc);
     __ASSERT_NO_MSG(mutex_rc == 0);
 
+    // Peek ahead to find the next matching element in the same namespace
+    uint16_t next_matching_id = 0;
+    uint16_t peek_curr_id = iter->current_id;
+    bool has_next = false;
+
+    while (true) {
+        uint16_t n_id = 0;
+        ares = astarte_storage_key_value_entry_get_next_id(
+            iter->kv_storage->nvs_fs, peek_curr_id, &n_id);
+
+        if (ares != ASTARTE_RESULT_OK || n_id == 0) {
+            break;
+        }
+
+        bool matches = false;
+        ares = astarte_storage_key_value_entry_check_namespace(
+            iter->kv_storage->nvs_fs, n_id, iter->kv_storage->namespace, &matches);
+
+        if (ares == ASTARTE_RESULT_OK && matches) {
+            next_matching_id = n_id;
+            has_next = true;
+            break;
+        }
+        peek_curr_id = n_id;
+    }
+
+    // Save the key of the next matching element so we can re-find it if it shifts
+    char *next_key = NULL;
+    size_t next_key_size = 0;
+    if (has_next) {
+        if (astarte_storage_key_value_entry_read_key(
+                iter->kv_storage->nvs_fs, next_matching_id, NULL, &next_key_size)
+            == ASTARTE_RESULT_OK) {
+            next_key = calloc(next_key_size, sizeof(char));
+            if (next_key) {
+                astarte_storage_key_value_entry_read_key(
+                    iter->kv_storage->nvs_fs, next_matching_id, next_key, &next_key_size);
+            }
+        }
+    }
+
     // Physically delete the current entry and heal the NVS global linked-list
     ares = astarte_storage_key_value_entry_delete(iter->kv_storage->nvs_fs, iter->current_id);
+
+    // Resynchronize the iterator state using get_prev_id
     if (ares == ASTARTE_RESULT_OK) {
-        // Step back using the cached previous ID
-        iter->current_id = iter->prev_id;
+        if (!has_next || !next_key) {
+            // We just deleted the very last element in this namespace.
+            iter->current_id = 0;
+        } else {
+            // Find the post-shift valid NVS ID of the next matching element
+            uint16_t valid_next_matching_id = 0;
+            if (astarte_storage_key_value_entry_find_or_alloc(iter->kv_storage->nvs_fs,
+                    iter->kv_storage->namespace, next_key, &valid_next_matching_id, false)
+                == ASTARTE_RESULT_OK) {
+
+                // Retrieve the logically previous node using our new O(1) function!
+                uint16_t new_prev_id = 0;
+                astarte_storage_key_value_entry_get_prev_id(
+                    iter->kv_storage->nvs_fs, valid_next_matching_id, &new_prev_id);
+
+                iter->current_id = new_prev_id;
+            } else {
+                iter->current_id = 0;
+            }
+        }
     } else {
         ASTARTE_LOG_ERR("Iterator delete error: %s.", astarte_result_to_name(ares));
+    }
+
+    if (next_key) {
+        free(next_key);
     }
 
     mutex_rc = sys_mutex_unlock(&astarte_storage_key_value_mutex);

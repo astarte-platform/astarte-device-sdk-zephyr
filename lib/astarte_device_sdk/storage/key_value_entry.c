@@ -424,7 +424,6 @@ exit:
     free(partial_header);
     return ares;
 }
-
 astarte_result_t astarte_storage_key_value_entry_delete(struct nvs_fs *nvs_fs, uint16_t idx)
 {
     uint16_t fixed_header[FIXED_HEADER_BYTES / sizeof(uint16_t)] = { 0 };
@@ -481,6 +480,120 @@ astarte_result_t astarte_storage_key_value_entry_delete(struct nvs_fs *nvs_fs, u
         return ASTARTE_RESULT_NVS_ERROR;
     }
 
+    // Backward shift for linear probing without tombstones to maintain lookup integrity
+    uint16_t hole_id = idx;
+    uint16_t curr_id = hole_id + 1;
+    if (curr_id == HEAD_AND_TAIL_ID_POSITION) {
+        curr_id = 1;
+    }
+
+    // NVS max allocable IDs limit
+    uint16_t max_id = HEAD_AND_TAIL_ID_POSITION - 1;
+
+    while (curr_id != hole_id) {
+        ssize_t payload_size = nvs_read(nvs_fs, curr_id, NULL, 0);
+        if (payload_size == -ENOENT) {
+            // Reached the end of the cluster (an empty slot)
+            break;
+        }
+        if (payload_size <= 0) {
+            return ASTARTE_RESULT_NVS_ERROR;
+        }
+
+        uint8_t *payload = calloc(payload_size, 1);
+        if (!payload) {
+            return ASTARTE_RESULT_OUT_OF_MEMORY;
+        }
+
+        ret = nvs_read(nvs_fs, curr_id, payload, payload_size);
+        if (ret < 0) {
+            free(payload);
+            return ASTARTE_RESULT_NVS_ERROR;
+        }
+
+        uint16_t nsp_len = ((uint16_t *) payload)[0];
+        uint16_t key_len = ((uint16_t *) payload)[1];
+        uint16_t c_next = ((uint16_t *) payload)[2];
+        uint16_t c_prev = ((uint16_t *) payload)[3];
+
+        char *curr_nsp = (char *) payload + FIXED_HEADER_BYTES;
+        char *nsp_str = calloc(nsp_len + 1, 1);
+        char *key_str = calloc(key_len + 1, 1);
+        if (!nsp_str || !key_str) {
+            free(nsp_str);
+            free(key_str);
+            free(payload);
+            return ASTARTE_RESULT_OUT_OF_MEMORY;
+        }
+
+        memcpy(nsp_str, curr_nsp, nsp_len);
+        memcpy(key_str, curr_nsp + nsp_len, key_len);
+
+        uint16_t natural_hash = generate_hash(nsp_str, key_str);
+        free(nsp_str);
+        free(key_str);
+
+        // Cyclic absolute distances from the natural_hash
+        uint16_t d_curr = (curr_id >= natural_hash) ? (curr_id - natural_hash)
+                                                    : (max_id - natural_hash + curr_id);
+        uint16_t d_hole = (hole_id >= natural_hash) ? (hole_id - natural_hash)
+                                                    : (max_id - natural_hash + hole_id);
+
+        // If the hole is closer to the natural hash than the current element's distance
+        if (d_hole < d_curr) {
+            // Shift the current entry to the hole's position
+            ret = nvs_write(nvs_fs, hole_id, payload, payload_size);
+            if (ret < 0) {
+                free(payload);
+                return ASTARTE_RESULT_NVS_ERROR;
+            }
+
+            // Update linked list pointers of the physically moved entry's neighbors
+            if (c_prev != 0) {
+                astarte_result_t u_res = update_entry_next_id(nvs_fs, c_prev, hole_id);
+                if (u_res != ASTARTE_RESULT_OK) {
+                    free(payload);
+                    return u_res;
+                }
+            } else {
+                head_id = 0;
+                tail_id = 0;
+                read_head_and_tail_ids(nvs_fs, &head_id, &tail_id);
+                write_head_and_tail_ids(nvs_fs, hole_id, tail_id);
+            }
+
+            if (c_next != 0) {
+                astarte_result_t u_res = update_entry_prev_id(nvs_fs, c_next, hole_id);
+                if (u_res != ASTARTE_RESULT_OK) {
+                    free(payload);
+                    return u_res;
+                }
+            } else {
+                head_id = 0;
+                tail_id = 0;
+                read_head_and_tail_ids(nvs_fs, &head_id, &tail_id);
+                write_head_and_tail_ids(nvs_fs, head_id, hole_id);
+            }
+
+            // Clean up the entry from its old position
+            ret = nvs_delete(nvs_fs, curr_id);
+            if (ret < 0) {
+                free(payload);
+                return ASTARTE_RESULT_NVS_ERROR;
+            }
+
+            // The new hole is the physical position we just vacated
+            hole_id = curr_id;
+        }
+
+        free(payload);
+
+        curr_id++;
+        if (curr_id == HEAD_AND_TAIL_ID_POSITION) {
+            curr_id = 1;
+        }
+    }
+
     return ASTARTE_RESULT_OK;
 }
 
@@ -505,6 +618,25 @@ astarte_result_t astarte_storage_key_value_entry_get_next_id(
         return ASTARTE_RESULT_NVS_ERROR;
     }
     *next_id = fixed_header[2];
+    return ASTARTE_RESULT_OK;
+}
+
+astarte_result_t astarte_storage_key_value_entry_get_prev_id(
+    struct nvs_fs *nvs_fs, uint16_t idx, uint16_t *prev_id)
+{
+    // Calling this function with ID 0 will make it return 0
+    if (idx == 0) {
+        *prev_id = 0;
+        return ASTARTE_RESULT_OK;
+    }
+
+    uint16_t fixed_header[FIXED_HEADER_BYTES / sizeof(uint16_t)] = { 0 };
+    ssize_t ret = nvs_read(nvs_fs, idx, fixed_header, FIXED_HEADER_BYTES);
+    if (ret < 0) {
+        return ASTARTE_RESULT_NVS_ERROR;
+    }
+
+    *prev_id = fixed_header[3];
     return ASTARTE_RESULT_OK;
 }
 

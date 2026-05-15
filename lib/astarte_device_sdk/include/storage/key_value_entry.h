@@ -108,4 +108,7 @@ astarte_result_t astarte_storage_key_value_entry_delete(struct nvs_fs *nvs_fs, u
 astarte_result_t astarte_storage_key_value_entry_get_next_id(
     struct nvs_fs *nvs_fs, uint16_t idx, uint16_t *next_id);
 
+astarte_result_t astarte_storage_key_value_entry_get_prev_id(
+    struct nvs_fs *nvs_fs, uint16_t idx, uint16_t *prev_id);
+
 #endif // STORAGE_KEY_VALUE_PAIR_H
