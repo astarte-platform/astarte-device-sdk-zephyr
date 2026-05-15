@@ -65,7 +65,6 @@ astarte_result_t astarte_storage_init(astarte_storage_data_t *handle)
         .flash_offset = NVS_PARTITION_OFFSET,
         .flash_partition_size = NVS_PARTITION_SIZE,
     };
-
     ares = astarte_storage_key_value_open(kv_astarte_storage_cfg, &handle->nvs_fs);
     if (ares != ASTARTE_RESULT_OK) {
         ASTARTE_LOG_ERR("Error opening cache: %s.", astarte_result_to_name(ares));
