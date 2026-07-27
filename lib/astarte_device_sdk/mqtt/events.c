@@ -80,7 +80,7 @@ void astarte_mqtt_handle_publish_event(
     const bool discarded = message_size > CONFIG_ASTARTE_DEVICE_SDK_MQTT_MAX_MSG_SIZE;
     size_t alloc_size = discarded ? CONFIG_ASTARTE_DEVICE_SDK_MQTT_MAX_MSG_SIZE : message_size;
     scope_var(scoped_char, msg_buffer)(alloc_size);
-    if (!msg_buffer) {
+    if (alloc_size != 0 && !msg_buffer) {
         ASTARTE_LOG_ERR("Out of memory %s: %d", __FILE__, __LINE__);
         return;
     }
